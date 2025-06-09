@@ -408,11 +408,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSetting(key: string, value: string, updatedBy?: number): Promise<Setting> {
+    // Try to update existing setting first
     const [setting] = await db
       .update(settings)
       .set({ value, updatedBy, updatedAt: new Date() })
       .where(eq(settings.key, key))
       .returning();
+    
+    // If no setting was updated, create a new one
+    if (!setting) {
+      return await this.createSetting({
+        key,
+        value,
+        updatedBy
+      });
+    }
+    
     return setting;
   }
 
