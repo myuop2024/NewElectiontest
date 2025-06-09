@@ -44,6 +44,7 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'Admin Panel', href: '/admin', icon: Shield },
+  { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
 ];
 
 export default function Sidebar() {

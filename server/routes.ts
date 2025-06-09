@@ -418,6 +418,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: req.ip
       });
 
+      // Notify administrators and roving observers via WebSocket
+      const notificationData = {
+        type: 'incident_reported',
+        report: {
+          id: report.id,
+          title: report.title,
+          description: report.description,
+          type: report.type,
+          priority: report.priority || 'medium',
+          status: report.status,
+          stationId: report.stationId,
+          reporterName: req.user?.username,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Get target recipients for real-time notifications
+      let targetUserIds = [];
+      
+      // Always include all admins
+      const adminUsers = await storage.getUsersByRole('admin');
+      targetUserIds.push(...adminUsers.map(admin => admin.id));
+      
+      // Include parish-specific roving observers
+      if (report.stationId) {
+        try {
+          const station = await storage.getPollingStations().then(stations => 
+            stations.find(s => s.id === report.stationId)
+          );
+          
+          if (station && station.parishId) {
+            const parishStations = await storage.getPollingStationsByParish(station.parishId);
+            const stationIds = parishStations.map(s => s.id);
+            
+            const assignments = await storage.getAssignments();
+            const parishAssignments = assignments.filter(a => 
+              stationIds.includes(a.stationId) && 
+              a.assignmentType === 'roving' && 
+              a.status === 'active'
+            );
+            
+            targetUserIds.push(...parishAssignments.map(a => a.userId));
+          }
+        } catch (error) {
+          console.error('Error getting parish assignments for WebSocket:', error);
+        }
+      }
+
+      // Send to targeted connected users
+      wss.clients.forEach((client) => {
+        if (client.readyState === client.OPEN) {
+          const clientInfo = (client as any).userInfo;
+          if (clientInfo && targetUserIds.includes(clientInfo.userId)) {
+            client.send(JSON.stringify(notificationData));
+          }
+        }
+      });
+
+      // Get administrators (site-wide notifications)
+      const admins = await storage.getUsersByRole('admin');
+      
+      // Get parish information for the polling station
+      let parishRovingObservers: any[] = [];
+      if (report.stationId) {
+        try {
+          const station = await storage.getPollingStations().then(stations => 
+            stations.find(s => s.id === report.stationId)
+          );
+          
+          if (station && station.parishId) {
+            // Get roving observers assigned to stations in this parish
+            const parishStations = await storage.getPollingStationsByParish(station.parishId);
+            const stationIds = parishStations.map(s => s.id);
+            
+            // Get all assignments for this parish's stations
+            const assignments = await storage.getAssignments();
+            const parishAssignments = assignments.filter(a => 
+              stationIds.includes(a.stationId) && 
+              a.assignmentType === 'roving' && 
+              a.status === 'active'
+            );
+            
+            // Get the actual roving observers
+            const rovingObserverIds = parishAssignments.map(a => a.userId);
+            const allRovingObservers = await storage.getUsersByRole('roving_observer');
+            parishRovingObservers = allRovingObservers.filter(observer => 
+              rovingObserverIds.includes(observer.id)
+            );
+          }
+        } catch (error) {
+          console.error('Error getting parish roving observers:', error);
+          // Fallback to all roving observers if parish lookup fails
+          parishRovingObservers = await storage.getUsersByRole('roving_observer');
+        }
+      } else {
+        // If no station specified, notify all roving observers
+        parishRovingObservers = await storage.getUsersByRole('roving_observer');
+      }
+
+      // Create notification records for tracking
+      const allRecipients = [...admins, ...parishRovingObservers];
+      for (const recipient of allRecipients) {
+        try {
+          await storage.createMessage({
+            senderId: req.user!.id,
+            recipientId: recipient.id,
+            content: `New incident report: ${report.title} (${report.type})`,
+            messageType: 'incident_notification',
+            metadata: JSON.stringify({
+              reportId: report.id,
+              priority: report.priority || 'medium',
+              stationId: report.stationId
+            })
+          });
+        } catch (msgError) {
+          console.error('Error creating notification message:', msgError);
+        }
+      }
+
       res.json(report);
     } catch (error) {
       console.error("Error creating report:", error);
