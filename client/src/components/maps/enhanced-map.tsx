@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Plus, Minus, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Navigation, Plus, Minus, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 
 interface EnhancedMapProps {
   center?: { lat: number; lng: number };
@@ -30,6 +30,7 @@ export default function EnhancedMap({
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
   const [showAllStations, setShowAllStations] = useState(false);
+  const [showStationPanel, setShowStationPanel] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -368,12 +369,20 @@ export default function EnhancedMap({
             </div>
           </div>
 
-          {/* View All Stations Button */}
+          {/* View All Stations and Panel Toggle */}
           {markers.length > 0 && (
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 left-4 flex gap-2">
               <Button size="sm" variant="outline" className="bg-white/95 backdrop-blur-sm shadow-lg" onClick={fitAllMarkers}>
                 <Navigation className="h-3 w-3 mr-1" />
-                View All Stations
+                View All
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="bg-white/95 backdrop-blur-sm shadow-lg" 
+                onClick={() => setShowStationPanel(!showStationPanel)}
+              >
+                {showStationPanel ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
               </Button>
             </div>
           )}
@@ -381,8 +390,8 @@ export default function EnhancedMap({
       )}
 
       {/* Station Info Panel */}
-      {markers.length > 0 && (
-        <div className="absolute bottom-4 left-4 right-4">
+      {markers.length > 0 && showStationPanel && (
+        <div className="absolute bottom-4 left-4 right-4 transition-all duration-300">
           <div className="bg-white/95 backdrop-blur-sm rounded-lg p-4 shadow-xl border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">

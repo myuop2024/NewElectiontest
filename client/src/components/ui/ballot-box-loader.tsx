@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 interface BallotBoxLoaderProps {
   message?: string;
+  onLoadComplete?: () => void;
 }
 
 export default function BallotBoxLoader({ message = "Loading CAFFE Electoral Platform..." }: BallotBoxLoaderProps) {
