@@ -49,10 +49,11 @@ class AuthService {
       throw new Error(error || "Login failed");
     }
 
-    const data: AuthResponse = await response.json();
-    this.token = data.token;
-    localStorage.setItem("auth_token", data.token);
-    return data;
+    const data = await response.json();
+    // For session-based auth, we don't need to store tokens
+    this.token = "session-based"; // Mark as authenticated
+    localStorage.setItem("auth_token", "session-based");
+    return { user: data.user, token: "session-based" };
   }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
@@ -70,10 +71,11 @@ class AuthService {
       throw new Error(error || "Registration failed");
     }
 
-    const data: AuthResponse = await response.json();
-    this.token = data.token;
-    localStorage.setItem("auth_token", data.token);
-    return data;
+    const data = await response.json();
+    // For session-based auth, we don't need to store tokens
+    this.token = "session-based"; // Mark as authenticated
+    localStorage.setItem("auth_token", "session-based");
+    return { user: data.user, token: "session-based" };
   }
 
   async getCurrentUser(): Promise<User> {
@@ -88,9 +90,19 @@ class AuthService {
     return response.json();
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
     this.token = null;
     localStorage.removeItem("auth_token");
+    
+    // Call server logout to clear session
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   }
 
   isAuthenticated(): boolean {

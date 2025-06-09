@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    authService.logout();
+  const logout = async () => {
+    await authService.logout();
     setUser(null);
     toast({
       title: "Logged out",
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     register,
-    logout,
+    logout: async () => await logout(),
     isAuthenticated: !!user
   };
 
