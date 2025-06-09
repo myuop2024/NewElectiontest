@@ -15,7 +15,7 @@ export default function PollingStations() {
     queryKey: ["/api/polling-stations"],
   });
 
-  const filteredStations = stations?.filter((station: any) =>
+  const filteredStations = (stations as any[])?.filter((station: any) =>
     station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     station.stationCode.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -68,52 +68,96 @@ export default function PollingStations() {
         </CardContent>
       </Card>
 
-      {/* Stations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredStations.map((station: any) => (
-          <Card key={station.id} className="government-card hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-semibold">{station.stationCode}</CardTitle>
-                <Badge className={`status-indicator ${station.isActive ? 'status-active' : 'status-neutral'}`}>
-                  {station.isActive ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
+      {/* Map and List Views */}
+      <Tabs defaultValue="list" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <List className="h-4 w-4" />
+            List View
+          </TabsTrigger>
+          <TabsTrigger value="map" className="flex items-center gap-2">
+            <Map className="h-4 w-4" />
+            Map View
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="space-y-6">
+          {/* Stations Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredStations.map((station: any) => (
+              <Card key={station.id} className="government-card hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg font-semibold">{station.stationCode}</CardTitle>
+                    <Badge className={`status-indicator ${station.isActive ? 'status-active' : 'status-neutral'}`}>
+                      {station.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-foreground">{station.name}</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{station.address}</p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>
+                      {station.latitude && station.longitude 
+                        ? `${parseFloat(station.latitude).toFixed(4)}, ${parseFloat(station.longitude).toFixed(4)}`
+                        : 'Location not set'
+                      }
+                    </span>
+                  </div>
+
+                  {station.capacity && (
+                    <div className="text-sm">
+                      <span className="font-medium">Capacity:</span> {station.capacity} voters
+                    </div>
+                  )}
+
+                  <div className="flex space-x-2 pt-4">
+                    <Button size="sm" className="flex-1 btn-caffe-primary">
+                      View Details
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1">
+                      Navigate
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="map" className="space-y-6">
+          {/* HERE Maps Integration */}
+          <Card className="government-card">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MapPin className="h-5 w-5 mr-2" />
+                Polling Stations Map
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="font-medium text-foreground">{station.name}</h4>
-                <p className="text-sm text-muted-foreground mt-1">{station.address}</p>
-              </div>
-
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>
-                  {station.latitude && station.longitude 
-                    ? `${parseFloat(station.latitude).toFixed(4)}, ${parseFloat(station.longitude).toFixed(4)}`
-                    : 'Location not set'
-                  }
-                </span>
-              </div>
-
-              {station.capacity && (
-                <div className="text-sm">
-                  <span className="font-medium">Capacity:</span> {station.capacity} voters
-                </div>
-              )}
-
-              <div className="flex space-x-2 pt-4">
-                <Button size="sm" className="flex-1 btn-caffe-primary">
-                  View Details
-                </Button>
-                <Button size="sm" variant="outline" className="flex-1">
-                  Navigate
-                </Button>
-              </div>
+            <CardContent className="p-0">
+              <HereMap
+                height="600px"
+                center={{ lat: 18.1096, lng: -77.2975 }}
+                zoom={9}
+                markers={filteredStations
+                  .filter((station: any) => station.latitude && station.longitude)
+                  .map((station: any) => ({
+                    lat: parseFloat(station.latitude),
+                    lng: parseFloat(station.longitude),
+                    title: station.name,
+                    info: `${station.stationCode} - ${station.address}<br/>Capacity: ${station.capacity || 'Not set'} voters`
+                  }))}
+                interactive={true}
+              />
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {filteredStations.length === 0 && (
         <Card className="government-card">

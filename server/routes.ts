@@ -227,14 +227,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // HERE API Settings
   app.get("/api/settings/here-api", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (req.user?.role !== "admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      
+      // Use environment variable if available, otherwise fall back to database
+      const envApiKey = process.env.HERE_API_KEY;
       const setting = await storage.getSettingByKey("HERE_API_KEY");
+      
+      const apiKey = envApiKey || setting?.value;
+      const hasKey = !!apiKey;
+      
       res.json({ 
-        configured: !!setting?.value,
-        hasKey: !!setting?.value 
+        configured: hasKey,
+        hasKey: hasKey,
+        apiKey: hasKey ? apiKey : undefined
       });
     } catch (error) {
       console.error("Get HERE API settings error:", error);

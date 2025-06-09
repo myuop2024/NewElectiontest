@@ -244,7 +244,7 @@ export default function RouteNavigation() {
                     title: "Your Location",
                     info: "Current observer position"
                   }] : []),
-                  ...pollingStations.map(station => ({
+                  ...(pollingStations as any[]).map((station: any) => ({
                     lat: parseFloat(station.latitude || '0'),
                     lng: parseFloat(station.longitude || '0'),
                     title: station.name,
