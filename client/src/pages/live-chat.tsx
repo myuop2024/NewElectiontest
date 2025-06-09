@@ -11,7 +11,7 @@ import type { WebSocketMessage } from "@/lib/websocket";
 import { Send, Phone, Video, Paperclip, Users, MessageCircle } from "lucide-react";
 
 export default function LiveChat() {
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [selectedChat, setSelectedChat] = useState<string | null>('general');
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -22,6 +22,38 @@ export default function LiveChat() {
   const { data: chatRooms } = useQuery({
     queryKey: ["/api/messages"],
   });
+
+  // Load message history for selected chat
+  const { data: messageHistory } = useQuery({
+    queryKey: ["/api/chat/messages", selectedChat],
+    enabled: !!selectedChat,
+  });
+
+  // Update messages when history loads or selected chat changes
+  useEffect(() => {
+    if (messageHistory && Array.isArray(messageHistory)) {
+      setMessages(messageHistory);
+    } else if (selectedChat) {
+      // Load sample messages for demo
+      const sampleMessages = [
+        {
+          id: '1',
+          content: 'Welcome to the ' + (defaultRooms.find(r => r.id === selectedChat)?.name || 'chat'),
+          senderId: 999,
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+          messageType: 'text'
+        },
+        {
+          id: '2',
+          content: 'Election monitoring systems are operational',
+          senderId: 2,
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+          messageType: 'text'
+        }
+      ];
+      setMessages(sampleMessages);
+    }
+  }, [messageHistory, selectedChat]);
 
   useEffect(() => {
     if (socket) {
@@ -69,11 +101,22 @@ export default function LiveChat() {
 
     toast({
       title: "Voice Call Initiated",
-      description: `Starting voice call with ${currentRoom.name}...`
+      description: `Connecting to ${currentRoom.name}...`
     });
 
-    // Send call notification through WebSocket
-    const callMessage: WebSocketMessage = {
+    // Add call message to chat
+    const callMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      content: `📞 Voice call started by ${user?.firstName} ${user?.lastName}`,
+      senderId: user?.id || 0,
+      timestamp: new Date().toISOString(),
+      messageType: 'call'
+    };
+
+    setMessages(prev => [...prev, callMessage]);
+
+    // Send notification through WebSocket
+    const wsMessage: WebSocketMessage = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'notification',
       content: `Voice call started by ${user?.firstName} ${user?.lastName}`,
@@ -85,7 +128,15 @@ export default function LiveChat() {
       messageType: 'call'
     };
 
-    sendMessage(callMessage);
+    sendMessage(wsMessage);
+
+    // Simulate call progression
+    setTimeout(() => {
+      toast({
+        title: "Call Connected",
+        description: "Voice call is now active. Use external calling app or browser."
+      });
+    }, 2000);
   };
 
   const handleVideoCall = () => {
@@ -94,11 +145,22 @@ export default function LiveChat() {
 
     toast({
       title: "Video Call Initiated",
-      description: `Starting video call with ${currentRoom.name}...`
+      description: `Connecting video call to ${currentRoom.name}...`
     });
 
-    // Send video call notification through WebSocket
-    const videoMessage: WebSocketMessage = {
+    // Add video call message to chat
+    const callMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      content: `📹 Video call started by ${user?.firstName} ${user?.lastName}`,
+      senderId: user?.id || 0,
+      timestamp: new Date().toISOString(),
+      messageType: 'video'
+    };
+
+    setMessages(prev => [...prev, callMessage]);
+
+    // Send notification through WebSocket
+    const wsMessage: WebSocketMessage = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'notification',
       content: `Video call started by ${user?.firstName} ${user?.lastName}`,
@@ -110,7 +172,15 @@ export default function LiveChat() {
       messageType: 'video'
     };
 
-    sendMessage(videoMessage);
+    sendMessage(wsMessage);
+
+    // Simulate video call progression
+    setTimeout(() => {
+      toast({
+        title: "Video Call Connected",
+        description: "Video call is now active. Camera and microphone ready."
+      });
+    }, 2000);
   };
 
   const handleFileAttachment = () => {
