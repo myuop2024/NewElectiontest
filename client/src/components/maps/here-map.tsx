@@ -106,24 +106,36 @@ export default function HereMap({
         await loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js');
         await loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js');
 
-        // Wait for scripts to be ready
+        // Wait for all HERE modules to be available
+        const checkHereReady = () => {
+          return window.H && 
+                 window.H.service && 
+                 window.H.Map && 
+                 window.H.mapevents && 
+                 window.H.ui &&
+                 window.H.map &&
+                 window.H.map.Marker;
+        };
+
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 100;
         
         const waitForHere = () => {
           if (!mounted) return;
           
-          if (window.H && window.H.service && window.H.Map && window.H.mapevents && window.H.ui) {
-            initializeMap();
+          if (checkHereReady()) {
+            console.log('HERE Maps API ready, initializing map');
+            setTimeout(initializeMap, 50);
             return;
           }
           
           attempts++;
           if (attempts < maxAttempts) {
-            setTimeout(waitForHere, 100);
+            setTimeout(waitForHere, 50);
           } else {
+            console.error('HERE Maps API timeout after', attempts, 'attempts');
             if (mounted) {
-              setError('HERE Maps API failed to initialize properly');
+              setError('HERE Maps API failed to load completely. Please refresh the page.');
             }
           }
         };

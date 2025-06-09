@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Filter, Download, Map, List } from "lucide-react";
-import HereMap from "@/components/maps/here-map";
+import InteractiveHereMap from "@/components/maps/interactive-here-map";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,7 +140,7 @@ export default function PollingStations() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <HereMap
+              <InteractiveHereMap
                 height="600px"
                 center={{ lat: 18.1096, lng: -77.2975 }}
                 zoom={9}

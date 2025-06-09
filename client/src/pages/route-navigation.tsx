@@ -6,7 +6,7 @@ import { Navigation, MapPin, Clock, Route, Car, Play, Square } from "lucide-reac
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatCoordinates } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import HereMap from "@/components/maps/here-map";
+import InteractiveHereMap from "@/components/maps/interactive-here-map";
 
 export default function RouteNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
@@ -233,7 +233,7 @@ export default function RouteNavigation() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <HereMap
+              <InteractiveHereMap
                 height="400px"
                 center={position ? { lat: position.latitude, lng: position.longitude } : { lat: 18.1096, lng: -77.2975 }}
                 zoom={position ? 15 : 10}
