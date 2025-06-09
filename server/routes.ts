@@ -99,6 +99,13 @@ async function initializeAdminAccount() {
 }
 
 function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) {
+  // Check for session-based authentication first
+  if (req.session && (req.session as any).user) {
+    req.user = (req.session as any).user;
+    return next();
+  }
+
+  // Fallback to JWT token authentication
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -666,7 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Submit verification to DidIT
-      const verificationResult = await KYCService.submitVerification({
+      const verificationResult = await KYCService.verifyWithDidIT({
         firstName,
         lastName,
         dateOfBirth,
