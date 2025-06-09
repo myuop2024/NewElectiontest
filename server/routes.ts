@@ -9,6 +9,14 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
+import { SecurityService } from "./lib/security.js";
+import { KYCService } from "./lib/kyc-service.js";
+import { NotificationService } from "./lib/notification-service.js";
+import { AnalyticsService } from "./lib/analytics-service.js";
+import { TrainingService } from "./lib/training-service.js";
+import { RouteService } from "./lib/route-service.js";
+import { CommunicationService } from "./lib/communication-service.js";
+import { FormBuilderService } from "./lib/form-builder-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +64,7 @@ async function initializeAdminAccount() {
 
     // Create admin account
     const hashedPassword = await bcrypt.hash("Admin123!@#", 10);
+    const observerId = SecurityService.generateObserverId();
     
     const adminUser = await storage.createUser({
       username: "admin",
@@ -70,7 +79,8 @@ async function initializeAdminAccount() {
       role: "admin",
       status: "active",
       kycStatus: "verified",
-      trainingStatus: "certified"
+      trainingStatus: "certified",
+      observerId: observerId
     });
 
     console.log(`Admin account created successfully with ID: ${adminUser.id}`);

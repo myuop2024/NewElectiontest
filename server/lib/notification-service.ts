@@ -24,7 +24,7 @@ export interface NotificationResponse {
 
 export class NotificationService {
   private static twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-  private static emailTransporter = nodemailer.createTransporter({
+  private static emailTransporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
