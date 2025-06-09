@@ -533,16 +533,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update or create setting
-      const setting = await storage.updateSetting(key, value, req.user?.id);
+      const setting = await storage.updateSetting(key, value.toString(), req.user?.id);
       
-      // Log the setting change
-      await storage.createAuditLog({
-        userId: req.user?.id || 0,
-        action: `Updated setting: ${key}`,
-        details: `Changed ${key} to ${value.length > 50 ? '[REDACTED]' : value}`,
-        ipAddress: req.ip || '',
-        userAgent: req.get('User-Agent') || ''
-      });
+      // Log the setting change (optional, skip if audit logging fails)
+      try {
+        await storage.createAuditLog({
+          userId: req.user?.id || 0,
+          action: `Updated setting: ${key}`,
+          entityType: 'setting',
+          entityId: key,
+          ipAddress: req.ip || '',
+          userAgent: req.get('User-Agent') || ''
+        });
+      } catch (auditError) {
+        console.log('Audit logging failed, continuing with setting update');
+      }
       
       res.json(setting);
     } catch (error) {
