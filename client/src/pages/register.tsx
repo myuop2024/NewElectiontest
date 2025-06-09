@@ -34,11 +34,11 @@ export default function Register() {
   const [, setLocation] = useLocation();
 
   // Fetch parishes for dropdown
-  const { data: parishes } = useQuery({
+  const { data: parishes = [] } = useQuery<any[]>({
     queryKey: ["/api/parishes"],
   });
 
-  const selectedParish = parishes?.find((p: any) => p.id.toString() === formData.parishId);
+  const selectedParish = parishes.find((p: any) => p.id.toString() === formData.parishId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,7 +203,7 @@ export default function Register() {
                   <SelectValue placeholder="Select your parish" />
                 </SelectTrigger>
                 <SelectContent>
-                  {parishes?.map((parish: any) => (
+                  {parishes.map((parish: any) => (
                     <SelectItem key={parish.id} value={parish.id.toString()}>
                       {parish.name}
                     </SelectItem>

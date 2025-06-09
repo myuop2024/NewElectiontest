@@ -31,16 +31,21 @@ export default function AdminPanel() {
     return null;
   }
 
-  const { data: stats } = useQuery({
+  const { data: stats = { totalStations: 0, activeObservers: 0, reportsSubmitted: 0, pendingAlerts: 0 } } = useQuery<{
+    totalStations: number;
+    activeObservers: number;
+    reportsSubmitted: number;
+    pendingAlerts: number;
+  }>({
     queryKey: ["/api/dashboard/stats"],
   });
 
-  const { data: auditLogs, isLoading: logsLoading } = useQuery({
+  const { data: auditLogs = [], isLoading: logsLoading } = useQuery<any[]>({
     queryKey: ["/api/audit-logs"],
     enabled: user?.role === 'admin'
   });
 
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  const { data: settings = [], isLoading: settingsLoading } = useQuery<any[]>({
     queryKey: ["/api/settings"],
     enabled: user?.role === 'admin'
   });
