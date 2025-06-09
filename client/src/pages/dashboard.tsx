@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,12 +8,14 @@ import ActivityFeed from "@/components/dashboard/activity-feed";
 import StationsTable from "@/components/dashboard/stations-table";
 import AIAnalytics from "@/components/dashboard/ai-analytics";
 import CommunicationCenter from "@/components/dashboard/communication-center";
+import KYCVerificationModal from "@/components/verification/kyc-verification-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [showKYCModal, setShowKYCModal] = useState(false);
 
   // Fetch enhanced user data with KYC and device status
   const { data: enhancedUser } = useQuery({
@@ -76,6 +79,17 @@ export default function Dashboard() {
                     </Badge>
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">KYC Status</p>
+                  {(!enhancedUser?.kycStatus || enhancedUser?.kycStatus === 'pending') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-2"
+                      onClick={() => setShowKYCModal(true)}
+                    >
+                      <Shield className="h-3 w-3 mr-1" />
+                      Verify Identity
+                    </Button>
+                  )}
                   {devices && devices.length > 0 && (
                     <div className="flex items-center justify-center mt-2 text-xs text-muted-foreground">
                       <Smartphone className="h-3 w-3 mr-1" />
