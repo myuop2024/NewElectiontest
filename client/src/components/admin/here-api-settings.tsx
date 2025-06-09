@@ -17,7 +17,10 @@ export default function HereApiSettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings = { configured: false, hasKey: false }, isLoading } = useQuery<{
+    configured: boolean;
+    hasKey: boolean;
+  }>({
     queryKey: ["/api/settings/here-api"],
   });
 
@@ -129,8 +132,8 @@ export default function HereApiSettings() {
               HERE API provides address autocomplete for Jamaican locations
             </p>
           </div>
-          <Badge variant={settings?.configured ? "default" : "secondary"} className="flex items-center space-x-1">
-            {settings?.configured ? (
+          <Badge variant={settings.configured ? "default" : "secondary"} className="flex items-center space-x-1">
+            {settings.configured ? (
               <>
                 <CheckCircle className="h-3 w-3" />
                 <span>Configured</span>
