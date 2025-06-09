@@ -424,6 +424,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check-in routes
+  app.post("/api/check-ins", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const checkIn = await storage.createCheckIn({
+        ...req.body,
+        userId: req.user?.id
+      });
+      
+      // Create audit log for check-in
+      await storage.createAuditLog({
+        action: "observer_checkin",
+        entityType: "checkin",
+        userId: req.user?.id,
+        entityId: checkIn.id.toString(),
+        ipAddress: req.ip
+      });
+
+      res.json(checkIn);
+    } catch (error) {
+      console.error("Error creating check-in:", error);
+      res.status(500).json({ error: "Failed to create check-in" });
+    }
+  });
+
+  app.get("/api/check-ins/user/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Check if user can access these check-ins
+      if (req.user?.id !== userId && req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const checkIns = await storage.getCheckInsByUser(userId);
+      res.json(checkIns);
+    } catch (error) {
+      console.error("Error fetching user check-ins:", error);
+      res.status(500).json({ error: "Failed to fetch check-ins" });
+    }
+  });
+
   // Analytics routes
   app.get("/api/analytics", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
