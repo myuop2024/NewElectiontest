@@ -5,8 +5,12 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Extend Express Request type to include user
 interface AuthenticatedRequest extends Request {
@@ -522,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       !req.path.startsWith("/ws") &&
       !req.path.includes(".")
     ) {
-      const indexPath = path.resolve(__dirname, "../dist/public/index.html");
+      const indexPath = path.resolve(__dirname, "../client/index.html");
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
       } else {
