@@ -23,12 +23,15 @@ import { AdminSettingsService } from "./lib/admin-settings-service.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// JWT Secret - use environment variable or fallback
+const JWT_SECRET = process.env.JWT_SECRET || "caffe-electoral-observer-secret-2024";
+
 // Extend Express Request type to include user
 interface AuthenticatedRequest extends Request {
   user?: { id: number; username: string; role: string };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
 
 // Configure multer for file uploads
 const upload = multer({
