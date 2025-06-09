@@ -23,7 +23,10 @@ import {
   ExternalLink,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  Heart,
+  UserCheck,
+  Webhook
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -41,7 +44,8 @@ export default function AdminSettings() {
     didit_client_id: false,
     didit_client_secret: false,
     whatsapp_token: false,
-    email_pass: false
+    email_pass: false,
+    didit_api_key: false
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -107,9 +111,10 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="status">System Status</TabsTrigger>
           <TabsTrigger value="apis">API Keys</TabsTrigger>
+          <TabsTrigger value="didit">Didit KYC</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -341,84 +346,129 @@ export default function AdminSettings() {
           </Card>
         </TabsContent>
 
-        {/* Security Settings */}
-        <TabsContent value="security" className="space-y-6">
+        {/* DidIT KYC Settings */}
+        <TabsContent value="didit" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Shield className="h-5 w-5" />
-                <span>Security & KYC Configuration</span>
+                <UserCheck className="h-5 w-5" />
+                <span>DidIT KYC Verification</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              
-              {/* DidIT KYC Integration */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">DidIT KYC Verification</Label>
-                  <Badge variant={getSettingValue('didit_kyc_enabled') === 'true' ? 'default' : 'secondary'}>
-                    {getSettingValue('didit_kyc_enabled') === 'true' ? 'Enabled' : 'Disabled'}
-                  </Badge>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Configure the DidIT integration for robust Know Your Customer (KYC) verification.
+                  <a href="https://docs.didit.me/" target="_blank" className="ml-2 text-blue-500 hover:underline">
+                    Read Docs <ExternalLink className="inline h-4 w-4" />
+                  </a>
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={getSettingValue('didit_kyc_enabled') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('didit_kyc_enabled', checked.toString())}
+                  />
+                  <Label>Enable DidIT KYC</Label>
                 </div>
+              </div>
+
+              {/* API Credentials */}
+              <div className="space-y-3 border-t pt-6">
+                <Label className="text-base font-medium">API Credentials</Label>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label>API Endpoint</Label>
                     <Input
-                      placeholder="https://api.didit.me/v1/"
+                      placeholder="https://apx.didit.me/v2/"
                       defaultValue={getSettingValue('didit_api_endpoint')}
                       onBlur={(e) => handleUpdateSetting('didit_api_endpoint', e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Client ID</Label>
+                      <Label>API Key</Label>
                       <div className="flex items-center space-x-2">
                         <Input
-                          placeholder="your-didit-client-id"
-                          type={showSecrets['didit_client_id'] ? 'text' : 'password'}
-                          defaultValue={getSettingValue('didit_client_id')}
-                          onBlur={(e) => handleUpdateSetting('didit_client_id', e.target.value)}
+                          placeholder="your-didit-api-key"
+                          type={showSecrets['didit_api_key'] ? 'text' : 'password'}
+                          defaultValue={getSettingValue('didit_api_key')}
+                          onBlur={(e) => handleUpdateSetting('didit_api_key', e.target.value)}
                         />
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleShowSecret('didit_client_id')}
+                          onClick={() => toggleShowSecret('didit_api_key')}
                         >
-                          {showSecrets['didit_client_id'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Client Secret</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          placeholder="your-didit-client-secret"
-                          type={showSecrets['didit_client_secret'] ? 'text' : 'password'}
-                          defaultValue={getSettingValue('didit_client_secret')}
-                          onBlur={(e) => handleUpdateSetting('didit_client_secret', e.target.value)}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleShowSecret('didit_client_secret')}
-                        >
-                          {showSecrets['didit_client_secret'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showSecrets['didit_api_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={getSettingValue('didit_kyc_enabled') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('didit_kyc_enabled', checked.toString())}
-                  />
-                  <Label>Enable KYC Verification</Label>
-                </div>
               </div>
 
-              {/* Security Levels */}
+              {/* Verification Flow */}
               <div className="space-y-3 border-t pt-6">
+                <Label className="text-base font-medium">Verification Flow</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Liveness Check Level</Label>
+                    <Select
+                      defaultValue={getSettingValue('didit_liveness_level') || 'standard'}
+                      onValueChange={(value) => handleUpdateSetting('didit_liveness_level', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Webhook URL</Label>
+                    <Input
+                      placeholder="e.g., https://yourapp.com/api/kyc/webhook"
+                      defaultValue={getSettingValue('didit_webhook_url')}
+                      onBlur={(e) => handleUpdateSetting('didit_webhook_url', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={getSettingValue('didit_manual_override') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('didit_manual_override', checked.toString())}
+                  />
+                  <Label>Allow Manual Verification Override</Label>
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-4">
+                 <Button>
+                  <Heart className="mr-2 h-4 w-4" />
+                  Test DidIT Connection
+                </Button>
+              </div>
+
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Settings */}
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>Application Security</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {/* Security Levels */}
+              <div className="space-y-3">
                 <Label className="text-base font-medium">Security Settings</Label>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

@@ -12,14 +12,15 @@ export const users = pgTable("users", {
   observerId: varchar("observer_id", { length: 6 }).notNull().unique(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  phone: text("phone"),
+  phone: text("phone").notNull().unique(),
   trn: text("trn"), // Tax Registration Number (Jamaica) - encrypted
-  parishId: integer("parish_id"),
+  parishId: integer("parish_id").notNull(),
+  nationalId: text("national_id").unique(),
   address: text("address"), // Full Jamaican address
   community: text("community"), // Community/District within parish
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  role: text("role").notNull().default("observer"), // observer, admin, coordinator
+  role: text("role").notNull().default("Observer"), // observer, admin, coordinator
   status: text("status").notNull().default("pending"), // pending, active, suspended
   deviceId: text("device_id"),
   deviceFingerprint: text("device_fingerprint"), // Unique device identifier

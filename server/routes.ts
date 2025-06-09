@@ -646,12 +646,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selfieImage
       };
 
+      // Before starting, update the user's nationalId if it's not already set
+      if (req.user && nationalId) {
+        await storage.updateUser(req.user.id, { nationalId });
+      }
+
       const result = await KYCService.verifyWithDidIT(verificationRequest);
+      
+      // Update user with verification ID
+      if (req.user) {
+        await storage.updateUser(req.user.id, { 
+          kycStatus: 'pending',
+          kycVerificationId: result.verificationId 
+        });
+      }
+
       res.json(result);
     } catch (error) {
       console.error('KYC verification error:', error);
       
-      // Provide specific error messages for API issues
       if (error instanceof Error) {
         if (error.message.includes('not activated')) {
           res.status(503).json({ 
@@ -676,129 +689,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DidIT Webhook for verification status updates
   app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
     try {
-      const { KYCService } = await import('./lib/kyc-service.js');
-      const userId = req.user!.id;
-      
-      // Check if KYC is enabled
-      const kycEnabled = await storage.getSettingByKey('didit_kyc_enabled');
-      if (kycEnabled?.value !== 'true') {
-        return res.status(400).json({ message: 'KYC verification is not enabled' });
+      const { storage } = await import('./storage.js');
+      const { id, status, reference_id: nationalId } = req.body;
+
+      console.log(`Received DidIT KYC webhook for verification ID: ${id}, Status: ${status}`);
+
+      if (!nationalId) {
+        console.warn('DidIT webhook missing national ID (reference_id).');
+        return res.status(400).send('Missing reference_id');
       }
 
-      // Validate request data
-      const { firstName, lastName, dateOfBirth, nationalId, documentType, documentImage, selfieImage } = req.body;
-      
-      if (!firstName || !lastName || !dateOfBirth || !nationalId || !documentImage || !selfieImage) {
-        return res.status(400).json({ message: 'All verification fields are required' });
-      }
+      const user = await storage.getUserByNationalId(nationalId);
 
-      // Submit verification to DidIT
-      const verificationResult = await KYCService.verifyWithDidIT({
-        firstName,
-        lastName,
-        dateOfBirth,
-        nationalId,
-        documentType: documentType || 'national_id',
-        documentImage,
-        selfieImage
-      });
-
-      // Create KYC verification record
-      const kycRecord = {
-        userId,
-        verificationType: 'didit',
-        status: verificationResult.status,
-        verificationData: {
-          verificationId: verificationResult.verificationId,
-          confidence: verificationResult.confidence,
-          matchScore: verificationResult.matchScore,
-          details: verificationResult.details
-        },
-        documentUploads: {
-          documentType,
-          documentUploaded: true,
-          selfieUploaded: true
-        },
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-      };
-
-      // Save verification record (would need to add to storage interface)
-      console.log('KYC verification submitted:', kycRecord);
-
-      // Update user's KYC status to pending
-      await storage.updateUser(userId, { kycStatus: 'pending' });
-
-      // Create audit log
-      await storage.createAuditLog({
-        userId,
-        action: 'kyc_verification_submitted',
-        details: `KYC verification submitted via DidIT (ID: ${verificationResult.verificationId})`,
-        ipAddress: req.ip || '',
-        userAgent: req.headers['user-agent'] || '',
-        createdAt: new Date()
-      });
-
-      res.json({
-        success: true,
-        verificationId: verificationResult.verificationId,
-        status: verificationResult.status,
-        message: 'Verification submitted successfully'
-      });
-    } catch (error) {
-      console.error('KYC verification error:', error);
-      res.status(500).json({ message: error instanceof Error ? error.message : 'Verification failed' });
-    }
-  });
-
-  app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
-    try {
-      const { verification_id, status, details, user_id } = req.body;
-      
-      console.log('DidIT webhook received:', { verification_id, status, details, user_id });
-
-      // Find user by verification ID or user_id
-      // Update user's KYC status based on verification result
-      if (user_id) {
-        const finalStatus = status === 'approved' || status === 'completed' ? 'verified' : 
-                           status === 'rejected' || status === 'failed' ? 'rejected' : 'pending';
+      if (user) {
+        const newKycStatus = status === 'completed' || status === 'approved' ? 'approved' : 'rejected';
         
-        await storage.updateUser(user_id, { 
-          kycStatus: finalStatus,
-          kycVerificationId: verification_id,
-          kycVerifiedAt: finalStatus === 'verified' ? new Date() : null
+        await storage.updateUser(user.id, { 
+          kycStatus: newKycStatus,
+          kycVerificationId: id,
+          kycVerificationData: req.body 
         });
 
-        // Update extracted data if verification was successful and contains user info
-        if (finalStatus === 'verified' && details?.extractedData) {
-          const extracted = details.extractedData;
-          const updates: any = {};
-          
-          if (extracted.first_name) updates.firstName = extracted.first_name;
-          if (extracted.last_name) updates.lastName = extracted.last_name;
-          if (extracted.date_of_birth) updates.dateOfBirth = extracted.date_of_birth;
-          if (extracted.national_id) updates.nationalId = extracted.national_id;
-          
-          if (Object.keys(updates).length > 0) {
-            await storage.updateUser(user_id, updates);
-          }
+        console.log(`Updated user ${user.username} KYC status to ${newKycStatus}`);
+        
+        // Broadcast update via WebSocket to the specific user
+        const clients = (req.app as any).clients as Map<number, WebSocket>;
+        const userSocket = clients.get(user.id);
+
+        if (userSocket && userSocket.readyState === WebSocket.OPEN) {
+          userSocket.send(JSON.stringify({
+            type: 'KYC_UPDATE',
+            payload: {
+              userId: user.id,
+              kycStatus: newKycStatus,
+              verificationId: id
+            }
+          }));
+          console.log(`Sent KYC_UPDATE WebSocket message to user ${user.id}`);
         }
-
-        // Create audit log
-        await storage.createAuditLog({
-          userId: user_id,
-          action: 'kyc_verification_completed',
-          details: `KYC verification ${finalStatus} via DidIT webhook (ID: ${verification_id})`,
-          ipAddress: req.ip || '',
-          userAgent: req.headers['user-agent'] || '',
-          createdAt: new Date()
-        });
+        
+      } else {
+        console.error(`Could not find user with national ID: ${nationalId}`);
       }
-      
-      res.json({ success: true, message: 'Webhook processed' });
+
+      res.status(200).send('Webhook received');
     } catch (error) {
-      console.error('DidIT webhook error:', error);
-      res.status(500).json({ message: 'Webhook processing failed' });
+      console.error('Error processing DidIT webhook:', error);
+      res.status(500).send('Internal Server Error');
     }
   });
 
@@ -1283,15 +1220,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
+  // Simple in-memory store for connected clients
+  const clients = new Map<number, WebSocket>();
+
   wss.on('connection', (ws: WebSocket, req) => {
-    console.log('WebSocket connection established');
+    // For simplicity, we'll assume a user ID is passed as a query parameter
+    // In a real app, you'd use a secure authentication method (e.g., from the session)
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const userId = Number(url.searchParams.get('userId'));
+
+    if (userId) {
+      console.log(`WebSocket client connected for user: ${userId}`);
+      clients.set(userId, ws);
+
+      ws.on('close', () => {
+        console.log(`WebSocket client disconnected for user: ${userId}`);
+        clients.delete(userId);
+      });
+    } else {
+      console.log('WebSocket connection established without user ID');
+    }
 
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
         console.log('Received message:', data);
         
-        // Broadcast to all connected clients
+        // Broadcast to all connected clients (example of general broadcast)
         wss.clients.forEach((client) => {
           if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(data));
@@ -1302,16 +1257,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    ws.on('close', () => {
-      console.log('WebSocket connection closed');
-    });
-
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
     });
   });
 
-
+  // Attach wss to the app instance so we can access it in route handlers
+  (app as any).wss = wss;
+  (app as any).clients = clients;
 
   return httpServer;
 }

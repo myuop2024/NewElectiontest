@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -44,7 +46,9 @@ const adminNavigation = [
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { data: appSettings } = useQuery<{ value: string }[]>({ queryKey: ["/api/settings/app"] });
+  useWebSocket(); // Initialize WebSocket connection
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -54,6 +58,10 @@ export default function Sidebar() {
   };
 
   const canAccessAdmin = user?.role === 'admin' || user?.role === 'coordinator';
+
+  const getAppSetting = (key: string) => {
+    return appSettings?.find((s: any) => s.key === key)?.value || '';
+  };
 
   return (
     <aside className="w-64 government-sidebar">
