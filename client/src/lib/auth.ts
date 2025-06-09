@@ -35,7 +35,20 @@ class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiRequest("POST", "/api/auth/login", credentials);
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Login failed");
+    }
+
     const data: AuthResponse = await response.json();
     this.token = data.token;
     localStorage.setItem("auth_token", data.token);
@@ -43,7 +56,20 @@ class AuthService {
   }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
-    const response = await apiRequest("POST", "/api/auth/register", userData);
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Registration failed");
+    }
+
     const data: AuthResponse = await response.json();
     this.token = data.token;
     localStorage.setItem("auth_token", data.token);
@@ -51,14 +77,8 @@ class AuthService {
   }
 
   async getCurrentUser(): Promise<User> {
-    if (!this.token) {
-      throw new Error("No authentication token");
-    }
-
     const response = await fetch("/api/auth/me", {
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-      },
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -74,7 +94,8 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.token;
+    // For session-based auth, we'll check this during getCurrentUser call
+    return true;
   }
 
   getToken(): string | null {
