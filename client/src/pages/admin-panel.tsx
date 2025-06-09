@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import UserManagement from "@/components/admin/user-management";
 import SystemLogs from "@/components/admin/system-logs";
+import HereApiSettings from "@/components/admin/here-api-settings";
 import { useLocation } from "wouter";
 
 export default function AdminPanel() {
@@ -61,6 +62,12 @@ export default function AdminPanel() {
       title: "System Logs",
       icon: Database,
       description: "View system activity and audit logs"
+    },
+    {
+      id: "api-settings",
+      title: "API Settings",
+      icon: Settings,
+      description: "Configure HERE API and external services"
     },
     {
       id: "settings",
@@ -242,6 +249,8 @@ export default function AdminPanel() {
       {activeTab === "users" && <UserManagement />}
       
       {activeTab === "system" && <SystemLogs auditLogs={auditLogs || []} isLoading={logsLoading} />}
+      
+      {activeTab === "api-settings" && <HereApiSettings />}
       
       {activeTab === "settings" && (
         <Card className="government-card">

@@ -172,6 +172,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // HERE API Settings
+  app.get("/api/settings/here-api", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const setting = await storage.getSettingByKey("HERE_API_KEY");
+      res.json({ 
+        configured: !!setting?.value,
+        hasKey: !!setting?.value 
+      });
+    } catch (error) {
+      console.error("Get HERE API settings error:", error);
+      res.status(500).json({ message: "Failed to get HERE API settings" });
+    }
+  });
+
+  app.post("/api/settings/here-api", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { apiKey } = req.body;
+      if (!apiKey) {
+        return res.status(400).json({ message: "API key is required" });
+      }
+
+      await storage.updateSetting("HERE_API_KEY", apiKey, req.user.id);
+      res.json({ message: "HERE API key updated successfully" });
+    } catch (error) {
+      console.error("Update HERE API key error:", error);
+      res.status(500).json({ message: "Failed to update HERE API key" });
+    }
+  });
+
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
