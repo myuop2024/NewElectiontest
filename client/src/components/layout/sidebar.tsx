@@ -17,6 +17,7 @@ import {
   Circle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -50,21 +51,28 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 government-sidebar">
+      <div className="flex flex-col items-center p-4 border-b border-border">
+        <img 
+          src={caffeLogo} 
+          alt="CAFFE Logo" 
+          className="w-16 h-16 object-contain mb-2"
+        />
+        <h2 className="text-lg font-bold caffe-primary">CAFFE</h2>
+        <p className="text-xs text-muted-foreground text-center">Electoral Observer Platform</p>
+      </div>
       <nav className="mt-6 px-3">
         <div className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.name} href={item.href}>
-                <a className={cn(
-                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                  isActive(item.href)
-                    ? "caffe-bg-primary text-white"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}>
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </a>
+              <Link key={item.name} href={item.href} className={cn(
+                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                isActive(item.href)
+                  ? "caffe-bg-primary text-white"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}>
+                <Icon className="mr-3 h-5 w-5" />
+                {item.name}
               </Link>
             );
           })}

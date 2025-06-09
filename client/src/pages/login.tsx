@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
 import { AlertCircle, Vote } from "lucide-react";
+import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -35,12 +36,15 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-caffe-background p-4">
       <Card className="w-full max-w-md government-card">
         <CardHeader className="text-center space-y-4">
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-12 h-12 caffe-bg-primary rounded-lg flex items-center justify-center">
-              <Vote className="h-7 w-7 text-white" />
-            </div>
-            <div>
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <img 
+              src={caffeLogo} 
+              alt="CAFFE Logo" 
+              className="w-24 h-24 object-contain"
+            />
+            <div className="text-center">
               <h1 className="text-2xl font-bold caffe-primary">CAFFE</h1>
+              <p className="text-xs text-muted-foreground">Citizens Action For Free And Fair Elections</p>
               <p className="text-xs text-muted-foreground">Electoral Observer Platform</p>
             </div>
           </div>
