@@ -30,16 +30,7 @@ class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiRequest("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Login failed");
-    }
-
+    const response = await apiRequest("POST", "/api/auth/login", credentials);
     const data: AuthResponse = await response.json();
     this.token = data.token;
     localStorage.setItem("auth_token", data.token);
@@ -47,16 +38,7 @@ class AuthService {
   }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
-    const response = await apiRequest("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Registration failed");
-    }
-
+    const response = await apiRequest("POST", "/api/auth/register", userData);
     const data: AuthResponse = await response.json();
     this.token = data.token;
     localStorage.setItem("auth_token", data.token);
@@ -68,7 +50,7 @@ class AuthService {
       throw new Error("No authentication token");
     }
 
-    const response = await apiRequest("/api/auth/me", {
+    const response = await fetch("/api/auth/me", {
       headers: {
         Authorization: `Bearer ${this.token}`,
       },

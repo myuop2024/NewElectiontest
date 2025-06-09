@@ -11,6 +11,24 @@
   }
 }
 
+@layer utilities {
+  .hover\:bg-primary\/90:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+  
+  .bg-primary\/90 {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+  
+  .text-primary\/90 {
+    color: hsl(var(--primary) / 0.9);
+  }
+  
+  .border-primary\/20 {
+    border-color: hsl(var(--primary) / 0.2);
+  }
+}
+
 :root {
   --background: hsl(248, 82%, 98%);
   --foreground: hsl(225, 71%, 8%);
