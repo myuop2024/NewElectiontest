@@ -3,18 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { WebSocketMessage } from "@/lib/websocket";
-import { Send, Phone, Video, Paperclip, Users, MessageCircle } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Users, MessageCircle, PhoneOff, VideoOff } from "lucide-react";
 
 export default function LiveChat() {
   const [selectedChat, setSelectedChat] = useState<string | null>('general');
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [callType, setCallType] = useState<'voice' | 'video' | null>(null);
+  const [showCallDialog, setShowCallDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const jitsiContainerRef = useRef<HTMLDivElement>(null);
+  const jitsiApi = useRef<any>(null);
   const { user } = useAuth();
   const { socket, sendMessage } = useWebSocket();
   const { toast } = useToast();
@@ -72,6 +78,83 @@ export default function LiveChat() {
     }
   }, [socket]);
 
+  // Load Jitsi Meet API
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://meet.jit.si/external_api.js';
+    script.async = true;
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  // Initialize Jitsi Meet call
+  const initializeJitsiCall = (roomName: string, audioOnly: boolean = false) => {
+    if (!(window as any).JitsiMeetExternalAPI) {
+      toast({
+        title: "Call Service Loading",
+        description: "Please wait for the calling service to load and try again."
+      });
+      return;
+    }
+
+    const domain = 'meet.jit.si';
+    const options = {
+      roomName: `caffe-electoral-${roomName}-${Date.now()}`,
+      width: '100%',
+      height: '100%',
+      parentNode: jitsiContainerRef.current,
+      configOverwrite: {
+        startWithAudioMuted: false,
+        startWithVideoMuted: audioOnly,
+        enableWelcomePage: false,
+        prejoinPageEnabled: false,
+        toolbarButtons: [
+          'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+          'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+          'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+          'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+          'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+        ]
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        DEFAULT_BACKGROUND: '#1a1a1a',
+        TOOLBAR_ALWAYS_VISIBLE: true
+      },
+      userInfo: {
+        displayName: `${user?.firstName} ${user?.lastName}` || 'Observer'
+      }
+    };
+
+    jitsiApi.current = new (window as any).JitsiMeetExternalAPI(domain, options);
+
+    jitsiApi.current.addEventListener('readyToClose', () => {
+      endCall();
+    });
+
+    jitsiApi.current.addEventListener('participantLeft', (participant: any) => {
+      console.log('Participant left:', participant);
+    });
+
+    jitsiApi.current.addEventListener('participantJoined', (participant: any) => {
+      console.log('Participant joined:', participant);
+    });
+  };
+
+  const endCall = () => {
+    if (jitsiApi.current) {
+      jitsiApi.current.dispose();
+      jitsiApi.current = null;
+    }
+    setIsCallActive(false);
+    setCallType(null);
+    setShowCallDialog(false);
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -99,11 +182,6 @@ export default function LiveChat() {
     const currentRoom = defaultRooms.find(r => r.id === selectedChat);
     if (!currentRoom) return;
 
-    toast({
-      title: "Voice Call Initiated",
-      description: `Connecting to ${currentRoom.name}...`
-    });
-
     // Add call message to chat
     const callMessage = {
       id: Math.random().toString(36).substr(2, 9),
@@ -130,23 +208,19 @@ export default function LiveChat() {
 
     sendMessage(wsMessage);
 
-    // Simulate call progression
+    // Start voice call
+    setCallType('voice');
+    setIsCallActive(true);
+    setShowCallDialog(true);
+    
     setTimeout(() => {
-      toast({
-        title: "Call Connected",
-        description: "Voice call is now active. Use external calling app or browser."
-      });
-    }, 2000);
+      initializeJitsiCall(selectedChat || 'general', true); // Audio only
+    }, 500);
   };
 
   const handleVideoCall = () => {
     const currentRoom = defaultRooms.find(r => r.id === selectedChat);
     if (!currentRoom) return;
-
-    toast({
-      title: "Video Call Initiated",
-      description: `Connecting video call to ${currentRoom.name}...`
-    });
 
     // Add video call message to chat
     const callMessage = {
@@ -174,13 +248,14 @@ export default function LiveChat() {
 
     sendMessage(wsMessage);
 
-    // Simulate video call progression
+    // Start video call
+    setCallType('video');
+    setIsCallActive(true);
+    setShowCallDialog(true);
+    
     setTimeout(() => {
-      toast({
-        title: "Video Call Connected",
-        description: "Video call is now active. Camera and microphone ready."
-      });
-    }, 2000);
+      initializeJitsiCall(selectedChat || 'general', false); // Video enabled
+    }, 500);
   };
 
   const handleFileAttachment = () => {
@@ -341,6 +416,39 @@ export default function LiveChat() {
           )}
         </Card>
       </div>
+
+      {/* Call Dialog */}
+      <Dialog open={showCallDialog} onOpenChange={setShowCallDialog}>
+        <DialogContent className="max-w-4xl w-full h-[80vh] p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                {callType === 'voice' ? <Phone className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+                {callType === 'voice' ? 'Voice Call' : 'Video Call'} - {defaultRooms.find(r => r.id === selectedChat)?.name}
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={endCall}
+                className="flex items-center gap-2"
+              >
+                {callType === 'voice' ? <PhoneOff className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                End Call
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 bg-gray-900" ref={jitsiContainerRef}>
+            {!isCallActive && (
+              <div className="flex items-center justify-center h-full text-white">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p>Connecting to call...</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
