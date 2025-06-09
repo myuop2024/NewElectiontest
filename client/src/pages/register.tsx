@@ -24,7 +24,7 @@ export default function Register() {
     parishId: "",
     address: "",
     community: "",
-    role: "observer"
+    role: "indoor_observer"
   });
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState("");
@@ -243,9 +243,9 @@ export default function Register() {
                   <SelectValue placeholder="Select your observer role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="observer">General Observer</SelectItem>
-                  <SelectItem value="indoor_agent">Indoor Agent</SelectItem>
+                  <SelectItem value="indoor_observer">Indoor Observer</SelectItem>
                   <SelectItem value="roving_observer">Roving Observer</SelectItem>
+                  <SelectItem value="parish_coordinator">Parish Coordinator</SelectItem>
                 </SelectContent>
               </Select>
             </div>

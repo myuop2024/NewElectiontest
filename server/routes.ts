@@ -13,6 +13,52 @@ interface AuthenticatedRequest extends Request {
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
+async function initializeAdminAccount() {
+  try {
+    // Check if admin account already exists
+    const existingAdmin = await storage.getUserByUsername("admin");
+    if (existingAdmin) {
+      console.log("Admin account already exists");
+      return;
+    }
+
+    // Get Kingston parish for admin account
+    const parishes = await storage.getParishes();
+    const kingstonParish = parishes.find(p => p.name === "Kingston");
+    
+    if (!kingstonParish) {
+      console.error("Kingston parish not found for admin account creation");
+      return;
+    }
+
+    // Create admin account
+    const hashedPassword = await bcrypt.hash("Admin123!@#", 10);
+    const observerId = await storage.generateObserverId();
+    
+    const adminUser = await storage.createUser({
+      username: "admin",
+      email: "admin@caffe.org.jm",
+      password: hashedPassword,
+      observerId,
+      firstName: "CAFFE",
+      lastName: "Administrator",
+      phone: "876-000-0000",
+      parishId: kingstonParish.id,
+      address: "CAFFE Headquarters, Kingston, Jamaica",
+      community: "New Kingston",
+      role: "admin",
+      status: "active",
+      kycStatus: "verified",
+      trainingStatus: "certified"
+    });
+
+    console.log(`Admin account created successfully with ID: ${adminUser.id}`);
+    console.log("Admin credentials: username: admin, password: Admin123!@#");
+  } catch (error) {
+    console.error("Failed to create admin account:", error);
+  }
+}
+
 function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -30,6 +76,9 @@ function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) 
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+
+  // Initialize admin account
+  await initializeAdminAccount();
 
   // Authentication routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
