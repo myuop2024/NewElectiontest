@@ -473,7 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create emergency report with high priority
       const emergencyReport = await storage.createReport({
         userId: req.user!.id,
-        stationId: 1, // Default station for emergency reports
+        stationId: 2, // Use existing polling station ID
         type: 'emergency',
         title: `EMERGENCY: ${type}`,
         description,
