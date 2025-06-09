@@ -340,31 +340,51 @@ export default function AdminSettings() {
                     {getSettingValue('didit_kyc_enabled') === 'true' ? 'Enabled' : 'Disabled'}
                   </Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label>API Endpoint</Label>
                     <Input
-                      placeholder="https://api.didit.me/v1"
+                      placeholder="https://api.didit.me/v1/"
                       defaultValue={getSettingValue('didit_api_endpoint')}
                       onBlur={(e) => handleUpdateSetting('didit_api_endpoint', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <Label>API Key</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        placeholder="your-didit-api-key"
-                        type={showSecrets['didit_key'] ? 'text' : 'password'}
-                        defaultValue={getSettingValue('didit_api_key')}
-                        onBlur={(e) => handleUpdateSetting('didit_api_key', e.target.value)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleShowSecret('didit_key')}
-                      >
-                        {showSecrets['didit_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Client ID</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          placeholder="your-didit-client-id"
+                          type={showSecrets['didit_client_id'] ? 'text' : 'password'}
+                          defaultValue={getSettingValue('didit_client_id')}
+                          onBlur={(e) => handleUpdateSetting('didit_client_id', e.target.value)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleShowSecret('didit_client_id')}
+                        >
+                          {showSecrets['didit_client_id'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Client Secret</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          placeholder="your-didit-client-secret"
+                          type={showSecrets['didit_client_secret'] ? 'text' : 'password'}
+                          defaultValue={getSettingValue('didit_client_secret')}
+                          onBlur={(e) => handleUpdateSetting('didit_client_secret', e.target.value)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleShowSecret('didit_client_secret')}
+                        >
+                          {showSecrets['didit_client_secret'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

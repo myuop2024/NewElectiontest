@@ -25,15 +25,28 @@ export interface DidITVerificationResponse {
 }
 
 export class KYCService {
-  private static readonly DIDIT_API_URL = process.env.DIDIT_API_URL || 'https://api.didit.me/v1/';
-  private static readonly DIDIT_CLIENT_ID = process.env.DIDIT_CLIENT_ID;
-  private static readonly DIDIT_CLIENT_SECRET = process.env.DIDIT_CLIENT_SECRET;
   private static accessToken: string | null = null;
   private static tokenExpiry: number = 0;
 
+  // Get configuration from database settings
+  private static async getConfiguration() {
+    const { storage } = await import('../storage.js');
+    const endpoint = await storage.getSettingByKey('didit_api_endpoint');
+    const clientId = await storage.getSettingByKey('didit_client_id');
+    const clientSecret = await storage.getSettingByKey('didit_client_secret');
+    
+    return {
+      apiUrl: endpoint?.value || 'https://api.didit.me/v1/',
+      clientId: clientId?.value,
+      clientSecret: clientSecret?.value
+    };
+  }
+
   // Get OAuth access token
   private static async getAccessToken(): Promise<string> {
-    if (!this.DIDIT_CLIENT_ID || !this.DIDIT_CLIENT_SECRET) {
+    const config = await this.getConfiguration();
+    
+    if (!config.clientId || !config.clientSecret) {
       throw new Error("DidIT client credentials not configured");
     }
 
@@ -43,7 +56,7 @@ export class KYCService {
     }
 
     try {
-      const response = await fetch(`${this.DIDIT_API_URL}oauth/token`, {
+      const response = await fetch(`${config.apiUrl}oauth/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -102,16 +115,16 @@ export class KYCService {
       const data = await response.json();
       
       return {
-        verificationId: data.verification_id,
-        status: data.status,
-        confidence: data.confidence || 0,
-        matchScore: data.match_score || 0,
+        verificationId: data.verification_id || data.id,
+        status: data.status === 'completed' ? 'approved' : data.status === 'failed' ? 'rejected' : 'pending',
+        confidence: data.confidence_score || 0,
+        matchScore: data.similarity_score || 0,
         details: {
-          documentVerified: data.document_verified || false,
-          faceMatch: data.face_match || false,
-          livenessCheck: data.liveness_check || false,
+          documentVerified: data.document_verification?.status === 'passed' || false,
+          faceMatch: data.face_verification?.status === 'passed' || false,
+          livenessCheck: data.liveness_check?.status === 'passed' || false,
           documentType: data.document_type || request.documentType,
-          extractedData: data.extracted_data || {}
+          extractedData: data.extracted_fields || {}
         }
       };
     } catch (error) {
@@ -139,14 +152,12 @@ export class KYCService {
 
   // Check verification status
   static async checkVerificationStatus(verificationId: string): Promise<DidITVerificationResponse> {
-    if (!this.DIDIT_API_KEY) {
-      throw new Error("DidIT API key not configured");
-    }
+    const accessToken = await this.getAccessToken();
 
     try {
-      const response = await fetch(`${this.DIDIT_API_URL}verification/${verificationId}`, {
+      const response = await fetch(`${this.DIDIT_API_URL}identity/verification/${verificationId}`, {
         headers: {
-          'Authorization': `Bearer ${this.DIDIT_API_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
         }
       });
 
@@ -157,16 +168,16 @@ export class KYCService {
       const data = await response.json();
       
       return {
-        verificationId: data.verification_id,
-        status: data.status,
-        confidence: data.confidence || 0,
-        matchScore: data.match_score || 0,
+        verificationId: data.verification_id || data.id,
+        status: data.status === 'completed' ? 'approved' : data.status === 'failed' ? 'rejected' : 'pending',
+        confidence: data.confidence_score || 0,
+        matchScore: data.similarity_score || 0,
         details: {
-          documentVerified: data.document_verified || false,
-          faceMatch: data.face_match || false,
-          livenessCheck: data.liveness_check || false,
+          documentVerified: data.document_verification?.status === 'passed' || false,
+          faceMatch: data.face_verification?.status === 'passed' || false,
+          livenessCheck: data.liveness_check?.status === 'passed' || false,
           documentType: data.document_type,
-          extractedData: data.extracted_data || {}
+          extractedData: data.extracted_fields || {}
         }
       };
     } catch (error) {

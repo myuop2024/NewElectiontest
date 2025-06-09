@@ -47,8 +47,9 @@ export class AdminSettingsService {
       
       // Security Settings
       { key: 'didit_kyc_enabled', value: 'false' },
-      { key: 'didit_api_endpoint', value: 'https://api.didit.me/v1' },
-      { key: 'didit_api_key', value: '' },
+      { key: 'didit_api_endpoint', value: 'https://api.didit.me/v1/' },
+      { key: 'didit_client_id', value: '' },
+      { key: 'didit_client_secret', value: '' },
       { key: 'min_security_level', value: '3' },
       { key: 'session_timeout', value: '30' },
       { key: 'device_binding_enabled', value: 'true' },
@@ -306,11 +307,13 @@ export class AdminSettingsService {
       
       didit: async () => {
         const enabled = await storage.getSettingByKey('didit_kyc_enabled');
-        const apiKey = await storage.getSettingByKey('didit_api_key');
+        const clientId = await storage.getSettingByKey('didit_client_id');
+        const clientSecret = await storage.getSettingByKey('didit_client_secret');
         const endpoint = await storage.getSettingByKey('didit_api_endpoint');
         
         if (enabled?.value === 'true') {
-          if (!apiKey?.value) return { valid: false, message: 'API key required' };
+          if (!clientId?.value) return { valid: false, message: 'Client ID required' };
+          if (!clientSecret?.value) return { valid: false, message: 'Client Secret required' };
           if (!endpoint?.value) return { valid: false, message: 'API endpoint required' };
           return { valid: true, message: 'Configuration valid' };
         }
