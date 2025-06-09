@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, MapPin, Clock, Send, FileText, Camera } from "lucide-react";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useLocation } from "wouter";
+import { AIIncidentAnalysis } from "@/components/analytics/ai-incident-analysis";
 
 const INCIDENT_TYPES = [
   { value: "voter_intimidation", label: "Voter Intimidation", priority: "high" },
@@ -50,6 +51,8 @@ export default function IncidentReporting() {
     witnessCount: "",
     evidenceNotes: ""
   });
+
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
 
   const { data: pollingStations = [] } = useQuery<any[]>({
     queryKey: ["/api/polling-stations"],
@@ -158,9 +161,9 @@ export default function IncidentReporting() {
           <p className="text-muted-foreground">Report electoral irregularities and incidents in real-time</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Report Form */}
-          <Card className="government-card">
+          <Card className="government-card lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -310,48 +313,80 @@ export default function IncidentReporting() {
             </CardContent>
           </Card>
 
-          {/* Recent Reports */}
-          <Card className="government-card">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>Your Recent Reports</span>
-              </CardTitle>
-              <CardDescription>
-                Track your submitted incident reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {userReports.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No reports submitted yet</p>
-                ) : (
-                  userReports.slice(0, 5).map((report: any) => (
-                    <div key={report.id} className="border rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{report.title}</h4>
-                        <Badge className={getPriorityColor(report.severity)}>
-                          {report.severity}
-                        </Badge>
+          {/* AI Analysis Panel */}
+          <div className="space-y-6">
+            {/* AI Analysis Trigger */}
+            {incidentForm.title && incidentForm.description && !showAIAnalysis && (
+              <Card className="government-card">
+                <CardContent className="p-4">
+                  <Button 
+                    onClick={() => setShowAIAnalysis(true)}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Get AI Analysis
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* AI Analysis Component */}
+            {showAIAnalysis && incidentForm.title && incidentForm.description && (
+              <AIIncidentAnalysis
+                incidentData={incidentForm}
+                onAnalysisComplete={(analysis) => {
+                  // Auto-populate severity if not set
+                  if (!incidentForm.severity && analysis.severity.level) {
+                    setIncidentForm(prev => ({ ...prev, severity: analysis.severity.level }));
+                  }
+                }}
+              />
+            )}
+
+            {/* Recent Reports */}
+            <Card className="government-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <FileText className="h-5 w-5" />
+                  <span>Your Recent Reports</span>
+                </CardTitle>
+                <CardDescription>
+                  Track your submitted incident reports
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {userReports.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No reports submitted yet</p>
+                  ) : (
+                    userReports.slice(0, 5).map((report: any) => (
+                      <div key={report.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">{report.title}</h4>
+                          <Badge className={getPriorityColor(report.severity)}>
+                            {report.severity}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {report.description}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(report.createdAt).toLocaleDateString()}
+                          </span>
+                          <Badge variant="outline">
+                            {report.status}
+                          </Badge>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {report.description}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {new Date(report.createdAt).toLocaleDateString()}
-                        </span>
-                        <Badge variant="outline">
-                          {report.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Hidden file input for evidence capture */}

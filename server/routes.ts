@@ -1364,11 +1364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityType: "incidents",
         userId: req.user!.id,
         entityId: `batch_${incidents.length}`,
-        ipAddress: req.ip || '',
-        metadata: JSON.stringify({
-          batchSize: incidents.length,
-          summaryGenerated: true
-        })
+        ipAddress: req.ip || ''
       });
 
       res.json({ 

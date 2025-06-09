@@ -66,7 +66,7 @@ export function AIIncidentAnalysis({ incidentData, onAnalysisComplete }: AIIncid
 
   const analyzeIncidentMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/ai/analyze-incident", "POST", data),
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       setAnalysis(response.analysis);
       onAnalysisComplete?.(response.analysis);
       toast({
@@ -84,7 +84,7 @@ export function AIIncidentAnalysis({ incidentData, onAnalysisComplete }: AIIncid
     }
   });
 
-  const { data: patterns } = useQuery({
+  const { data: patterns } = useQuery<any>({
     queryKey: ["/api/ai/incident-patterns"],
     enabled: !incidentData // Only fetch patterns when not analyzing specific incident
   });
