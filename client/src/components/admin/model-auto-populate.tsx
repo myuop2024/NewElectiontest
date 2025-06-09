@@ -40,10 +40,8 @@ export default function ModelAutoPopulate({ onModelsPopulated }: ModelAutoPopula
       ];
 
       for (const update of updates) {
-        await apiRequest('/api/settings', {
-          method: 'POST',
-          body: update
-        });
+        const response = await apiRequest('POST', '/api/settings', update);
+        await response.json();
       }
 
       toast({
