@@ -233,7 +233,7 @@ export default function RouteNavigation() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <OSMFallbackMap
+              <EnhancedMap
                 height="400px"
                 center={position ? { lat: position.latitude, lng: position.longitude } : { lat: 18.1096, lng: -77.2975 }}
                 zoom={position ? 15 : 10}
