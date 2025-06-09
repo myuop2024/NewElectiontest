@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 
@@ -514,16 +516,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SPA fallback: serve index.html for all non-API, non-static requests
-  app.get("*", async (req, res) => {
+  app.get("*", (req, res) => {
     if (
       !req.path.startsWith("/api") &&
       !req.path.startsWith("/ws") &&
       !req.path.includes(".")
     ) {
-      const pathModule = await import("path");
-      const fs = await import("fs");
-      const indexPath = pathModule.default.resolve(__dirname, "../dist/public/index.html");
-      if (fs.default.existsSync(indexPath)) {
+      const indexPath = path.resolve(__dirname, "../dist/public/index.html");
+      if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
       } else {
         res.status(404).send("index.html not found");
