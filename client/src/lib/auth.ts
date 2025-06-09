@@ -2,7 +2,7 @@ import { apiRequest } from "./queryClient";
 import type { User } from "@shared/schema";
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 

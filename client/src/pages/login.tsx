@@ -10,7 +10,7 @@ import { AlertCircle, Vote } from "lucide-react";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login({ username, password });
+      await login({ email, password });
       setLocation("/");
     } catch (err: any) {
       setError(err.message || "Login failed");
@@ -64,13 +64,13 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-field">
-              <Label htmlFor="username" className="form-label">Username</Label>
+              <Label htmlFor="email" className="form-label">Email Address</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
                 required
                 className="form-input"
               />

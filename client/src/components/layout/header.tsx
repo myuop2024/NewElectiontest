@@ -1,9 +1,10 @@
-import { Bell, Vote, User } from "lucide-react";
+import { Bell, Vote, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
+import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -16,9 +17,11 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             {/* CAFFE Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 caffe-bg-primary rounded-lg flex items-center justify-center">
-                <Vote className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src={caffeLogo} 
+                alt="CAFFE Logo" 
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h1 className="text-xl font-bold caffe-primary">CAFFE</h1>
                 <p className="text-xs text-muted-foreground">Electoral Observer Platform</p>
@@ -61,6 +64,17 @@ export default function Header() {
                   <User className="h-5 w-5" />
                 </AvatarFallback>
               </Avatar>
+              
+              {/* Logout Button */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={logout}
+                className="text-muted-foreground hover:text-destructive"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </div>
