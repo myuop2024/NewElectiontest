@@ -235,10 +235,35 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
                   <span className="text-sm">{toLocation.name}</span>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Recalculate Button */}
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => calculateRoute(true)}
+                  disabled={isCalculating}
+                  className="flex items-center gap-2"
+                >
+                  <Navigation className="h-4 w-4" />
+                  Recalculate Route
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">
-              Unable to calculate route. Please check the locations.
+            <div className="space-y-3 text-center">
+              <div className="text-sm text-muted-foreground">
+                Route calculation in progress. If this takes too long, try the button below.
+              </div>
+              <Button
+                onClick={() => calculateRoute(true)}
+                disabled={isCalculating}
+                className="flex items-center gap-2"
+              >
+                <Navigation className="h-4 w-4" />
+                {isCalculating ? 'Calculating...' : 'Calculate Route'}
+              </Button>
             </div>
           )}
         </CardContent>
