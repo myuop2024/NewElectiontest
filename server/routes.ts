@@ -1467,7 +1467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Title and description are required" });
       }
 
-      const aiService = createAIIncidentService(process.env.GEMINI_API_KEY);
+      const aiService = createAIIncidentService(process.env.GOOGLE_API_KEY);
       
       const analysis = await aiService.analyzeIncident({
         type,
@@ -1503,7 +1503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Incidents array is required" });
       }
 
-      const aiService = createAIIncidentService(process.env.GEMINI_API_KEY);
+      const aiService = createAIIncidentService(process.env.GOOGLE_API_KEY);
       
       const analyses = await aiService.classifyIncidentBatch(incidents);
       const summary = await aiService.generateSummaryReport(analyses);
@@ -1541,7 +1541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const aiService = createAIIncidentService(process.env.GEMINI_API_KEY);
+      const aiService = createAIIncidentService(process.env.GOOGLE_API_KEY);
       
       // Convert reports to incident format for analysis
       const incidents = recentReports.map(report => ({
