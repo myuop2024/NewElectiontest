@@ -28,8 +28,8 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
     }
   }, [fromLocation, toLocation, hasCheckedApi]);
 
-  const calculateRoute = async () => {
-    if (hasCheckedApi) return; // Prevent multiple API calls
+  const calculateRoute = async (forceRecalculate = false) => {
+    if (hasCheckedApi && !forceRecalculate) return; // Prevent multiple API calls unless forced
     
     setIsCalculating(true);
     setHasCheckedApi(true);
