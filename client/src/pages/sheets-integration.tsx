@@ -54,7 +54,7 @@ export default function SheetsIntegration() {
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("/api/integration/sheets/test", "POST", { spreadsheetId, range });
-      return response as TestResult;
+      return response as unknown as TestResult;
     },
     onSuccess: (result: TestResult) => {
       setTestResult(result);
@@ -82,7 +82,10 @@ export default function SheetsIntegration() {
 
   // Import mutation
   const importMutation = useMutation({
-    mutationFn: () => apiRequest("/api/integration/sheets/import", "POST", { spreadsheetId, range }),
+    mutationFn: async () => {
+      const response = await apiRequest("/api/integration/sheets/import", "POST", { spreadsheetId, range });
+      return response as unknown as ImportResult;
+    },
     onSuccess: (result: ImportResult) => {
       setLastImportResult(result);
       setIsImporting(false);
@@ -103,7 +106,7 @@ export default function SheetsIntegration() {
   });
 
   // Validate Google Sheets service
-  const { data: serviceStatus } = useQuery({
+  const { data: serviceStatus } = useQuery<{ valid: boolean; message: string }>({
     queryKey: ["/api/integration/sheets/validate"],
     refetchInterval: 60000
   });
