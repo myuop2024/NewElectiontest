@@ -12,17 +12,14 @@ class WebSocketService {
 
   connect(userId: string): WebSocket {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${userId}`;
+    
+    console.log(`Attempting WebSocket connection to: ${wsUrl} for user: ${userId}`);
     
     this.ws = new WebSocket(wsUrl);
     
     this.ws.onopen = () => {
-      console.log("WebSocket connected");
-      // Send authentication message
-      this.ws?.send(JSON.stringify({
-        type: 'auth',
-        userId: userId
-      }));
+      console.log(`WebSocket connected successfully for user: ${userId}`);
     };
 
     return this.ws;

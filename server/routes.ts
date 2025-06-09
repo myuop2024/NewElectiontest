@@ -1241,22 +1241,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const clients = new Map<number, WebSocket>();
 
   wss.on('connection', (ws: WebSocket, req) => {
-    // For simplicity, we'll assume a user ID is passed as a query parameter
-    // In a real app, you'd use a secure authentication method (e.g., from the session)
-    const baseUrl = `http://${req.headers.host}`;
-    const url = new URL(req.url || '/ws', baseUrl);
-    const userId = Number(url.searchParams.get('userId'));
+    // Parse the URL to extract userId from query parameters
+    try {
+      const baseUrl = `http://${req.headers.host}`;
+      const url = new URL(req.url || '/ws', baseUrl);
+      const userIdParam = url.searchParams.get('userId');
+      const userId = userIdParam ? Number(userIdParam) : null;
 
-    if (userId) {
-      console.log(`WebSocket client connected for user: ${userId}`);
-      clients.set(userId, ws);
+      console.log(`WebSocket connection attempt - URL: ${req.url}, userId param: ${userIdParam}`);
 
-      ws.on('close', () => {
-        console.log(`WebSocket client disconnected for user: ${userId}`);
-        clients.delete(userId);
-      });
-    } else {
-      console.log('WebSocket connection established without user ID');
+      if (userId && !isNaN(userId)) {
+        console.log(`WebSocket client connected for user: ${userId}`);
+        clients.set(userId, ws);
+
+        ws.on('close', () => {
+          console.log(`WebSocket client disconnected for user: ${userId}`);
+          clients.delete(userId);
+        });
+      } else {
+        console.log('WebSocket connection established without valid user ID');
+      }
+    } catch (error) {
+      console.error('Error parsing WebSocket URL:', error);
+      console.log('WebSocket connection established without user ID due to parsing error');
     }
 
     ws.on('message', (message) => {
