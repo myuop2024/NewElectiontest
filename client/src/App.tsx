@@ -20,6 +20,7 @@ import RouteNavigation from "@/pages/route-navigation";
 import TrainingCenter from "@/pages/training-center";
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
+import CheckIn from "@/pages/check-in";
 import Settings from "@/pages/settings";
 import UnifiedAdmin from "@/pages/unified-admin";
 import IncidentReporting from "@/pages/incident-reporting";
@@ -105,6 +106,11 @@ function Router() {
       <Route path="/analytics">
         <ProtectedLayout>
           <Analytics />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/check-in">
+        <ProtectedLayout>
+          <CheckIn />
         </ProtectedLayout>
       </Route>
       <Route path="/qr-scanner">
