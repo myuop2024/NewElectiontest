@@ -505,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Settings route
+  // Settings routes
   app.get("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (req.user?.role !== 'admin') {
@@ -517,6 +517,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching settings:", error);
       res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { key, value } = req.body;
+      
+      if (!key || value === undefined) {
+        return res.status(400).json({ error: "Key and value are required" });
+      }
+
+      // Update or create setting
+      const setting = await storage.updateSetting(key, value, req.user?.id);
+      
+      // Log the setting change
+      await storage.createAuditLog({
+        userId: req.user?.id || 0,
+        action: `Updated setting: ${key}`,
+        details: `Changed ${key} to ${value.length > 50 ? '[REDACTED]' : value}`,
+        ipAddress: req.ip || '',
+        userAgent: req.get('User-Agent') || ''
+      });
+      
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating setting:", error);
+      res.status(500).json({ error: "Failed to update setting" });
     }
   });
 

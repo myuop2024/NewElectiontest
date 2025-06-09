@@ -175,11 +175,13 @@ export default function UnifiedAdmin() {
   // Update setting mutation
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      return apiRequest('/api/settings', {
+      const response = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value })
       });
+      if (!response.ok) throw new Error('Failed to update setting');
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -202,9 +204,12 @@ export default function UnifiedAdmin() {
   // Test service configuration
   const testServiceMutation = useMutation({
     mutationFn: async (serviceName: string) => {
-      return apiRequest(`/api/admin/settings/validate/${serviceName}`, {
-        method: 'POST'
+      const response = await fetch(`/api/admin/settings/validate/${serviceName}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
       });
+      if (!response.ok) throw new Error('Service test failed');
+      return response.json();
     },
     onSuccess: (data: any) => {
       toast({
