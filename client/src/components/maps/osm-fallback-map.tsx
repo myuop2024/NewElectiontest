@@ -38,30 +38,59 @@ export default function OSMFallbackMap({
     return { x, y };
   };
 
-  // Convert lat/lng to pixel coordinates relative to the map
-  const latLngToPixel = (lat: number, lng: number) => {
-    const mapWidth = 800;
-    const mapHeight = 600;
+  // Convert lat/lng to pixel coordinates relative to the map using proper mercator projection
+  const latLngToPixel = (lat: number, lng: number, mapWidth: number, mapHeight: number) => {
+    // Web Mercator projection
+    const scale = Math.pow(2, currentZoom);
+    const worldWidth = 256 * scale;
+    const worldHeight = 256 * scale;
     
-    // Simple mercator projection
-    const x = ((lng + 180) / 360) * mapWidth;
+    // Convert to world coordinates
+    const worldX = ((lng + 180) / 360) * worldWidth;
     const latRad = lat * Math.PI / 180;
-    const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-    const y = (mapHeight / 2) - (mapWidth * mercN / (2 * Math.PI));
+    const worldY = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * worldHeight;
+    
+    // Get center world coordinates
+    const centerWorldX = ((currentCenter.lng + 180) / 360) * worldWidth;
+    const centerLatRad = currentCenter.lat * Math.PI / 180;
+    const centerWorldY = ((1 - Math.log(Math.tan(centerLatRad) + 1 / Math.cos(centerLatRad)) / Math.PI) / 2) * worldHeight;
+    
+    // Convert to screen coordinates
+    const x = mapWidth / 2 + (worldX - centerWorldX);
+    const y = mapHeight / 2 + (worldY - centerWorldY);
     
     return { x, y };
   };
 
   const generateTileUrl = () => {
-    const tileSize = 256;
     const mapWidth = Math.min(parseInt(width.toString()) || 800, 1024);
     const mapHeight = Math.min(parseInt(height.toString()) || 400, 600);
+    
+    // Calculate how many tiles we need to cover the view
+    const tilesX = Math.ceil(mapWidth / 256) + 1;
+    const tilesY = Math.ceil(mapHeight / 256) + 1;
     
     // Calculate center tile
     const centerTile = getTileCoords(currentCenter.lat, currentCenter.lng, currentZoom);
     
-    // For simplicity, use a single tile centered on the view
-    return `https://tile.openstreetmap.org/${currentZoom}/${centerTile.x}/${centerTile.y}.png`;
+    // Generate tile grid
+    const tiles = [];
+    const startX = centerTile.x - Math.floor(tilesX / 2);
+    const startY = centerTile.y - Math.floor(tilesY / 2);
+    
+    for (let y = 0; y < tilesY; y++) {
+      for (let x = 0; x < tilesX; x++) {
+        const tileX = startX + x;
+        const tileY = startY + y;
+        tiles.push({
+          url: `https://tile.openstreetmap.org/${currentZoom}/${tileX}/${tileY}.png`,
+          x: x * 256 - 128,
+          y: y * 256 - 128
+        });
+      }
+    }
+    
+    return tiles;
   };
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -73,16 +102,24 @@ export default function OSMFallbackMap({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Convert pixel coordinates to lat/lng (approximation)
-    const mapWidth = rect.width;
-    const mapHeight = rect.height;
-
-    // Calculate approximate lat/lng based on map bounds
-    const latRange = 360 / Math.pow(2, currentZoom);
-    const lngRange = 360 / Math.pow(2, currentZoom);
-
-    const lat = currentCenter.lat + (0.5 - y / mapHeight) * latRange * 0.7;
-    const lng = currentCenter.lng + (x / mapWidth - 0.5) * lngRange;
+    // Convert pixel coordinates to lat/lng using proper projection
+    const scale = Math.pow(2, currentZoom);
+    const worldWidth = 256 * scale;
+    const worldHeight = 256 * scale;
+    
+    // Calculate world coordinates of the center
+    const centerWorldX = ((currentCenter.lng + 180) / 360) * worldWidth;
+    const centerLatRad = currentCenter.lat * Math.PI / 180;
+    const centerWorldY = ((1 - Math.log(Math.tan(centerLatRad) + 1 / Math.cos(centerLatRad)) / Math.PI) / 2) * worldHeight;
+    
+    // Calculate world coordinates of clicked point
+    const clickWorldX = centerWorldX + (x - rect.width / 2);
+    const clickWorldY = centerWorldY + (y - rect.height / 2);
+    
+    // Convert back to lat/lng
+    const lng = (clickWorldX / worldWidth) * 360 - 180;
+    const n = Math.PI - 2 * Math.PI * clickWorldY / worldHeight;
+    const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
 
     onLocationSelect(lat, lng);
   };
@@ -99,22 +136,70 @@ export default function OSMFallbackMap({
     setCurrentCenter({ lat, lng });
   };
 
+  // Enhanced panning controls
+  const panNorth = () => {
+    const latOffset = 0.01 * Math.pow(2, Math.max(0, 10 - currentZoom));
+    setCurrentCenter(prev => ({ ...prev, lat: prev.lat + latOffset }));
+  };
+
+  const panSouth = () => {
+    const latOffset = 0.01 * Math.pow(2, Math.max(0, 10 - currentZoom));
+    setCurrentCenter(prev => ({ ...prev, lat: prev.lat - latOffset }));
+  };
+
+  const panEast = () => {
+    const lngOffset = 0.01 * Math.pow(2, Math.max(0, 10 - currentZoom));
+    setCurrentCenter(prev => ({ ...prev, lng: prev.lng + lngOffset }));
+  };
+
+  const panWest = () => {
+    const lngOffset = 0.01 * Math.pow(2, Math.max(0, 10 - currentZoom));
+    setCurrentCenter(prev => ({ ...prev, lng: prev.lng - lngOffset }));
+  };
+
+  const tiles = generateTileUrl();
+
   return (
     <div style={{ width, height }} className="border rounded-lg relative overflow-hidden bg-blue-50">
-      {/* Map Background */}
+      {/* Map with Multiple Tiles */}
       <div 
         ref={mapContainerRef}
         className="w-full h-full relative cursor-crosshair"
         onClick={handleMapClick}
-        style={{
-          backgroundImage: `url(${generateTileUrl()})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
+        style={{ position: 'relative' }}
       >
-        {/* Fallback pattern when tile fails */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-green-100 opacity-30"></div>
+        {/* High-quality tile grid */}
+        {tiles.map((tile, index) => (
+          <img
+            key={index}
+            src={tile.url}
+            alt={`Map tile ${index}`}
+            className="absolute"
+            style={{
+              left: tile.x,
+              top: tile.y,
+              width: '256px',
+              height: '256px'
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+        ))}
+        
+        {/* Jamaica coastline overlay for context */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <svg width="100%" height="100%" viewBox="0 0 100 100">
+            <path
+              d="M10,40 Q20,35 35,38 Q50,40 65,42 Q80,44 90,40 Q85,50 80,55 Q70,60 55,58 Q40,56 25,54 Q15,52 10,45 Z"
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth="0.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        </div>
         
         {/* Grid overlay to show map structure */}
         <div className="absolute inset-0">
@@ -128,16 +213,14 @@ export default function OSMFallbackMap({
           </svg>
         </div>
 
-        {/* Markers */}
+        {/* Enhanced Polling Station Markers */}
         {markers.map((marker, index) => {
-          const markerPos = latLngToPixel(marker.lat, marker.lng);
           const mapRect = mapContainerRef.current?.getBoundingClientRect();
           if (!mapRect) return null;
-
-          // Position relative to current center
-          const centerPos = latLngToPixel(currentCenter.lat, currentCenter.lng);
-          const x = (markerPos.x - centerPos.x) + mapRect.width / 2;
-          const y = (markerPos.y - centerPos.y) + mapRect.height / 2;
+          
+          const markerPos = latLngToPixel(marker.lat, marker.lng, mapRect.width, mapRect.height);
+          const x = markerPos.x;
+          const y = markerPos.y;
 
           // Only show markers within the visible area
           if (x < -20 || x > mapRect.width + 20 || y < -20 || y > mapRect.height + 20) {

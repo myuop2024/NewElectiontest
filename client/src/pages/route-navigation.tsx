@@ -6,7 +6,7 @@ import { Navigation, MapPin, Clock, Route, Car, Play, Square } from "lucide-reac
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatCoordinates } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import OSMFallbackMap from "@/components/maps/osm-fallback-map";
+import EnhancedMap from "@/components/maps/enhanced-map";
 
 export default function RouteNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
