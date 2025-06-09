@@ -29,9 +29,10 @@ const __dirname = path.dirname(__filename);
 // JWT Secret - use environment variable or fallback
 const JWT_SECRET = process.env.JWT_SECRET || "caffe-electoral-observer-secret-2024";
 
-// Extend Express Request type to include user
+// Extend Express Request type to include user and session
 interface AuthenticatedRequest extends Request {
   user?: { id: number; username: string; role: string };
+  session?: any;
 }
 
 
