@@ -13,7 +13,7 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   phone: text("phone"),
-  trn: text("trn"), // Tax Registration Number (Jamaica)
+  trn: text("trn"), // Tax Registration Number (Jamaica) - encrypted
   parishId: integer("parish_id"),
   address: text("address"), // Full Jamaican address
   community: text("community"), // Community/District within parish
@@ -22,9 +22,19 @@ export const users = pgTable("users", {
   role: text("role").notNull().default("observer"), // observer, admin, coordinator
   status: text("status").notNull().default("pending"), // pending, active, suspended
   deviceId: text("device_id"),
+  deviceFingerprint: text("device_fingerprint"), // Unique device identifier
+  deviceInfo: json("device_info"), // Device details and capabilities
+  bankingDetails: text("banking_details"), // Encrypted banking information
+  kycData: json("kyc_data"), // DidIT KYC verification data
+  lastKnownLocation: json("last_known_location"), // GPS coordinates with timestamp
+  pushNotificationToken: text("push_notification_token"), // For mobile notifications
+  smsEnabled: boolean("sms_enabled").notNull().default(true),
+  whatsappEnabled: boolean("whatsapp_enabled").notNull().default(false),
   lastLogin: timestamp("last_login"),
   kycStatus: text("kyc_status").notNull().default("pending"), // pending, verified, rejected
   trainingStatus: text("training_status").notNull().default("incomplete"), // incomplete, completed, certified
+  certificationLevel: text("certification_level"), // basic, advanced, expert
+  securityLevel: integer("security_level").notNull().default(1), // 1-5 security clearance
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -199,6 +209,220 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Device management for security binding
+export const devices = pgTable("devices", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  deviceFingerprint: text("device_fingerprint").notNull().unique(),
+  deviceName: text("device_name").notNull(),
+  deviceType: text("device_type").notNull(), // mobile, tablet, desktop
+  osVersion: text("os_version"),
+  browserInfo: text("browser_info"),
+  ipAddress: text("ip_address"),
+  isActive: boolean("is_active").notNull().default(true),
+  lastSeen: timestamp("last_seen").notNull().defaultNow(),
+  registeredAt: timestamp("registered_at").notNull().defaultNow(),
+});
+
+// Security audit logs
+export const securityLogs = pgTable("security_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  action: text("action").notNull(),
+  deviceFingerprint: text("device_fingerprint"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  riskLevel: text("risk_level").notNull().default("low"), // low, medium, high, critical
+  details: json("details"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// KYC verification records
+export const kycVerifications = pgTable("kyc_verifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  verificationType: text("verification_type").notNull(), // didit, manual
+  status: text("status").notNull(), // pending, approved, rejected
+  verificationData: json("verification_data"),
+  documentUploads: json("document_uploads"),
+  verifiedBy: integer("verified_by"),
+  verifiedAt: timestamp("verified_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Push notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull().default("info"), // info, warning, alert, success
+  priority: text("priority").notNull().default("normal"), // low, normal, high, urgent
+  isRead: boolean("is_read").notNull().default(false),
+  sentVia: text("sent_via"), // push, sms, whatsapp, email
+  metadata: json("metadata"),
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Forms builder
+export const forms = pgTable("forms", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  formData: json("form_data").notNull(), // Drag-and-drop form structure
+  version: integer("version").notNull().default(1),
+  isActive: boolean("is_active").notNull().default(true),
+  isPublished: boolean("is_published").notNull().default(false),
+  permissions: json("permissions"), // Role-based access
+  analyticsEnabled: boolean("analytics_enabled").notNull().default(true),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Form submissions
+export const formSubmissions = pgTable("form_submissions", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").notNull(),
+  userId: integer("user_id").notNull(),
+  submissionData: json("submission_data").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  gpsLocation: json("gps_location"),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+});
+
+// Route tracking for roving observers
+export const routes = pgTable("routes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  routeName: text("route_name").notNull(),
+  startLocation: json("start_location").notNull(),
+  endLocation: json("end_location").notNull(),
+  waypoints: json("waypoints"), // Array of GPS coordinates
+  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }),
+  estimatedDuration: integer("estimated_duration"), // minutes
+  actualDuration: integer("actual_duration"), // minutes
+  mileageRate: decimal("mileage_rate", { precision: 5, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }),
+  status: text("status").notNull().default("planned"), // planned, active, completed
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// GPS tracking points
+export const gpsTracking = pgTable("gps_tracking", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  routeId: integer("route_id"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 5, scale: 2 }),
+  altitude: decimal("altitude", { precision: 8, scale: 2 }),
+  speed: decimal("speed", { precision: 5, scale: 2 }),
+  heading: decimal("heading", { precision: 5, scale: 2 }),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+// Voice/video calls
+export const calls = pgTable("calls", {
+  id: serial("id").primaryKey(),
+  callerId: integer("caller_id").notNull(),
+  recipientId: integer("recipient_id"),
+  roomId: text("room_id"), // For group calls
+  callType: text("call_type").notNull(), // voice, video
+  status: text("status").notNull(), // ringing, active, ended, missed
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
+  duration: integer("duration"), // seconds
+  quality: text("quality"), // poor, fair, good, excellent
+  recordingUrl: text("recording_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// SMS and WhatsApp integration
+export const smsMessages = pgTable("sms_messages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  phoneNumber: text("phone_number").notNull(),
+  message: text("message").notNull(),
+  direction: text("direction").notNull(), // inbound, outbound
+  provider: text("provider").notNull(), // sms, whatsapp
+  status: text("status").notNull(), // pending, sent, delivered, failed
+  providerId: text("provider_id"), // External provider message ID
+  cost: decimal("cost", { precision: 5, scale: 4 }),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Email integration
+export const emails = pgTable("emails", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  fromEmail: text("from_email").notNull(),
+  toEmail: text("to_email").notNull(),
+  ccEmails: json("cc_emails"),
+  bccEmails: json("bcc_emails"),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  isHtml: boolean("is_html").notNull().default(false),
+  attachments: json("attachments"),
+  status: text("status").notNull().default("pending"), // pending, sent, delivered, failed
+  templateId: integer("template_id"),
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Email templates
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  bodyHtml: text("body_html").notNull(),
+  bodyText: text("body_text"),
+  variables: json("variables"), // Template variables
+  category: text("category").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// External integrations
+export const integrations = pgTable("integrations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // googlesheets, bigquery, didit, whatsapp, sms
+  config: json("config").notNull(), // API keys, endpoints, settings
+  isActive: boolean("is_active").notNull().default(true),
+  lastSync: timestamp("last_sync"),
+  syncStatus: text("sync_status"), // success, error, pending
+  errorLog: text("error_log"),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Data synchronization logs
+export const syncLogs = pgTable("sync_logs", {
+  id: serial("id").primaryKey(),
+  integrationId: integer("integration_id").notNull(),
+  operation: text("operation").notNull(), // import, export, sync
+  recordsProcessed: integer("records_processed").notNull().default(0),
+  recordsSuccess: integer("records_success").notNull().default(0),
+  recordsError: integer("records_error").notNull().default(0),
+  details: json("details"),
+  errorLog: text("error_log"),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignments: many(assignments),
@@ -369,3 +593,108 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
+
+// Additional insert schemas for new tables
+export const insertDeviceSchema = createInsertSchema(devices).omit({
+  id: true,
+  lastSeen: true,
+  registeredAt: true,
+});
+
+export const insertSecurityLogSchema = createInsertSchema(securityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertKycVerificationSchema = createInsertSchema(kycVerifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFormSchema = createInsertSchema(forms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export const insertRouteSchema = createInsertSchema(routes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGpsTrackingSchema = createInsertSchema(gpsTracking).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertCallSchema = createInsertSchema(calls).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSmsMessageSchema = createInsertSchema(smsMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmailSchema = createInsertSchema(emails).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertIntegrationSchema = createInsertSchema(integrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSyncLogSchema = createInsertSchema(syncLogs).omit({
+  id: true,
+  startedAt: true,
+});
+
+// Additional types
+export type Device = typeof devices.$inferSelect;
+export type InsertDevice = z.infer<typeof insertDeviceSchema>;
+export type SecurityLog = typeof securityLogs.$inferSelect;
+export type InsertSecurityLog = z.infer<typeof insertSecurityLogSchema>;
+export type KycVerification = typeof kycVerifications.$inferSelect;
+export type InsertKycVerification = z.infer<typeof insertKycVerificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Form = typeof forms.$inferSelect;
+export type InsertForm = z.infer<typeof insertFormSchema>;
+export type FormSubmission = typeof formSubmissions.$inferSelect;
+export type InsertFormSubmission = z.infer<typeof insertFormSubmissionSchema>;
+export type Route = typeof routes.$inferSelect;
+export type InsertRoute = z.infer<typeof insertRouteSchema>;
+export type GpsTracking = typeof gpsTracking.$inferSelect;
+export type InsertGpsTracking = z.infer<typeof insertGpsTrackingSchema>;
+export type Call = typeof calls.$inferSelect;
+export type InsertCall = z.infer<typeof insertCallSchema>;
+export type SmsMessage = typeof smsMessages.$inferSelect;
+export type InsertSmsMessage = z.infer<typeof insertSmsMessageSchema>;
+export type Email = typeof emails.$inferSelect;
+export type InsertEmail = z.infer<typeof insertEmailSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type Integration = typeof integrations.$inferSelect;
+export type InsertIntegration = z.infer<typeof insertIntegrationSchema>;
+export type SyncLog = typeof syncLogs.$inferSelect;
+export type InsertSyncLog = z.infer<typeof insertSyncLogSchema>;
