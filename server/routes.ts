@@ -8,6 +8,9 @@ import fs from "fs";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
+import { db } from "./db";
+import { settings } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
 import { SecurityService } from "./lib/security.js";
 import { KYCService } from "./lib/kyc-service.js";
@@ -532,26 +535,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Key and value are required" });
       }
 
-      // Update or create setting
-      const setting = await storage.updateSetting(key, value.toString(), req.user?.id);
-      
-      // Log the setting change (optional, skip if audit logging fails)
+      console.log(`Updating setting: ${key} = ${value}`);
+
+      // Use storage layer for reliability
       try {
-        await storage.createAuditLog({
-          userId: req.user?.id || 0,
-          action: `Updated setting: ${key}`,
-          entityType: 'setting',
-          entityId: key,
-          ipAddress: req.ip || '',
-          userAgent: req.get('User-Agent') || ''
-        });
-      } catch (auditError) {
-        console.log('Audit logging failed, continuing with setting update');
+        const setting = await storage.updateSetting(key, value.toString(), req.user?.id);
+        console.log(`Successfully updated setting: ${key}`);
+        res.json(setting);
+        
+      } catch (dbError) {
+        console.error("Database error updating setting:", dbError);
+        res.status(500).json({ error: "Database error updating setting" });
       }
       
-      res.json(setting);
     } catch (error) {
-      console.error("Error updating setting:", error);
+      console.error("Error in settings route:", error);
       res.status(500).json({ error: "Failed to update setting" });
     }
   });
