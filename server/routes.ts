@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // HERE API Settings
+  // HERE API Settings - Available to all authenticated users for map functionality
   app.get("/api/settings/here-api", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       // Use environment variable if available, otherwise fall back to database
