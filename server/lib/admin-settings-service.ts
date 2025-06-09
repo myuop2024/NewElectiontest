@@ -31,6 +31,16 @@ export class AdminSettingsService {
       { key: 'openai_api_key', value: '' },
       { key: 'openai_model', value: 'gpt-4' },
       
+      { key: 'huggingface_enabled', value: 'false' },
+      { key: 'huggingface_api_key', value: '' },
+      { key: 'huggingface_model', value: 'microsoft/DialoGPT-medium' },
+      { key: 'huggingface_endpoint', value: 'https://api-inference.huggingface.co/models/' },
+      
+      { key: 'gemini_enabled', value: 'false' },
+      { key: 'gemini_api_key', value: '' },
+      { key: 'gemini_model', value: 'gemini-1.5-pro-latest' },
+      { key: 'gemini_endpoint', value: 'https://generativelanguage.googleapis.com/v1beta/models/' },
+      
       { key: 'whatsapp_enabled', value: 'false' },
       { key: 'whatsapp_phone_id', value: '' },
       { key: 'whatsapp_access_token', value: '' },
