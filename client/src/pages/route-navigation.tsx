@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Navigation, MapPin, Clock, Route, Car, Play, Square } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Navigation, MapPin, Clock, Route, Car, Play, Square, ExternalLink, Smartphone } from "lucide-react";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatCoordinates } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import EnhancedMap from "@/components/maps/enhanced-map";
-import RouteNavigator from "@/components/navigation/route-navigator";
 
 export default function RouteNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
@@ -304,26 +304,129 @@ export default function RouteNavigation() {
             </CardContent>
           </Card>
 
-          {/* Route Navigation Component */}
+          {/* Route Information Display */}
           {selectedDestination && stations.length > 0 && (
             (() => {
               const selectedStation = stations.find((s: any) => s.id.toString() === selectedDestination);
               if (!selectedStation) return null;
               
+              const fromLat = position?.latitude || 18.1096;
+              const fromLng = position?.longitude || -77.2975;
+              const toLat = parseFloat(selectedStation.latitude || "18.1096");
+              const toLng = parseFloat(selectedStation.longitude || "-77.2975");
+              
+              // Calculate straight-line distance
+              const R = 6371; // Earth's radius in km
+              const dLat = (toLat - fromLat) * Math.PI / 180;
+              const dLon = (toLng - fromLng) * Math.PI / 180;
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(fromLat * Math.PI / 180) * Math.cos(toLat * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              const distance = R * c;
+              const estimatedTime = Math.round(distance * 60); // Estimate 1 minute per km
+              
               return (
-                <RouteNavigator
-                  fromLocation={{
-                    lat: position?.latitude || 18.1096,
-                    lng: position?.longitude || -77.2975,
-                    name: position ? "Your Current Location" : "Jamaica Center"
-                  }}
-                  toLocation={{
-                    lat: parseFloat(selectedStation.latitude || "18.1096"),
-                    lng: parseFloat(selectedStation.longitude || "-77.2975"),
-                    name: selectedStation.name || "Selected Station"
-                  }}
-                  onRouteCalculated={(route) => setCurrentRoute(route)}
-                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Route className="h-5 w-5" />
+                      Route Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-blue-600" />
+                          <div>
+                            <div className="font-medium">{Math.floor(estimatedTime / 60)}h {estimatedTime % 60}m</div>
+                            <div className="text-xs text-muted-foreground">Estimated time</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Navigation className="h-4 w-4 text-green-600" />
+                          <div>
+                            <div className="font-medium">{distance.toFixed(1)} km</div>
+                            <div className="text-xs text-muted-foreground">Distance</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Car className="h-4 w-4 text-orange-600" />
+                          <div>
+                            <div className="font-medium">Car</div>
+                            <div className="text-xs text-muted-foreground">Transport mode</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium">From:</span>
+                          <span className="text-sm">{position ? "Your Current Location" : "Jamaica Center"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-red-600" />
+                          <span className="text-sm font-medium">To:</span>
+                          <span className="text-sm">{selectedStation.name}</span>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* External Navigation */}
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium">Open in External Apps</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const from = `${fromLat},${fromLng}`;
+                              const to = `${toLat},${toLng}`;
+                              window.open(`https://www.google.com/maps/dir/${from}/${to}`, '_blank');
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Google Maps
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const from = `${fromLat},${fromLng}`;
+                              const to = `${toLat},${toLng}`;
+                              window.open(`http://maps.apple.com/?saddr=${from}&daddr=${to}&dirflg=d`, '_blank');
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Smartphone className="h-3 w-3" />
+                            Apple Maps
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const from = `${fromLat},${fromLng}`;
+                              const to = `${toLat},${toLng}`;
+                              window.open(`https://waze.com/ul?ll=${to}&navigate=yes&from=${from}`, '_blank');
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Navigation className="h-3 w-3" />
+                            Waze
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })()
           )}

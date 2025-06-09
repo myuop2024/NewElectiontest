@@ -14,101 +14,61 @@ interface RouteNavigatorProps {
 export default function RouteNavigator({ fromLocation, toLocation, onRouteCalculated }: RouteNavigatorProps) {
   const [routeData, setRouteData] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [hasCheckedApi, setHasCheckedApi] = useState(false);
+  const [hasCalculated, setHasCalculated] = useState(false);
 
+  // Calculate route only once when component mounts or locations change
   useEffect(() => {
-    // Reset API check when locations change
-    setHasCheckedApi(false);
+    setHasCalculated(false);
     setRouteData(null);
-  }, [fromLocation, toLocation]);
+    
+    const timeoutId = setTimeout(() => {
+      if (!hasCalculated) {
+        calculateRoute();
+      }
+    }, 100);
 
-  useEffect(() => {
-    if (!hasCheckedApi && fromLocation && toLocation) {
-      calculateRoute();
-    }
-  }, [fromLocation, toLocation, hasCheckedApi]);
+    return () => clearTimeout(timeoutId);
+  }, [fromLocation.lat, fromLocation.lng, toLocation.lat, toLocation.lng]);
 
-  const calculateRoute = async (forceRecalculate = false) => {
-    if (hasCheckedApi && !forceRecalculate) return; // Prevent multiple API calls unless forced
+  const calculateRoute = async () => {
+    if (isCalculating || hasCalculated) return;
     
     setIsCalculating(true);
-    setHasCheckedApi(true);
+    setHasCalculated(true);
     
     try {
-      const response = await fetch('/api/settings/here-api');
-      const config = await response.json();
-      
-      if (!config.hasKey) {
-        // Create fallback route data using straight-line distance
-        const distance = calculateStraightLineDistance(fromLocation, toLocation);
-        const fallbackRoute = {
-          summary: {
-            duration: Math.round(distance * 60), // Estimate 1 minute per km
-            length: Math.round(distance * 1000) // Convert to meters
-          }
-        };
-        setRouteData(fallbackRoute);
-        onRouteCalculated?.(fallbackRoute);
-        return;
-      }
-
-      const routeResponse = await fetch(
-        `https://router.hereapi.com/v8/routes?` +
-        `transportMode=car&` +
-        `origin=${fromLocation.lat},${fromLocation.lng}&` +
-        `destination=${toLocation.lat},${toLocation.lng}&` +
-        `return=summary&` +
-        `apikey=${config.apiKey}`
-      );
-
-      if (!routeResponse.ok) {
-        console.error('Route API error:', routeResponse.status);
-        // Use fallback calculation
-        const distance = calculateStraightLineDistance(fromLocation, toLocation);
-        const fallbackRoute = {
-          summary: {
-            duration: Math.round(distance * 60),
-            length: Math.round(distance * 1000)
-          }
-        };
-        setRouteData(fallbackRoute);
-        onRouteCalculated?.(fallbackRoute);
-        return;
-      }
-
-      const data = await routeResponse.json();
-      
-      if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        setRouteData(route);
-        onRouteCalculated?.(route);
-      } else {
-        // Create fallback route data using straight-line distance
-        const distance = calculateStraightLineDistance(fromLocation, toLocation);
-        const fallbackRoute = {
-          summary: {
-            duration: Math.round(distance * 60),
-            length: Math.round(distance * 1000)
-          }
-        };
-        setRouteData(fallbackRoute);
-        onRouteCalculated?.(fallbackRoute);
-      }
-    } catch (error) {
-      console.error('Route calculation failed:', error);
-      // Create basic fallback route
+      // Create immediate fallback route
       const distance = calculateStraightLineDistance(fromLocation, toLocation);
       const fallbackRoute = {
+        summary: {
+          duration: Math.round(distance * 60), // Estimate 1 minute per km
+          length: Math.round(distance * 1000) // Convert to meters
+        }
+      };
+      
+      setRouteData(fallbackRoute);
+      onRouteCalculated?.(fallbackRoute);
+      
+    } catch (error) {
+      console.error('Route calculation failed:', error);
+      // Ensure we always have some data
+      const distance = calculateStraightLineDistance(fromLocation, toLocation);
+      const basicRoute = {
         summary: {
           duration: Math.round(distance * 60),
           length: Math.round(distance * 1000)
         }
       };
-      setRouteData(fallbackRoute);
-      onRouteCalculated?.(fallbackRoute);
+      setRouteData(basicRoute);
+      onRouteCalculated?.(basicRoute);
     } finally {
       setIsCalculating(false);
     }
+  };
+
+  const manualRecalculate = async () => {
+    setHasCalculated(false);
+    await calculateRoute();
   };
 
   const calculateStraightLineDistance = (from: any, to: any) => {
@@ -242,7 +202,7 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
               <div className="flex justify-center">
                 <Button
                   variant="outline"
-                  onClick={() => calculateRoute(true)}
+                  onClick={manualRecalculate}
                   disabled={isCalculating}
                   className="flex items-center gap-2"
                 >
@@ -257,7 +217,7 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
                 Route calculation in progress. If this takes too long, try the button below.
               </div>
               <Button
-                onClick={() => calculateRoute(true)}
+                onClick={manualRecalculate}
                 disabled={isCalculating}
                 className="flex items-center gap-2"
               >
