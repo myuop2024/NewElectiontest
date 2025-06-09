@@ -19,7 +19,7 @@ interface EnhancedMapProps {
 
 export default function EnhancedMap({
   center = { lat: 18.1096, lng: -77.2975 },
-  zoom = 10,
+  zoom = 9,
   width = "100%",
   height = "400px",
   markers = [],
@@ -173,10 +173,11 @@ export default function EnhancedMap({
     const lngDelta = -(deltaX / rect.width) * (360 / scale);
     const latDelta = (deltaY / rect.height) * (180 / scale);
 
-    setCurrentCenter({
-      lat: dragStart.lat + latDelta,
-      lng: dragStart.lng + lngDelta
-    });
+    const newCenter = constrainToJamaica(
+      dragStart.lat + latDelta,
+      dragStart.lng + lngDelta
+    );
+    setCurrentCenter(newCenter);
   };
 
   const handleMouseUp = () => {
@@ -194,14 +195,28 @@ export default function EnhancedMap({
   const panTo = (lat: number, lng: number) => setCurrentCenter({ lat, lng });
 
   const panDelta = 0.005 * Math.pow(2, Math.max(0, 12 - currentZoom));
-  const panNorth = () => setCurrentCenter(prev => ({ ...prev, lat: prev.lat + panDelta }));
-  const panSouth = () => setCurrentCenter(prev => ({ ...prev, lat: prev.lat - panDelta }));
-  const panEast = () => setCurrentCenter(prev => ({ ...prev, lng: prev.lng + panDelta }));
-  const panWest = () => setCurrentCenter(prev => ({ ...prev, lng: prev.lng - panDelta }));
+  const panNorth = () => setCurrentCenter(prev => constrainToJamaica(prev.lat + panDelta, prev.lng));
+  const panSouth = () => setCurrentCenter(prev => constrainToJamaica(prev.lat - panDelta, prev.lng));
+  const panEast = () => setCurrentCenter(prev => constrainToJamaica(prev.lat, prev.lng + panDelta));
+  const panWest = () => setCurrentCenter(prev => constrainToJamaica(prev.lat, prev.lng - panDelta));
+
+  // Jamaica boundaries
+  const JAMAICA_BOUNDS = {
+    north: 18.6,
+    south: 17.7,
+    east: -76.2,
+    west: -78.4
+  };
+
+  const constrainToJamaica = (lat: number, lng: number) => {
+    const constrainedLat = Math.max(JAMAICA_BOUNDS.south, Math.min(JAMAICA_BOUNDS.north, lat));
+    const constrainedLng = Math.max(JAMAICA_BOUNDS.west, Math.min(JAMAICA_BOUNDS.east, lng));
+    return { lat: constrainedLat, lng: constrainedLng };
+  };
 
   const resetView = () => {
     setCurrentCenter({ lat: 18.1096, lng: -77.2975 });
-    setCurrentZoom(10);
+    setCurrentZoom(9);
     setSelectedMarker(null);
   };
 
