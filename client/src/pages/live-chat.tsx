@@ -73,13 +73,22 @@ export default function LiveChat() {
           const data = JSON.parse(event.data);
           if (data.type === 'chat_message' && 
               (data.roomId === selectedChat || (!data.roomId && !selectedChat))) {
-            setMessages(prev => [...prev, {
-              id: data.id || Math.random().toString(36).substr(2, 9),
-              content: data.content,
-              senderId: data.senderId,
-              timestamp: data.timestamp || new Date().toISOString(),
-              messageType: data.messageType || 'text'
-            }]);
+            // Only add message if it's from another user to avoid duplicates
+            if (data.senderId !== user?.id) {
+              setMessages(prev => {
+                // Check if message already exists to prevent duplicates
+                const exists = prev.some(msg => msg.id === data.id);
+                if (exists) return prev;
+                
+                return [...prev, {
+                  id: data.id || Math.random().toString(36).substr(2, 9),
+                  content: data.content,
+                  senderId: data.senderId,
+                  timestamp: data.timestamp || new Date().toISOString(),
+                  messageType: data.messageType || 'text'
+                }];
+              });
+            }
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -92,7 +101,7 @@ export default function LiveChat() {
         socket.removeEventListener('message', handleMessage);
       };
     }
-  }, [socket, selectedChat]);
+  }, [socket, selectedChat, user?.id]);
 
   // Load Jitsi Meet API
   useEffect(() => {
@@ -178,6 +187,9 @@ export default function LiveChat() {
   const handleSendMessage = async () => {
     if (!message.trim() || !user || !selectedChat) return;
 
+    const messageContent = message;
+    setMessage(""); // Clear input immediately
+
     try {
       // Send message to database via API
       const response = await fetch('/api/chat/messages', {
@@ -188,15 +200,22 @@ export default function LiveChat() {
         credentials: 'include',
         body: JSON.stringify({
           roomId: selectedChat,
-          content: message,
+          content: messageContent,
           messageType: 'text'
         })
       });
 
       if (response.ok) {
         const savedMessage = await response.json();
-        // Message will be broadcast via WebSocket from server
-        setMessage("");
+        // Add message to local state immediately for better UX
+        const newMessage = {
+          id: savedMessage.id,
+          content: savedMessage.content,
+          senderId: savedMessage.senderId,
+          timestamp: savedMessage.createdAt,
+          messageType: savedMessage.messageType || 'text'
+        };
+        setMessages(prev => [...prev, newMessage]);
       } else {
         toast({
           title: "Error",

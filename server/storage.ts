@@ -512,6 +512,15 @@ export class DatabaseStorage implements IStorage {
     return message;
   }
 
+  async getOnlineUsersInRoom(roomId: string): Promise<any[]> {
+    // For now, return mock data. In a real implementation, you'd track online users
+    const mockUsers = [
+      { id: 1, username: 'damionjm', firstName: 'Damion', lastName: 'Miller', online: true },
+      { id: 2, username: 'admin', firstName: 'CAFFE', lastName: 'Administrator', online: true }
+    ];
+    return mockUsers;
+  }
+
   // Online users tracking implementations
   async setUserOnline(userId: number, socketId: string, roomId?: string): Promise<OnlineUser> {
     const onlineUser = {
