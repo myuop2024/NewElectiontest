@@ -21,6 +21,8 @@ export default function RouteNavigation() {
     queryKey: ["/api/polling-stations"],
   });
 
+  const stations = pollingStations as any[];
+
   // Mock assigned stations for roving observer
   const assignedStations = [
     {
@@ -244,7 +246,7 @@ export default function RouteNavigation() {
                       <SelectValue placeholder="Select a polling station to navigate to" />
                     </SelectTrigger>
                     <SelectContent>
-                      {pollingStations.map((station: any) => (
+                      {stations.map((station: any) => (
                         <SelectItem key={station.id} value={station.id.toString()}>
                           {station.name} - {station.stationCode}
                         </SelectItem>
@@ -277,13 +279,13 @@ export default function RouteNavigation() {
                       <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
                       <div className="text-sm">
                         <div className="font-medium text-blue-900">
-                          {pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.name}
+                          {stations.find((s: any) => s.id.toString() === selectedDestination)?.name}
                         </div>
                         <div className="text-blue-700">
-                          {pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.address}
+                          {stations.find((s: any) => s.id.toString() === selectedDestination)?.address}
                         </div>
                         <div className="text-blue-600 text-xs mt-1">
-                          Code: {pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.stationCode}
+                          Code: {stations.find((s: any) => s.id.toString() === selectedDestination)?.stationCode}
                         </div>
                       </div>
                     </div>
@@ -294,20 +296,27 @@ export default function RouteNavigation() {
           </Card>
 
           {/* Route Navigation Component */}
-          {selectedDestination && (
-            <RouteNavigator
-              fromLocation={{
-                lat: position?.latitude || 18.1096,
-                lng: position?.longitude || -77.2975,
-                name: position ? "Your Current Location" : "Jamaica Center"
-              }}
-              toLocation={{
-                lat: parseFloat(pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.latitude || "18.1096"),
-                lng: parseFloat(pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.longitude || "-77.2975"),
-                name: pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.name || "Selected Station"
-              }}
-              onRouteCalculated={(route) => setCurrentRoute(route)}
-            />
+          {selectedDestination && stations.length > 0 && (
+            (() => {
+              const selectedStation = stations.find((s: any) => s.id.toString() === selectedDestination);
+              if (!selectedStation) return null;
+              
+              return (
+                <RouteNavigator
+                  fromLocation={{
+                    lat: position?.latitude || 18.1096,
+                    lng: position?.longitude || -77.2975,
+                    name: position ? "Your Current Location" : "Jamaica Center"
+                  }}
+                  toLocation={{
+                    lat: parseFloat(selectedStation.latitude || "18.1096"),
+                    lng: parseFloat(selectedStation.longitude || "-77.2975"),
+                    name: selectedStation.name || "Selected Station"
+                  }}
+                  onRouteCalculated={(route) => setCurrentRoute(route)}
+                />
+              );
+            })()
           )}
         </div>
 
