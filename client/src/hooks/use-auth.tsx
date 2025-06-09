@@ -32,12 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store session marker for future checks
       localStorage.setItem("auth_token", "session-based");
     } catch (error) {
-      // If we get 401, user is not authenticated - this is normal
+      // If we get 401, user is not authenticated - this is normal, don't log error
       if (error instanceof Error && error.message.includes('401')) {
         // Clear any stale auth markers
         localStorage.removeItem("auth_token");
         setUser(null);
       } else {
+        // Only log non-401 errors as these indicate real problems
         console.error("Auth check failed:", error);
       }
     } finally {
