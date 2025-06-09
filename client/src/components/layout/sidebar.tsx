@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { 
   LayoutDashboard, 
   MapPin, 
