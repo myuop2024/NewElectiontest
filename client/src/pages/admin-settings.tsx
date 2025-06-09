@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,7 @@ export default function AdminSettings() {
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const debounceTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
   // Get current settings
   const { data: settings } = useQuery({
@@ -75,10 +76,19 @@ export default function AdminSettings() {
     }
   });
 
-  const handleUpdateSetting = (key: string, value: string) => {
-    console.log(`Updating setting: ${key} = ${value}`);
-    updateSettingMutation.mutate({ key, value });
-  };
+  const handleUpdateSetting = useCallback((key: string, value: string) => {
+    // Clear existing timeout for this key
+    if (debounceTimeouts.current[key]) {
+      clearTimeout(debounceTimeouts.current[key]);
+    }
+    
+    // Set new timeout to debounce the update
+    debounceTimeouts.current[key] = setTimeout(() => {
+      console.log(`Updating setting: ${key} = ${value}`);
+      updateSettingMutation.mutate({ key, value });
+      delete debounceTimeouts.current[key];
+    }, 500); // 500ms debounce
+  }, [updateSettingMutation]);
 
   const toggleShowSecret = (key: string) => {
     setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
