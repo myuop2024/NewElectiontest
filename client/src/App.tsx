@@ -31,6 +31,7 @@ import AIAnalytics from "@/pages/ai-analytics";
 import IncidentManagement from "@/pages/incident-management";
 import FormBuilder from "@/pages/form-builder";
 import SheetsIntegration from "@/pages/sheets-integration";
+import LocationTracking from "@/pages/location-tracking";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -171,6 +172,11 @@ function Router() {
       <Route path="/sheets-integration">
         <ProtectedLayout>
           <SheetsIntegration />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/location-tracking">
+        <ProtectedLayout>
+          <LocationTracking />
         </ProtectedLayout>
       </Route>
       <Route path="*">

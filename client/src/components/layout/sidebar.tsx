@@ -22,7 +22,8 @@ import {
   Activity,
   Brain,
   Edit3,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Navigation
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Live Chat', href: '/live-chat', icon: MessageCircle },
   { name: 'Document Capture', href: '/document-capture', icon: Camera },
   { name: 'Route Navigation', href: '/route-navigation', icon: Route },
+  { name: 'Location Tracking', href: '/location-tracking', icon: Navigation },
   { name: 'Training Center', href: '/training-center', icon: GraduationCap },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'QR Scanner', href: '/qr-scanner', icon: QrCode },

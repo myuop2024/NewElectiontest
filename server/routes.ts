@@ -1854,7 +1854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user!.id,
         entityId: sessionId,
         ipAddress: req.ip || '',
-        metadata: JSON.stringify({ type: 'stop', endTime: sessionData.endTime })
+        newValues: JSON.stringify({ type: 'stop', endTime: sessionData.endTime })
       });
 
       res.json({ success: true });
@@ -1895,7 +1895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (userLocationLogs.length > 0) {
           const latestLog = userLocationLogs[0];
-          const locationData = JSON.parse(latestLog.metadata || '{}');
+          const locationData = JSON.parse(latestLog.newValues as string || '{}');
           
           activeObservers.push({
             id: session.key,
@@ -1958,7 +1958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (sessionLogs.length > 0) {
           const locations = sessionLogs.map(log => {
-            const locationData = JSON.parse(log.metadata || '{}');
+            const locationData = JSON.parse(log.newValues as string || '{}');
             return {
               id: log.id,
               userId: targetUserId,
