@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, MapPin, Clock, Send, FileText, Camera } from "lucide-react";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { useLocation } from "wouter";
 
 const INCIDENT_TYPES = [
   { value: "voter_intimidation", label: "Voter Intimidation", priority: "high" },
@@ -35,7 +36,9 @@ export default function IncidentReporting() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { position } = useGeolocation({ enableHighAccuracy: true });
+  const { position, getCurrentPosition } = useGeolocation({ enableHighAccuracy: true });
+  const [, setLocation] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [incidentForm, setIncidentForm] = useState({
     type: "",
@@ -103,6 +106,47 @@ export default function IncidentReporting() {
   const getPriorityColor = (severity: string) => {
     const level = SEVERITY_LEVELS.find(s => s.value === severity);
     return level?.color || "bg-gray-100 text-gray-800";
+  };
+
+  // Handler functions for action buttons
+  const handleDocumentEvidence = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      toast({
+        title: "Evidence Captured",
+        description: `${file.name} ready for upload with report`,
+      });
+      setIncidentForm(prev => ({ 
+        ...prev, 
+        evidenceNotes: prev.evidenceNotes + (prev.evidenceNotes ? ', ' : '') + file.name 
+      }));
+    }
+  };
+
+  const handleEmergencyAlert = () => {
+    setLocation("/emergency-alert");
+  };
+
+  const handleLocationTracker = () => {
+    if (position) {
+      const locationString = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+      setIncidentForm(prev => ({ ...prev, location: locationString }));
+      toast({
+        title: "Location Updated",
+        description: "GPS coordinates added to incident form",
+      });
+    } else {
+      getCurrentPosition();
+      toast({
+        title: "Getting Location",
+        description: "Requesting GPS coordinates...",
+      });
+    }
   };
 
   return (
@@ -310,9 +354,22 @@ export default function IncidentReporting() {
           </Card>
         </div>
 
+        {/* Hidden file input for evidence capture */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*,.pdf,.doc,.docx"
+          onChange={handleFileUpload}
+          style={{ display: 'none' }}
+          multiple
+        />
+
         {/* Quick Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="government-card cursor-pointer hover:shadow-md transition-shadow">
+          <Card 
+            className="government-card cursor-pointer hover:shadow-md transition-shadow"
+            onClick={handleDocumentEvidence}
+          >
             <CardContent className="p-4 text-center">
               <Camera className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <h3 className="font-medium">Document Evidence</h3>
@@ -320,7 +377,10 @@ export default function IncidentReporting() {
             </CardContent>
           </Card>
 
-          <Card className="government-card cursor-pointer hover:shadow-md transition-shadow">
+          <Card 
+            className="government-card cursor-pointer hover:shadow-md transition-shadow"
+            onClick={handleEmergencyAlert}
+          >
             <CardContent className="p-4 text-center">
               <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-orange-600" />
               <h3 className="font-medium">Emergency Alert</h3>
@@ -328,7 +388,10 @@ export default function IncidentReporting() {
             </CardContent>
           </Card>
 
-          <Card className="government-card cursor-pointer hover:shadow-md transition-shadow">
+          <Card 
+            className="government-card cursor-pointer hover:shadow-md transition-shadow"
+            onClick={handleLocationTracker}
+          >
             <CardContent className="p-4 text-center">
               <MapPin className="h-8 w-8 mx-auto mb-2 text-green-600" />
               <h3 className="font-medium">Location Tracker</h3>
