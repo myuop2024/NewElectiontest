@@ -472,17 +472,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create emergency report with high priority
       const emergencyReport = await storage.createReport({
-        userId: req.user?.id,
+        userId: req.user!.id,
+        stationId: 1, // Default station for emergency reports
         type: 'emergency',
         title: `EMERGENCY: ${type}`,
         description,
         priority: 'critical',
         status: 'active',
-        latitude: latitude || null,
-        longitude: longitude || null,
-        timestamp: timestamp || new Date().toISOString(),
         metadata: JSON.stringify({
           emergencyType: type,
+          latitude: latitude || null,
+          longitude: longitude || null,
           alertTimestamp: timestamp,
           responseRequired: true
         })
@@ -492,14 +492,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createAuditLog({
         action: "emergency_alert_sent",
         entityType: "report",
-        userId: req.user?.id,
+        userId: req.user!.id,
         entityId: emergencyReport.id.toString(),
-        ipAddress: req.ip,
-        metadata: JSON.stringify({
-          emergencyType: type,
-          priority,
-          hasLocation: !!(latitude && longitude)
-        })
+        ipAddress: req.ip
       });
 
       // Broadcast emergency alert via WebSocket to all connected clients
