@@ -26,31 +26,72 @@ export interface DidITVerificationResponse {
 
 export class KYCService {
   private static readonly DIDIT_API_URL = process.env.DIDIT_API_URL || 'https://api.didit.me/v1/';
-  private static readonly DIDIT_API_KEY = process.env.DIDIT_API_KEY;
+  private static readonly DIDIT_CLIENT_ID = process.env.DIDIT_CLIENT_ID;
+  private static readonly DIDIT_CLIENT_SECRET = process.env.DIDIT_CLIENT_SECRET;
+  private static accessToken: string | null = null;
+  private static tokenExpiry: number = 0;
 
-  // Automatic KYC verification using DidIT API
-  static async verifyWithDidIT(request: DidITVerificationRequest): Promise<DidITVerificationResponse> {
-    if (!this.DIDIT_API_KEY) {
-      throw new Error("DidIT API key not configured");
+  // Get OAuth access token
+  private static async getAccessToken(): Promise<string> {
+    if (!this.DIDIT_CLIENT_ID || !this.DIDIT_CLIENT_SECRET) {
+      throw new Error("DidIT client credentials not configured");
+    }
+
+    // Return cached token if still valid
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
     }
 
     try {
-      const response = await fetch(`${this.DIDIT_API_URL}verify`, {
+      const response = await fetch(`${this.DIDIT_API_URL}oauth/token`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.DIDIT_API_KEY}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: this.DIDIT_CLIENT_ID,
+          client_secret: this.DIDIT_CLIENT_SECRET,
+          scope: 'identity_verification'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OAuth token request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.accessToken = data.access_token;
+      this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Refresh 1 minute early
+
+      return this.accessToken!;
+    } catch (error) {
+      console.error('DidIT OAuth error:', error);
+      throw new Error('Failed to obtain DidIT access token');
+    }
+  }
+
+  // Automatic KYC verification using DidIT API
+  static async verifyWithDidIT(request: DidITVerificationRequest): Promise<DidITVerificationResponse> {
+    const accessToken = await this.getAccessToken();
+
+    try {
+      const response = await fetch(`${this.DIDIT_API_URL}identity/verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          user_id: request.nationalId,
           first_name: request.firstName,
           last_name: request.lastName,
           date_of_birth: request.dateOfBirth,
-          national_id: request.nationalId,
-          document_type: request.documentType,
-          document_image: request.documentImage,
-          selfie_image: request.selfieImage,
-          country: 'JM', // Jamaica
-          verification_type: 'full'
+          document_front: request.documentImage,
+          selfie: request.selfieImage,
+          country_code: 'JM',
+          document_type: request.documentType.toLowerCase(),
+          callback_url: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kyc/webhook`
         })
       });
 
