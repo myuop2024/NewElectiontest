@@ -36,7 +36,7 @@ export class KYCService {
     const clientSecret = await storage.getSettingByKey('didit_client_secret');
     
     return {
-      apiUrl: endpoint?.value || 'https://api.didit.me/v1/',
+      apiUrl: endpoint?.value || 'https://api.didit.me/v2/',
       clientId: clientId?.value,
       clientSecret: clientSecret?.value
     };
@@ -56,16 +56,16 @@ export class KYCService {
     }
 
     try {
-      const response = await fetch(`${config.apiUrl}oauth/token`, {
+      const response = await fetch(`${config.apiUrl}auth/token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
+        body: JSON.stringify({
           grant_type: 'client_credentials',
           client_id: config.clientId,
           client_secret: config.clientSecret,
-          scope: 'identity_verification'
+          scope: 'verify:identity'
         })
       });
 
@@ -90,22 +90,34 @@ export class KYCService {
     const accessToken = await this.getAccessToken();
 
     try {
-      const response = await fetch(`${config.apiUrl}identity/verify`, {
+      const response = await fetch(`${config.apiUrl}verifications`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
+          'X-API-Version': '2.0'
         },
         body: JSON.stringify({
-          user_id: request.nationalId,
-          first_name: request.firstName,
-          last_name: request.lastName,
-          date_of_birth: request.dateOfBirth,
-          document_front: request.documentImage,
-          selfie: request.selfieImage,
-          country_code: 'JM',
-          document_type: request.documentType.toLowerCase(),
-          callback_url: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kyc/webhook`
+          reference_id: request.nationalId,
+          user: {
+            first_name: request.firstName,
+            last_name: request.lastName,
+            date_of_birth: request.dateOfBirth
+          },
+          documents: [{
+            type: request.documentType.toLowerCase(),
+            front_image: request.documentImage,
+            country: 'JM'
+          }],
+          biometric: {
+            selfie_image: request.selfieImage,
+            liveness_required: true
+          },
+          webhook_url: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kyc/webhook`,
+          metadata: {
+            source: 'electoral_observer_app',
+            timestamp: new Date().toISOString()
+          }
         })
       });
 
@@ -157,9 +169,10 @@ export class KYCService {
     const accessToken = await this.getAccessToken();
 
     try {
-      const response = await fetch(`${config.apiUrl}identity/verification/${verificationId}`, {
+      const response = await fetch(`${config.apiUrl}verifications/${verificationId}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
+          'X-API-Version': '2.0'
         }
       });
 
@@ -170,16 +183,16 @@ export class KYCService {
       const data = await response.json();
       
       return {
-        verificationId: data.verification_id || data.id,
-        status: data.status === 'completed' ? 'approved' : data.status === 'failed' ? 'rejected' : 'pending',
-        confidence: data.confidence_score || 0,
-        matchScore: data.similarity_score || 0,
+        verificationId: data.id || data.verification_id,
+        status: data.status === 'verified' ? 'approved' : data.status === 'failed' ? 'rejected' : 'pending',
+        confidence: data.overall_score || data.confidence_score || 0,
+        matchScore: data.biometric?.face_match_score || data.similarity_score || 0,
         details: {
-          documentVerified: data.document_verification?.status === 'passed' || false,
-          faceMatch: data.face_verification?.status === 'passed' || false,
-          livenessCheck: data.liveness_check?.status === 'passed' || false,
-          documentType: data.document_type,
-          extractedData: data.extracted_fields || {}
+          documentVerified: data.documents?.[0]?.verification_status === 'verified' || false,
+          faceMatch: data.biometric?.face_match_result === 'match' || false,
+          livenessCheck: data.biometric?.liveness_result === 'real' || false,
+          documentType: data.documents?.[0]?.type || 'unknown',
+          extractedData: data.documents?.[0]?.extracted_data || data.extracted_fields || {}
         }
       };
     } catch (error) {

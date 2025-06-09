@@ -133,7 +133,7 @@ const SERVICE_CONFIGS: ServiceConfig[] = [
     description: "Identity verification and KYC compliance with OAuth 2.0",
     enabled: "didit_kyc_enabled",
     fields: [
-      { key: "didit_api_endpoint", label: "API Endpoint", type: "text", placeholder: "https://api.didit.me/v1", required: true },
+      { key: "didit_api_endpoint", label: "API Endpoint", type: "text", placeholder: "https://api.didit.me/v2", required: true },
       { key: "didit_client_id", label: "Client ID", type: "text", placeholder: "Your DidIT OAuth Client ID", required: true },
       { key: "didit_client_secret", label: "Client Secret", type: "password", placeholder: "Your DidIT OAuth Client Secret", required: true }
     ]
