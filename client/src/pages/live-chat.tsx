@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/use-auth";
+import type { WebSocketMessage } from "@/lib/websocket";
 import { Send, Phone, Video, Paperclip, Users, MessageCircle } from "lucide-react";
 
 export default function LiveChat() {
@@ -44,9 +45,9 @@ export default function LiveChat() {
   const handleSendMessage = () => {
     if (!message.trim() || !user) return;
 
-    const newMessage = {
+    const newMessage: WebSocketMessage = {
       id: Math.random().toString(36).substr(2, 9),
-      type: 'chat_message' as const,
+      type: 'chat_message',
       content: message,
       userId: user.id,
       timestamp: new Date(),
