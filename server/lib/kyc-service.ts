@@ -63,8 +63,8 @@ export class KYCService {
         },
         body: new URLSearchParams({
           grant_type: 'client_credentials',
-          client_id: this.DIDIT_CLIENT_ID,
-          client_secret: this.DIDIT_CLIENT_SECRET,
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
           scope: 'identity_verification'
         })
       });
@@ -86,10 +86,11 @@ export class KYCService {
 
   // Automatic KYC verification using DidIT API
   static async verifyWithDidIT(request: DidITVerificationRequest): Promise<DidITVerificationResponse> {
+    const config = await this.getConfiguration();
     const accessToken = await this.getAccessToken();
 
     try {
-      const response = await fetch(`${this.DIDIT_API_URL}identity/verify`, {
+      const response = await fetch(`${config.apiUrl}identity/verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -152,10 +153,11 @@ export class KYCService {
 
   // Check verification status
   static async checkVerificationStatus(verificationId: string): Promise<DidITVerificationResponse> {
+    const config = await this.getConfiguration();
     const accessToken = await this.getAccessToken();
 
     try {
-      const response = await fetch(`${this.DIDIT_API_URL}identity/verification/${verificationId}`, {
+      const response = await fetch(`${config.apiUrl}identity/verification/${verificationId}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
         }

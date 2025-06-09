@@ -646,6 +646,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DidIT Webhook for verification status updates
+  app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
+    try {
+      const { verification_id, status, details } = req.body;
+      
+      // Update verification status in database based on webhook data
+      // This would typically update a verification record
+      console.log('DidIT webhook received:', { verification_id, status, details });
+      
+      res.json({ success: true, message: 'Webhook processed' });
+    } catch (error) {
+      console.error('DidIT webhook error:', error);
+      res.status(500).json({ message: 'Webhook processing failed' });
+    }
+  });
+
   // Device Management Routes
   app.post("/api/devices/register", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
