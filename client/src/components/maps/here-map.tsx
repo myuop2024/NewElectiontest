@@ -65,42 +65,91 @@ export default function HereMap({
   useEffect(() => {
     if (!apiKey || !mapRef.current) return;
 
-    const loadHereAPI = () => {
-      if (window.H) {
-        initializeMap();
-        return;
-      }
+    let mounted = true;
 
-      // Load HERE Maps API
-      const script = document.createElement('script');
-      script.src = 'https://js.api.here.com/v3/3.1/mapsjs-core.js';
-      script.onload = () => {
-        const serviceScript = document.createElement('script');
-        serviceScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-service.js';
-        serviceScript.onload = () => {
-          const uiScript = document.createElement('script');
-          uiScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-ui.js';
-          uiScript.onload = () => {
-            const mapeventsScript = document.createElement('script');
-            mapeventsScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js';
-            mapeventsScript.onload = initializeMap;
-            document.head.appendChild(mapeventsScript);
-          };
-          document.head.appendChild(uiScript);
+    const loadHereAPI = async () => {
+      try {
+        if (window.H && window.H.service && window.H.Map) {
+          initializeMap();
+          return;
+        }
+
+        // Load HERE Maps CSS
+        if (!document.querySelector('link[href*="mapsjs-ui.css"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://js.api.here.com/v3/3.1/mapsjs-ui.css';
+          document.head.appendChild(link);
+        }
+
+        // Load scripts with global script inclusion approach
+        const loadScript = (src: string): Promise<void> => {
+          return new Promise((resolve, reject) => {
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+              resolve();
+              return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = false; // Maintain order
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+          });
         };
-        document.head.appendChild(serviceScript);
-      };
-      document.head.appendChild(script);
 
-      // Load HERE Maps CSS
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://js.api.here.com/v3/3.1/mapsjs-ui.css';
-      document.head.appendChild(link);
+        // Load all scripts
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-core.js');
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-service.js');
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js');
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js');
+
+        // Wait for scripts to be ready
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        const waitForHere = () => {
+          if (!mounted) return;
+          
+          if (window.H && window.H.service && window.H.Map && window.H.mapevents && window.H.ui) {
+            initializeMap();
+            return;
+          }
+          
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(waitForHere, 100);
+          } else {
+            if (mounted) {
+              setError('HERE Maps API failed to initialize properly');
+            }
+          }
+        };
+
+        waitForHere();
+
+      } catch (error) {
+        console.error('Failed to load HERE Maps API:', error);
+        if (mounted) {
+          setError(`Failed to load HERE Maps: ${error}`);
+        }
+      }
     };
 
     const initializeMap = () => {
       try {
+        console.log('Initializing HERE Map with API key:', apiKey?.substring(0, 10) + '...');
+        
+        if (!window.H) {
+          throw new Error('HERE Maps API not loaded');
+        }
+
+        if (!mapRef.current) {
+          throw new Error('Map container not available');
+        }
+
         platform.current = new window.H.service.Platform({
           'apikey': apiKey
         });
@@ -115,6 +164,8 @@ export default function HereMap({
             center: { lat: center.lat, lng: center.lng }
           }
         );
+        
+        console.log('HERE Map initialized successfully');
 
         let ui: any = null;
         
@@ -182,6 +233,7 @@ export default function HereMap({
     loadHereAPI();
 
     return () => {
+      mounted = false;
       if (map.current) {
         map.current.dispose();
       }
