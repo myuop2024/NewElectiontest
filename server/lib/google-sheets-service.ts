@@ -49,7 +49,7 @@ export class GoogleSheetsService {
       this.sheets = google.sheets({ version: 'v4', auth: this.auth });
     } catch (error) {
       console.error('Failed to initialize Google Sheets auth:', error);
-      throw new Error('Google Sheets authentication failed');
+      throw new Error(`Google Sheets authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -105,14 +105,14 @@ export class GoogleSheetsService {
           await this.createIncidentFromSheet(incident);
           results.imported++;
         } catch (error) {
-          results.errors.push(`Row ${i + 2}: ${error.message}`);
+          results.errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
       return results;
     } catch (error) {
       console.error('Google Sheets import error:', error);
-      throw new Error(`Import failed: ${error.message}`);
+      throw new Error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -282,15 +282,17 @@ export class GoogleSheetsService {
             const newUser = await storage.createUser({
               username: incident.reporterName,
               email: incident.contactInfo || `${incident.reporterName.replace(/\s+/g, '').toLowerCase()}@external.import`,
+              password: 'external_import',
+              phone: incident.contactInfo || '',
+              parishId: 1,
               role: 'external_reporter',
               firstName: incident.reporterName.split(' ')[0] || incident.reporterName,
-              lastName: incident.reporterName.split(' ').slice(1).join(' ') || '',
-              isActive: true
+              lastName: incident.reporterName.split(' ').slice(1).join(' ') || ''
             });
             userId = newUser.id;
           }
         } catch (error) {
-          console.warn('Could not create external user, using default:', error);
+          console.warn('Could not create external user, using default:', error instanceof Error ? error.message : 'Unknown error');
         }
       }
 
@@ -324,7 +326,7 @@ export class GoogleSheetsService {
 
     } catch (error) {
       console.error('Error creating incident from sheet:', error);
-      throw new Error(`Failed to create incident: ${error.message}`);
+      throw new Error(`Failed to create incident: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -352,7 +354,7 @@ export class GoogleSheetsService {
         success: false,
         rowCount: 0,
         headers: [],
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }

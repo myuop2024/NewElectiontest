@@ -52,7 +52,10 @@ export default function SheetsIntegration() {
 
   // Test connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: () => apiRequest("/api/integration/sheets/test", "POST", { spreadsheetId, range }),
+    mutationFn: async () => {
+      const response = await apiRequest("/api/integration/sheets/test", "POST", { spreadsheetId, range });
+      return response as TestResult;
+    },
     onSuccess: (result: TestResult) => {
       setTestResult(result);
       if (result.success) {
