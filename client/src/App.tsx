@@ -19,6 +19,9 @@ import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import Settings from "@/pages/settings";
 import AdminPanel from "@/pages/admin-panel";
+import IncidentReporting from "@/pages/incident-reporting";
+import ObserverAssignments from "@/pages/observer-assignments";
+import RealTimeAnalytics from "@/pages/real-time-analytics";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -113,6 +116,21 @@ function Router() {
       <Route path="/admin">
         <ProtectedLayout>
           <AdminPanel />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/incident-reporting">
+        <ProtectedLayout>
+          <IncidentReporting />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/observer-assignments">
+        <ProtectedLayout>
+          <ObserverAssignments />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/real-time-analytics">
+        <ProtectedLayout>
+          <RealTimeAnalytics />
         </ProtectedLayout>
       </Route>
       <Route component={NotFound} />

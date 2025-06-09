@@ -261,6 +261,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Observer assignments routes
+  app.get("/api/assignments", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const assignments = await storage.getAssignments();
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+
+  app.get("/api/assignments/user/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const assignments = await storage.getAssignmentsByUser(userId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching user assignments:", error);
+      res.status(500).json({ error: "Failed to fetch user assignments" });
+    }
+  });
+
+  app.post("/api/assignments", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const assignment = await storage.createAssignment(req.body);
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error creating assignment:", error);
+      res.status(500).json({ error: "Failed to create assignment" });
+    }
+  });
+
+  app.patch("/api/assignments/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const assignment = await storage.updateAssignment(id, req.body);
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error updating assignment:", error);
+      res.status(500).json({ error: "Failed to update assignment" });
+    }
+  });
+
+  // Enhanced reports routes for incident reporting
+  app.get("/api/reports/user/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const reports = await storage.getReportsByUser(userId);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching user reports:", error);
+      res.status(500).json({ error: "Failed to fetch user reports" });
+    }
+  });
+
+  app.post("/api/reports", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const report = await storage.createReport(req.body);
+      
+      // Create audit log for incident report
+      await storage.createAuditLog({
+        action: "incident_reported",
+        userId: req.user?.id,
+        details: `Incident reported: ${req.body.title}`,
+        ipAddress: req.ip
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error creating report:", error);
+      res.status(500).json({ error: "Failed to create report" });
+    }
+  });
+
+  // Analytics routes
+  app.get("/api/analytics", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { timeRange = "24h", parish = "all" } = req.query;
+      
+      // Get real analytics data from database
+      const stats = await storage.getDashboardStats();
+      const reports = await storage.getReports();
+      const users = await storage.getUsersByRole("Indoor Observer");
+      const rovingObservers = await storage.getUsersByRole("Roving Observer");
+      const coordinators = await storage.getUsersByRole("Parish Coordinator");
+      
+      const allObservers = [...users, ...rovingObservers, ...coordinators];
+      
+      // Calculate analytics based on real data
+      const analyticsData = {
+        summary: {
+          totalReports: reports.length,
+          activeObservers: allObservers.length,
+          pollingStations: stats.totalStations,
+          criticalIncidents: reports.filter(r => r.severity === 'critical').length
+        },
+        reportsByHour: Array.from({ length: 24 }, (_, i) => ({
+          hour: `${i}:00`,
+          reports: reports.filter(r => new Date(r.createdAt).getHours() === i).length
+        })),
+        reportsByType: [
+          { name: "Technical Issues", count: reports.filter(r => r.type === 'technical_malfunction').length },
+          { name: "Procedural Violations", count: reports.filter(r => r.type === 'procedural_violation').length },
+          { name: "Voter Intimidation", count: reports.filter(r => r.type === 'voter_intimidation').length },
+          { name: "Ballot Irregularities", count: reports.filter(r => r.type === 'ballot_irregularity').length },
+          { name: "Other", count: reports.filter(r => r.type === 'other').length }
+        ],
+        reportsByParish: [],
+        observerActivity: Array.from({ length: 24 }, (_, i) => ({
+          time: `${i}:00`,
+          active: Math.floor(allObservers.length * 0.7),
+          total: allObservers.length
+        })),
+        incidentSeverity: [
+          { severity: "low", count: reports.filter(r => r.severity === 'low').length },
+          { severity: "medium", count: reports.filter(r => r.severity === 'medium').length },
+          { severity: "high", count: reports.filter(r => r.severity === 'high').length },
+          { severity: "critical", count: reports.filter(r => r.severity === 'critical').length }
+        ]
+      };
+
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/analytics/live-updates", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Get recent activities from database
+      const recentReports = await storage.getReports();
+      const recentLogs = await storage.getAuditLogs();
+      
+      const liveUpdates = [
+        ...recentReports.slice(-5).map(report => ({
+          type: "report",
+          message: `New incident reported: ${report.title}`,
+          location: report.location || "Location not specified",
+          timestamp: new Date(report.createdAt).toLocaleString()
+        })),
+        ...recentLogs.slice(-3).map(log => ({
+          type: "activity",
+          message: log.details,
+          location: "System",
+          timestamp: new Date(log.createdAt).toLocaleString()
+        }))
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      res.json(liveUpdates.slice(0, 10));
+    } catch (error) {
+      console.error("Error fetching live updates:", error);
+      res.status(500).json({ error: "Failed to fetch live updates" });
+    }
+  });
+
+  // Users by role route for observer assignments
+  app.get("/api/users/observers", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const observers = await storage.getUsersByRole("Indoor Observer");
+      const rovingObservers = await storage.getUsersByRole("Roving Observer");
+      const coordinators = await storage.getUsersByRole("Parish Coordinator");
+      
+      const allObservers = [...observers, ...rovingObservers, ...coordinators];
+      res.json(allObservers);
+    } catch (error) {
+      console.error("Error fetching observers:", error);
+      res.status(500).json({ error: "Failed to fetch observers" });
+    }
+  });
+
+  // Audit logs route
+  app.get("/api/audit-logs", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const auditLogs = await storage.getAuditLogs();
+      res.json(auditLogs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Settings route
+  app.get("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
