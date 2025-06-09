@@ -16,15 +16,17 @@ import {
 } from "lucide-react";
 import UserManagement from "@/components/admin/user-management";
 import SystemLogs from "@/components/admin/system-logs";
-import { Navigate } from "wouter";
+import { useLocation } from "wouter";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("overview");
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Check if user has admin access
   if (!user || (user.role !== 'admin' && user.role !== 'coordinator')) {
-    return <Navigate to="/" replace />;
+    setLocation("/");
+    return null;
   }
 
   const { data: stats } = useQuery({
