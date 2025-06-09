@@ -33,6 +33,7 @@ import FormBuilder from "@/pages/form-builder";
 import SheetsIntegration from "@/pages/sheets-integration";
 import LocationTracking from "@/pages/location-tracking";
 import AIIncidentClassifier from "@/pages/ai-incident-classifier";
+import EmergencyManagement from "@/pages/emergency-management";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -183,6 +184,11 @@ function Router() {
       <Route path="/ai-classifier">
         <ProtectedLayout>
           <AIIncidentClassifier />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/emergency-management">
+        <ProtectedLayout>
+          <EmergencyManagement />
         </ProtectedLayout>
       </Route>
       <Route path="*">

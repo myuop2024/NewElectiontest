@@ -2292,6 +2292,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Emergency Management endpoints
+  app.get("/api/emergency/alerts/active", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const activeAlerts = await emergencyService.getActiveAlerts();
+      res.json(activeAlerts);
+    } catch (error) {
+      console.error("Error fetching active alerts:", error);
+      res.status(500).json({ error: "Failed to fetch active alerts" });
+    }
+  });
+
+  app.get("/api/emergency/alerts/all", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const allAlerts = await emergencyService.getAllAlerts();
+      res.json(allAlerts);
+    } catch (error) {
+      console.error("Error fetching all alerts:", error);
+      res.status(500).json({ error: "Failed to fetch all alerts" });
+    }
+  });
+
+  app.post("/api/emergency/alerts", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const alertData = {
+        ...req.body,
+        createdBy: req.user!.id
+      };
+
+      const alert = await emergencyService.createEmergencyAlert(alertData);
+      res.json(alert);
+    } catch (error) {
+      console.error("Error creating emergency alert:", error);
+      res.status(500).json({ error: "Failed to create emergency alert" });
+    }
+  });
+
+  app.post("/api/emergency/alerts/:id/acknowledge", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      await emergencyService.acknowledgeAlert(id, req.user!.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error acknowledging alert:", error);
+      res.status(500).json({ error: "Failed to acknowledge alert" });
+    }
+  });
+
+  app.post("/api/emergency/alerts/:id/resolve", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { resolution } = req.body;
+      await emergencyService.resolveAlert(id, req.user!.id, resolution);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resolving alert:", error);
+      res.status(500).json({ error: "Failed to resolve alert" });
+    }
+  });
+
+  app.get("/api/emergency/stats", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const stats = await emergencyService.getEmergencyStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching emergency stats:", error);
+      res.status(500).json({ error: "Failed to fetch emergency statistics" });
+    }
+  });
+
+  app.get("/api/emergency/channels", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const channels = await emergencyService.getNotificationChannels();
+      res.json(channels);
+    } catch (error) {
+      console.error("Error fetching channels:", error);
+      res.status(500).json({ error: "Failed to fetch notification channels" });
+    }
+  });
+
+  app.get("/api/emergency/escalation-rules", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const rules = await emergencyService.getEscalationRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching escalation rules:", error);
+      res.status(500).json({ error: "Failed to fetch escalation rules" });
+    }
+  });
+
+  app.post("/api/emergency/test", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await emergencyService.testEmergencySystem();
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing emergency system:", error);
+      res.status(500).json({ error: "Failed to test emergency system" });
+    }
+  });
+
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 

@@ -213,12 +213,21 @@ export class EmergencyService {
   private async broadcastAlert(alert: EmergencyAlert): Promise<void> {
     try {
       // Get all users who should receive emergency notifications
-      const users = await storage.getUsers();
-      const recipients = users.filter(user => 
-        user.role === 'admin' || 
-        user.role === 'coordinator' || 
-        user.role === 'supervisor'
-      );
+      const allUsers = await storage.getAuditLogs();
+      const userLogs = allUsers.filter(log => log.action === 'user_created');
+      const recipients = userLogs
+        .map(log => {
+          try {
+            return JSON.parse(log.newValues as string || '{}');
+          } catch (error) {
+            return null;
+          }
+        })
+        .filter(user => user && (
+          user.role === 'admin' || 
+          user.role === 'coordinator' || 
+          user.role === 'supervisor'
+        ));
 
       // Send notifications through each specified channel
       for (const channel of alert.channels) {
@@ -255,7 +264,7 @@ export class EmergencyService {
     for (const recipient of recipients) {
       if (recipient.phone) {
         try {
-          await this.notificationService.sendSMS(recipient.phone, message);
+          await NotificationService.sendSMS(recipient.phone, message);
         } catch (error) {
           console.error(`Failed to send SMS to ${recipient.phone}:`, error);
         }
@@ -287,7 +296,7 @@ export class EmergencyService {
     for (const recipient of recipients) {
       if (recipient.email) {
         try {
-          await this.notificationService.sendEmail(recipient.email, subject, html);
+          await NotificationService.sendEmail(recipient.email, subject, html);
         } catch (error) {
           console.error(`Failed to send email to ${recipient.email}:`, error);
         }
