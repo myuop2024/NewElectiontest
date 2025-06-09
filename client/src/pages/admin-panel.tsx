@@ -18,6 +18,7 @@ import UserManagement from "@/components/admin/user-management";
 import SystemLogs from "@/components/admin/system-logs";
 import HereApiSettings from "@/components/admin/here-api-settings";
 import { useLocation } from "wouter";
+import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -81,12 +82,19 @@ export default function AdminPanel() {
     <div className="p-6 space-y-6 fade-in">
       {/* Page Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center">
-            <Shield className="h-7 w-7 mr-3 text-primary" />
-            Admin Panel
-          </h2>
-          <p className="text-muted-foreground">System administration and management</p>
+        <div className="flex items-center space-x-4">
+          <img 
+            src={caffeLogo} 
+            alt="CAFFE Logo" 
+            className="w-12 h-12 object-contain"
+          />
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center">
+              <Shield className="h-7 w-7 mr-3 text-primary" />
+              CAFFE Admin Panel
+            </h2>
+            <p className="text-muted-foreground">Electoral Observer System Administration</p>
+          </div>
         </div>
         <Badge className="status-indicator status-active">
           <Activity className="h-3 w-3 mr-1" />
