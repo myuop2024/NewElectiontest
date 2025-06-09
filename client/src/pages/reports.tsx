@@ -29,19 +29,19 @@ export default function Reports() {
     enabled: user?.role === 'admin' || user?.role === 'roving_observer'
   });
 
-  const myFilteredReports = (userReports || []).filter((report: any) => {
+  const myFilteredReports = Array.isArray(userReports) ? userReports.filter((report: any) => {
     const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || report.type === filterType;
     return matchesSearch && matchesType;
-  });
+  }) : [];
 
-  const allFilteredReports = (allReports || []).filter((report: any) => {
+  const allFilteredReports = Array.isArray(allReports) ? allReports.filter((report: any) => {
     const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === "all" || report.type === filterType;
     return matchesSearch && matchesType;
-  });
+  }) : [];
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -62,7 +62,7 @@ export default function Reports() {
     }
   };
 
-  if (isLoading) {
+  if (userReportsLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -110,7 +110,7 @@ export default function Reports() {
 
       {/* Reports List */}
       <div className="space-y-4">
-        {filteredReports.map((report: any) => (
+        {myFilteredReports.map((report: any) => (
           <Card key={report.id} className="government-card hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
@@ -151,7 +151,7 @@ export default function Reports() {
         ))}
       </div>
 
-      {filteredReports.length === 0 && (
+      {myFilteredReports.length === 0 && (
         <Card className="government-card">
           <CardContent className="p-12 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
