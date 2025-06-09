@@ -2,16 +2,19 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Navigation, MapPin, Clock, Route, Car, Play, Square } from "lucide-react";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatCoordinates } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import EnhancedMap from "@/components/maps/enhanced-map";
+import RouteNavigator from "@/components/navigation/route-navigator";
 
 export default function RouteNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any>(null);
   const [routeHistory, setRouteHistory] = useState<any[]>([]);
+  const [selectedDestination, setSelectedDestination] = useState<string>("");
   const { position, getCurrentPosition, isLoading, error } = useGeolocation({ watch: true });
 
   const { data: pollingStations = [] } = useQuery({
@@ -224,40 +227,88 @@ export default function RouteNavigation() {
             </Card>
           )}
 
-          {/* HERE Maps Integration */}
+          {/* Destination Selector */}
           <Card className="government-card">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <MapPin className="h-5 w-5 mr-2" />
-                Live Navigation Map
+                <Navigation className="h-5 w-5 mr-2" />
+                Select Destination
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <EnhancedMap
-                height="400px"
-                center={position ? { lat: position.latitude, lng: position.longitude } : { lat: 18.1096, lng: -77.2975 }}
-                zoom={position ? 15 : 10}
-                markers={[
-                  ...(position ? [{
-                    lat: position.latitude,
-                    lng: position.longitude,
-                    title: "Your Location",
-                    info: "Current observer position"
-                  }] : []),
-                  ...(pollingStations as any[]).map((station: any) => ({
-                    lat: parseFloat(station.latitude || '0'),
-                    lng: parseFloat(station.longitude || '0'),
-                    title: station.name,
-                    info: `${station.address} - ${station.stationCode}`
-                  }))
-                ]}
-                onLocationSelect={(lat: number, lng: number) => {
-                  console.log('Location selected:', lat, lng);
-                }}
-                interactive={true}
-              />
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Choose Polling Station</label>
+                  <Select value={selectedDestination} onValueChange={setSelectedDestination}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a polling station to navigate to" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pollingStations.map((station: any) => (
+                        <SelectItem key={station.id} value={station.id.toString()}>
+                          {station.name} - {station.stationCode}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  onClick={() => setIsNavigating(!isNavigating)}
+                  disabled={!selectedDestination}
+                  className="w-full"
+                >
+                  {isNavigating ? (
+                    <>
+                      <Square className="h-4 w-4 mr-2" />
+                      Stop Navigation
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Navigation
+                    </>
+                  )}
+                </Button>
+
+                {selectedDestination && (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-medium text-blue-900">
+                          {pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.name}
+                        </div>
+                        <div className="text-blue-700">
+                          {pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.address}
+                        </div>
+                        <div className="text-blue-600 text-xs mt-1">
+                          Code: {pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.stationCode}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Route Navigation Component */}
+          {selectedDestination && (
+            <RouteNavigator
+              fromLocation={{
+                lat: position?.latitude || 18.1096,
+                lng: position?.longitude || -77.2975,
+                name: position ? "Your Current Location" : "Jamaica Center"
+              }}
+              toLocation={{
+                lat: parseFloat(pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.latitude || "18.1096"),
+                lng: parseFloat(pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.longitude || "-77.2975"),
+                name: pollingStations.find((s: any) => s.id.toString() === selectedDestination)?.name || "Selected Station"
+              }}
+              onRouteCalculated={(route) => setCurrentRoute(route)}
+            />
+          )}
         </div>
 
         {/* Station List & Route History */}
