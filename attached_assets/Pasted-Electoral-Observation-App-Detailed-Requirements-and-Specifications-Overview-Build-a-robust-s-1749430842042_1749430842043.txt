@@ -1,0 +1,132 @@
+Electoral Observation App - Detailed Requirements and Specifications
+
+Overview:
+Build a robust, secure, and world-class electoral observation application tailored specifically for the Jamaican market, integrating advanced AI technologies, cutting-edge encryption, and seamless user experience across mobile (Android & iPhone) and web platforms. Group name is Citizens Action For Free And Fair Elections (CAFFE), the logo is attached. Also remember to have a fully featured backend with lots of settings that works, ensure to test them all to ensure they work.
+
+Project Goals:
+
+Significantly reduce the reliance on paper.
+
+Provide secure, digital ID verification for EOJ officials.
+
+Efficiently collect, analyze, and visualize electoral observation reports.
+
+Accelerate user onboarding with seamless KYC and identity verification processes.
+
+Comprehensive training and user certification management.
+
+Interfaces:
+
+1. End User Interface:
+
+Automatic unique 6-digit permanent CAFFE Observer ID generation.
+
+Secure KYC onboarding integrated with DidIT identity verification API (fully automated or manual verification).
+
+Comprehensive FAQ knowledge base.
+
+Real-time Live Chat, Live Call features connecting users directly to CAFFE Election Center or Parish Coordinators, other observers, should have the ability to send documents, voice, text, video, to integrate with whatsapp api so that we can send and receive whatsapp messages etc
+
+Geo-location based Check-In functionality capturing timestamp and observer location at polling stations.
+
+Secure document uploads with remote camera capture and OCR-enabled transcription.
+
+SMS fallback integration for data transmission in connectivity-limited scenarios.
+
+Roving Observer Portal integrating Google Maps for automatic route navigation, mileage calculation, timestamping, and report submission.
+
+Push notifications for real-time updates.
+
+News article viewing capability.
+
+User settings with secure, masked storage of personal and banking information (including TRN, banking details), easily editable.
+
+Securely downloadable, verifiable digital certificates upon successful election observation completion.
+
+Device-specific binding to ensure user data protection and restrict unauthorized access.
+
+QR code generation containing secure Observer ID data for EOJ official scanning.
+
+Seamless integration allowing users to log in via SMS/WhatsApp (admin-configurable).
+
+2. Election Center Interface:
+
+Integration with BigQuery or equivalent SQL analytics platform for automated, real-time report interpretation, visualization, and advanced analytics.
+
+Real-time direct messaging and calling with election observers for immediate clarifications or support.
+
+User and role-based access management with detailed permission settings.
+
+Secure, encrypted database storage adhering to military-grade encryption standards, automatically audited daily.
+
+Optical Character Recognition (OCR) integration for efficient form-data capture and transcription.
+
+Easy management (add, update, remove) of FAQ database, user accounts, observer reports, and news content.
+
+Capability to securely share observer data, IDs, and reports with EOJ and external stakeholders.
+
+Sync capabilities with external online databases and live data import from Google Sheets, including automated AI-based sorting and analysis using HuggingFace models.
+
+Backend options to toggle between AI models (Google Gemini and HuggingFace).
+
+3. Training Interface:
+
+Remote training modules delivered via Moodle/Zoom, integrated seamlessly within the platform.
+
+Automated user assessments and verifiable digital certificates upon completion.
+
+Specific courses for varying user roles: Indoor Agents, Roving Observers, Parish Coordinators.
+
+Automatic synchronization of training completion status with user registration permissions and profiles.
+
+Advanced AI & Integrations:
+
+Comprehensive use of Google Gemini API and HuggingFace models throughout the application to enable advanced AI functionalities, including:
+
+Intelligent data sorting and management.
+
+Automated form handling.
+
+AI-driven document processing.
+
+Interactive, real-time user support.
+
+Backend for easy AI model management and configuration.
+
+Additional Essential Features:
+
+Robust form-editing capabilities with intuitive drag-and-drop interface for dynamic form creation and deployment.
+
+Integrated AI-based photo resizing and background removal.
+
+Advanced Three.js integration for interactive and visually rich data presentations and graphics.
+
+Built-in email sending and receiving functionalities directly integrated within the platform.
+
+Security & Compliance:
+
+Fully encrypted platform using military-grade standards, automatically audited daily.
+
+Detailed logging and auditing capabilities ensuring traceability and compliance.
+
+Device-specific login binding with admin-controlled exceptions.
+
+Technical Specifications:
+
+Highly responsive design optimized for web, Android, and iOS (iPhone) devices.
+
+Robust, scalable backend architecture.
+
+Cloud-based secure hosting environment.
+
+SSL and end-to-end encryption mandatory for all data exchanges.
+
+Deliverables:
+
+Complete and functional application deployment.
+
+Comprehensive user documentation and admin manuals.
+
+Detailed testing and QA reports ensuring zero critical issues.
+
+Deployment and operational support with real-time monitoring and error management.
