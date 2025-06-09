@@ -18,19 +18,19 @@ export default function Dashboard() {
   const [showKYCModal, setShowKYCModal] = useState(false);
 
   // Fetch enhanced user data with KYC and device status
-  const { data: enhancedUser } = useQuery({
+  const { data: enhancedUser = {} } = useQuery({
     queryKey: ['/api/auth/me'],
     enabled: !!user
   });
 
   // Fetch device registration status
-  const { data: devices } = useQuery({
+  const { data: devices = [] } = useQuery({
     queryKey: ['/api/devices'],
     enabled: !!user
   });
 
   // Fetch analytics data
-  const { data: analytics } = useQuery({
+  const { data: analytics = {} } = useQuery({
     queryKey: ['/api/analytics/dashboard'],
     enabled: !!user
   });
@@ -58,13 +58,13 @@ export default function Dashboard() {
           
           {/* Observer ID and Status Cards */}
           <div className="flex gap-4">
-            {enhancedUser?.observerId && (
+            {(enhancedUser as any)?.observerId && (
               <Card className="border-2 border-primary">
                 <CardContent className="p-4">
                   <div className="text-center">
                     <Shield className="h-6 w-6 mx-auto mb-2 text-primary" />
                     <p className="text-sm font-medium text-muted-foreground">Observer ID</p>
-                    <p className="text-xl font-bold text-primary">{enhancedUser.observerId}</p>
+                    <p className="text-xl font-bold text-primary">{(enhancedUser as any).observerId}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -74,12 +74,12 @@ export default function Dashboard() {
               <CardContent className="p-4">
                 <div className="text-center">
                   <div className="mb-2">
-                    <Badge className={getKYCStatusColor(enhancedUser?.kycStatus || 'pending')}>
-                      {enhancedUser?.kycStatus?.toUpperCase() || 'PENDING'}
+                    <Badge className={getKYCStatusColor((enhancedUser as any)?.kycStatus || 'pending')}>
+                      {((enhancedUser as any)?.kycStatus?.toUpperCase()) || 'PENDING'}
                     </Badge>
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">KYC Status</p>
-                  {(!enhancedUser?.kycStatus || enhancedUser?.kycStatus === 'pending') && (
+                  {(!(enhancedUser as any)?.kycStatus || (enhancedUser as any)?.kycStatus === 'pending') && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -136,10 +136,12 @@ export default function Dashboard() {
                   <span className="text-sm">Submit Report</span>
                 </Button>
               </Link>
-              <Button variant="outline" className="h-20 w-full flex flex-col gap-2 hover:bg-destructive hover:text-destructive-foreground">
-                <AlertTriangle className="h-6 w-6" />
-                <span className="text-sm">Emergency Alert</span>
-              </Button>
+              <Link href="/emergency-alert">
+                <Button variant="outline" className="h-20 w-full flex flex-col gap-2 hover:bg-destructive hover:text-destructive-foreground">
+                  <AlertTriangle className="h-6 w-6" />
+                  <span className="text-sm">Emergency Alert</span>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

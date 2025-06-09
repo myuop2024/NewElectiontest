@@ -465,6 +465,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Emergency alert routes
+  app.post("/api/emergency-alert", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { type, description, priority, latitude, longitude, timestamp } = req.body;
+      
+      // Create emergency report with high priority
+      const emergencyReport = await storage.createReport({
+        userId: req.user?.id,
+        type: 'emergency',
+        title: `EMERGENCY: ${type}`,
+        description,
+        priority: 'critical',
+        status: 'active',
+        latitude: latitude || null,
+        longitude: longitude || null,
+        timestamp: timestamp || new Date().toISOString(),
+        metadata: JSON.stringify({
+          emergencyType: type,
+          alertTimestamp: timestamp,
+          responseRequired: true
+        })
+      });
+      
+      // Create audit log for emergency alert
+      await storage.createAuditLog({
+        action: "emergency_alert_sent",
+        entityType: "report",
+        userId: req.user?.id,
+        entityId: emergencyReport.id.toString(),
+        ipAddress: req.ip,
+        metadata: JSON.stringify({
+          emergencyType: type,
+          priority,
+          hasLocation: !!(latitude && longitude)
+        })
+      });
+
+      // Broadcast emergency alert via WebSocket to all connected clients
+      const wss = (req.app as any).wss;
+      const clients = (req.app as any).clients;
+      
+      if (wss) {
+        const alertMessage = {
+          type: 'emergency_alert',
+          id: emergencyReport.id,
+          userId: req.user?.id,
+          username: req.user?.username,
+          emergencyType: type,
+          description,
+          priority,
+          timestamp,
+          location: latitude && longitude ? { latitude, longitude } : null
+        };
+
+        // Broadcast to all connected administrators and supervisors
+        wss.clients.forEach((client: any) => {
+          if (client.readyState === client.OPEN) {
+            client.send(JSON.stringify(alertMessage));
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        alertId: emergencyReport.id,
+        message: "Emergency alert sent successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error sending emergency alert:", error);
+      res.status(500).json({ error: "Failed to send emergency alert" });
+    }
+  });
+
   // Analytics routes
   app.get("/api/analytics", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
