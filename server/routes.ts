@@ -108,25 +108,19 @@ async function initializeAdminAccount() {
 }
 
 function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) {
-  // Check for session-based authentication first
-  if (req.session && (req.session as any).user) {
-    req.user = (req.session as any).user;
-    return next();
+  // Check if user is logged in via session
+  if (!req.session.userId || !req.session.username || !req.session.role) {
+    return res.status(401).json({ message: "Authentication required" });
   }
 
-  // Fallback to JWT token authentication
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.sendStatus(401);
-  }
-
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
+  // Set user object from session data
+  req.user = {
+    id: req.session.userId,
+    username: req.session.username,
+    role: req.session.role
+  };
+  
+  next();
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -176,13 +170,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
-        JWT_SECRET,
-        { expiresIn: "24h" }
-      );
+      // Store user info in session
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
 
-      res.json({ user: { ...user, password: undefined }, token });
+      res.json({ 
+        user: { ...user, password: undefined }, 
+        token: "session-based" 
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
