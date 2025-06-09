@@ -24,6 +24,8 @@ import CheckIn from "@/pages/check-in";
 import EmergencyAlert from "@/pages/emergency-alert";
 import Settings from "@/pages/settings";
 import UnifiedAdmin from "@/pages/unified-admin";
+import AdminPanel from "@/pages/admin-panel";
+import AdminSettings from "@/pages/admin-settings";
 import IncidentReporting from "@/pages/incident-reporting";
 import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
@@ -34,6 +36,7 @@ import SheetsIntegration from "@/pages/sheets-integration";
 import LocationTracking from "@/pages/location-tracking";
 import AIIncidentClassifier from "@/pages/ai-incident-classifier";
 import EmergencyManagement from "@/pages/emergency-management";
+import PollingStationManagement from "@/pages/polling-station-management";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -139,6 +142,21 @@ function Router() {
       <Route path="/admin">
         <ProtectedLayout>
           <UnifiedAdmin />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin-panel">
+        <ProtectedLayout>
+          <AdminPanel />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin-settings">
+        <ProtectedLayout>
+          <AdminSettings />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/polling-station-management">
+        <ProtectedLayout>
+          <PollingStationManagement />
         </ProtectedLayout>
       </Route>
       <Route path="/incident-reporting">

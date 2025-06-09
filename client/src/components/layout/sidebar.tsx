@@ -53,6 +53,7 @@ const adminNavigation = [
   { name: 'Emergency Management', href: '/emergency-management', icon: AlertTriangle },
   { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
   { name: 'Sheets Integration', href: '/sheets-integration', icon: FileSpreadsheet },
+  { name: 'Station Management', href: '/polling-station-management', icon: MapPin },
 ];
 
 export default function Sidebar() {
@@ -127,7 +128,10 @@ export default function Sidebar() {
         {/* Emergency Contact */}
         <div className="mt-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
           <h4 className="text-sm font-semibold text-destructive mb-2">Emergency Contact</h4>
-          <Button className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <Button 
+            className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => window.open('tel:+1876-CAFFE-01', '_self')}
+          >
             <Phone className="h-4 w-4 mr-2" />
             Call Election Center
           </Button>

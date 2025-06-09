@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, Radio, Video, MessageSquare, AlertTriangle } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 export default function CommunicationCenter() {
   // Mock recent messages - in real app this would come from WebSocket/API

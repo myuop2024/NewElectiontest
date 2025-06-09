@@ -19,11 +19,10 @@ export default function FloatingActionButton() {
         setLocation('/document-capture');
         break;
       case 'report':
-        setLocation('/reports');
+        setLocation('/incident-reporting');
         break;
       case 'alert':
-        // Handle emergency alert
-        console.log('Emergency alert triggered');
+        setLocation('/emergency-alert');
         break;
     }
   };
