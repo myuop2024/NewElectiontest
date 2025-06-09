@@ -19,36 +19,55 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      const ws = webSocketService.connect(user.id.toString());
-      setSocket(ws);
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 5;
+      const reconnectDelay = 3000;
 
-      ws.onopen = () => {
-        setIsConnected(true);
-        console.log("WebSocket connected");
+      const connectWebSocket = () => {
+        const ws = webSocketService.connect(user.id.toString());
+        setSocket(ws);
+
+        ws.onopen = () => {
+          setIsConnected(true);
+          reconnectAttempts = 0;
+          console.log("WebSocket connected");
+        };
+
+        ws.onclose = (event) => {
+          setIsConnected(false);
+          console.log("WebSocket disconnected");
+          
+          // Attempt to reconnect if not manually closed
+          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            console.log(`Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
+            setTimeout(connectWebSocket, reconnectDelay);
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data);
+            setMessages(prev => [...prev, message]);
+          } catch (error) {
+            console.error("Error parsing WebSocket message:", error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          setIsConnected(false);
+        };
       };
 
-      ws.onclose = () => {
-        setIsConnected(false);
-        console.log("WebSocket disconnected");
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          setMessages(prev => [...prev, message]);
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
+      connectWebSocket();
 
       return () => {
-        ws.close();
-        setSocket(null);
-        setIsConnected(false);
+        if (socket) {
+          socket.close(1000); // Normal closure
+          setSocket(null);
+          setIsConnected(false);
+        }
       };
     } else {
       setSocket(null);

@@ -2543,14 +2543,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle different message types
         switch (data.type) {
           case 'chat_message':
-            // Store message in database
+            // Room message - broadcast to all connected users
             if (data.roomId) {
-              // Room message - broadcast to all users in that room
               wss.clients.forEach((client) => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                if (client.readyState === WebSocket.OPEN) {
                   client.send(JSON.stringify({
                     ...data,
-                    timestamp: new Date(),
+                    timestamp: new Date().toISOString(),
                     id: Math.random().toString(36).substr(2, 9)
                   }));
                 }
@@ -2561,7 +2560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
                 recipientWs.send(JSON.stringify({
                   ...data,
-                  timestamp: new Date(),
+                  timestamp: new Date().toISOString(),
                   id: Math.random().toString(36).substr(2, 9)
                 }));
               }
@@ -2575,6 +2574,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
                 recipientWs.send(JSON.stringify(data));
               }
+            } else {
+              // Broadcast to all connected clients
+              wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify(data));
+                }
+              });
             }
             break;
             

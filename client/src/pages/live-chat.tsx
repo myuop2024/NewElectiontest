@@ -26,18 +26,33 @@ export default function LiveChat() {
   const { toast } = useToast();
 
   const { data: chatRooms } = useQuery({
-    queryKey: ["/api/messages"],
+    queryKey: ["/api/chat/conversations"],
   });
 
   // Load message history for selected chat
   const { data: messageHistory } = useQuery({
-    queryKey: ["/api/chat/messages", selectedChat],
+    queryKey: ["/api/chat/messages"],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (selectedChat) {
+        params.append('roomId', selectedChat);
+      }
+      return fetch(`/api/chat/messages?${params.toString()}`, {
+        credentials: 'include'
+      }).then(res => res.json());
+    },
     enabled: !!selectedChat,
   });
 
   // Load online users for selected room
   const { data: onlineUsers } = useQuery({
     queryKey: ["/api/chat/rooms", selectedChat, "online"],
+    queryFn: () => {
+      if (!selectedChat) return [];
+      return fetch(`/api/chat/rooms/${selectedChat}/online`, {
+        credentials: 'include'
+      }).then(res => res.json());
+    },
     enabled: !!selectedChat,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -53,20 +68,31 @@ export default function LiveChat() {
 
   useEffect(() => {
     if (socket) {
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'chat_message') {
-          setMessages(prev => [...prev, {
-            id: data.id,
-            content: data.content,
-            senderId: data.senderId,
-            timestamp: data.timestamp,
-            messageType: data.messageType
-          }]);
+      const handleMessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'chat_message' && 
+              (data.roomId === selectedChat || (!data.roomId && !selectedChat))) {
+            setMessages(prev => [...prev, {
+              id: data.id || Math.random().toString(36).substr(2, 9),
+              content: data.content,
+              senderId: data.senderId,
+              timestamp: data.timestamp || new Date().toISOString(),
+              messageType: data.messageType || 'text'
+            }]);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
         }
       };
+
+      socket.addEventListener('message', handleMessage);
+      
+      return () => {
+        socket.removeEventListener('message', handleMessage);
+      };
     }
-  }, [socket]);
+  }, [socket, selectedChat]);
 
   // Load Jitsi Meet API
   useEffect(() => {
@@ -189,7 +215,7 @@ export default function LiveChat() {
   };
 
   const handleVoiceCall = () => {
-    const currentRoom = defaultRooms.find(r => r.id === selectedChat);
+    const currentRoom = roomsWithData.find(r => r.id === selectedChat);
     if (!currentRoom) return;
 
     // Add call message to chat
@@ -229,7 +255,7 @@ export default function LiveChat() {
   };
 
   const handleVideoCall = () => {
-    const currentRoom = defaultRooms.find(r => r.id === selectedChat);
+    const currentRoom = roomsWithData.find(r => r.id === selectedChat);
     if (!currentRoom) return;
 
     // Add video call message to chat
@@ -276,11 +302,17 @@ export default function LiveChat() {
   };
 
   const defaultRooms = [
-    { id: 'general', name: 'General Discussion', type: 'room', participants: 45, unread: 3 },
+    { id: 'general', name: 'General Discussion', type: 'room', participants: 45, unread: 0 },
     { id: 'emergency', name: 'Emergency Channel', type: 'room', participants: 12, unread: 0 },
-    { id: 'coordinators', name: 'Parish Coordinators', type: 'room', participants: 8, unread: 1 },
+    { id: 'coordinators', name: 'Parish Coordinators', type: 'room', participants: 8, unread: 0 },
     { id: 'support', name: 'Technical Support', type: 'direct', participants: 2, unread: 0 },
   ];
+
+  // Get actual room data with real participant counts
+  const roomsWithData = defaultRooms.map(room => ({
+    ...room,
+    participants: onlineUsers?.length || 0
+  }));
 
   return (
     <div className="p-6 h-screen flex flex-col fade-in">
@@ -300,7 +332,7 @@ export default function LiveChat() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="space-y-1">
-              {defaultRooms.map((room) => (
+              {roomsWithData.map((room) => (
                 <button
                   key={room.id}
                   onClick={() => setSelectedChat(room.id)}
@@ -318,7 +350,7 @@ export default function LiveChat() {
                         <p className="text-xs text-muted-foreground">
                           {selectedChat === room.id && onlineUsers ? 
                             `${onlineUsers.length} online` : 
-                            'Loading...'
+                            `${room.participants} participants`
                           }
                         </p>
                       </div>
@@ -346,10 +378,10 @@ export default function LiveChat() {
                     <MessageCircle className="h-5 w-5 text-primary" />
                     <div>
                       <CardTitle className="text-lg">
-                        {defaultRooms.find(r => r.id === selectedChat)?.name}
+                        {roomsWithData.find(r => r.id === selectedChat)?.name}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {defaultRooms.find(r => r.id === selectedChat)?.participants} participants online
+                        {onlineUsers?.length || 0} participants online
                       </p>
                     </div>
                   </div>
@@ -437,7 +469,7 @@ export default function LiveChat() {
             <DialogTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 {callType === 'voice' ? <Phone className="h-5 w-5" /> : <Video className="h-5 w-5" />}
-                {callType === 'voice' ? 'Voice Call' : 'Video Call'} - {defaultRooms.find(r => r.id === selectedChat)?.name}
+                {callType === 'voice' ? 'Voice Call' : 'Video Call'} - {roomsWithData.find(r => r.id === selectedChat)?.name}
               </span>
               <Button
                 variant="destructive"
