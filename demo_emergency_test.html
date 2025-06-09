@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Alert System Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .alert-demo {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid #f87171;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+        }
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .alert-icon {
+            font-size: 24px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .severity-badge {
+            background-color: #dc2626;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .alert-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #dc2626;
+            margin: 0;
+        }
+        .alert-description {
+            color: #374151;
+            line-height: 1.6;
+            margin: 12px 0;
+        }
+        .alert-meta {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .channels {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .channel-badge {
+            background-color: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .demo-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .demo-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+        .action-log {
+            background-color: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #374151;
+            margin: 8px 0;
+        }
+        .success {
+            color: #059669;
+        }
+        .warning {
+            color: #d97706;
+        }
+        .error {
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚨 Emergency Alert System Demo</h1>
+    <p>Real-time emergency notification system for CAFFE Electoral Observation</p>
+
+    <!-- Live Alert Demo -->
+    <div class="alert-demo">
+        <div class="alert-header">
+            <span class="alert-icon">🚨</span>
+            <span class="severity-badge">HIGH SEVERITY</span>
+            <h2 class="alert-title">Security Threat Detected</h2>
+        </div>
+        <p class="alert-description">
+            Unauthorized individuals spotted near polling station CLN001 attempting to intimidate voters. 
+            Security personnel requested immediately. Situation requires immediate attention from field supervisors.
+        </p>
+        <div class="alert-meta">
+            <strong>Location:</strong> Clarendon - Polling Station CLN001<br>
+            <strong>Category:</strong> Security Threat<br>
+            <strong>Time:</strong> <span id="current-time"></span><br>
+            <strong>Alert ID:</strong> alert_1749508407_abc123def
+        </div>
+        <div class="channels">
+            <span class="channel-badge">📱 SMS</span>
+            <span class="channel-badge">📧 Email</span>
+            <span class="channel-badge">🔔 Push</span>
+            <span class="channel-badge">📞 Voice Call</span>
+        </div>
+    </div>
+
+    <!-- Emergency Statistics -->
+    <div class="demo-section">
+        <h3 class="demo-title">Emergency System Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">1</div>
+                <div class="stat-label">Active Alerts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">3.2m</div>
+                <div class="stat-label">Avg Response</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">47</div>
+                <div class="stat-label">Recipients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">98%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Processing Demo -->
+    <div class="demo-section">
+        <h3 class="demo-title">Alert Processing Workflow</h3>
+        <div class="action-log">
+            <div class="success">✓ Alert created and assigned ID: alert_1749508407_abc123def</div>
+            <div class="success">✓ Broadcasting to 47 recipients via 4 channels</div>
+            <div class="success">✓ SMS notifications sent to field supervisors</div>
+            <div class="success">✓ Email alerts dispatched to coordinators</div>
+            <div class="success">✓ Push notifications delivered to mobile apps</div>
+            <div class="warning">⏳ Escalation timer set: 15 minutes for HIGH severity</div>
+            <div class="success">✓ WebSocket broadcast completed</div>
+            <div style="margin-top: 12px; padding: 8px; background: #e0f2fe; border-radius: 4px;">
+                📊 <strong>Alert Status:</strong> Active | <strong>Acknowledgments:</strong> 0/47 | <strong>Response Time:</strong> 0m
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Channels -->
+    <div class="demo-section">
+        <h3 class="demo-title">Multi-Channel Notification System</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <strong>📱 SMS Alerts</strong><br>
+                <small>Instant text messages to all field personnel with critical alert details</small>
+            </div>
+            <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <strong>📧 Email Notifications</strong><br>
+                <small>Detailed HTML emails with location maps and incident reports</small>
+            </div>
+            <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <strong>🔔 Push Notifications</strong><br>
+                <small>Real-time mobile app alerts with actionable buttons</small>
+            </div>
+            <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <strong>📞 Voice Calls</strong><br>
+                <small>Automated voice alerts for critical emergencies</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Escalation Rules -->
+    <div class="demo-section">
+        <h3 class="demo-title">Automatic Escalation Protocol</h3>
+        <div style="background: #fef3c7; padding: 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <strong>🔄 Escalation Rules Active:</strong><br><br>
+            • <strong>Critical Alerts:</strong> Escalate after 5 minutes if unacknowledged<br>
+            • <strong>High Priority:</strong> Escalate after 15 minutes to field supervisors<br>
+            • <strong>Security Threats:</strong> Immediate notification to emergency coordinators<br>
+            • <strong>Violence/Medical:</strong> Auto-contact law enforcement and medical services
+        </div>
+    </div>
+
+    <!-- Real-time Features -->
+    <div class="demo-section">
+        <h3 class="demo-title">Real-time System Features</h3>
+        <ul style="line-height: 1.8;">
+            <li><strong>WebSocket Integration:</strong> Instant alerts appear in all connected dashboards</li>
+            <li><strong>Geolocation Mapping:</strong> Alerts plotted on interactive parish maps</li>
+            <li><strong>Response Tracking:</strong> Monitor acknowledgment and resolution times</li>
+            <li><strong>Pattern Detection:</strong> AI analysis identifies recurring incident types</li>
+            <li><strong>Multi-Parish Coordination:</strong> Synchronized alerts across all observation areas</li>
+            <li><strong>Audit Trail:</strong> Complete log of all emergency actions and responses</li>
+        </ul>
+    </div>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            document.getElementById('current-time').textContent = new Date().toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Simulate real-time updates
+        setTimeout(() => {
+            const log = document.querySelector('.action-log');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'success';
+            newEntry.textContent = '✓ Alert acknowledged by Field Supervisor Johnson';
+            log.appendChild(newEntry);
+        }, 3000);
+
+        setTimeout(() => {
+            const log = document.querySelector('.action-log');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'success';
+            newEntry.textContent = '✓ Security team dispatched to CLN001';
+            log.appendChild(newEntry);
+        }, 6000);
+
+        setTimeout(() => {
+            const statusDiv = document.querySelector('.action-log > div:last-child');
+            statusDiv.innerHTML = '📊 <strong>Alert Status:</strong> Acknowledged | <strong>Acknowledgments:</strong> 1/47 | <strong>Response Time:</strong> 3.2m';
+        }, 9000);
+    </script>
+</body>
+</html>
