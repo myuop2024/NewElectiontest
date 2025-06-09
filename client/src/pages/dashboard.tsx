@@ -261,6 +261,13 @@ export default function Dashboard() {
         <AIAnalytics />
         <CommunicationCenter />
       </div>
+
+      {/* KYC Verification Modal */}
+      <KYCVerificationModal
+        user={enhancedUser}
+        isOpen={showKYCModal}
+        onOpenChange={setShowKYCModal}
+      />
     </div>
   );
 }

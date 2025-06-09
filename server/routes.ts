@@ -647,13 +647,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DidIT Webhook for verification status updates
+  app.post("/api/kyc/verify", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { KYCService } = await import('./lib/kyc-service.js');
+      const userId = req.user!.id;
+      
+      // Check if KYC is enabled
+      const kycEnabled = await storage.getSettingByKey('didit_kyc_enabled');
+      if (kycEnabled?.value !== 'true') {
+        return res.status(400).json({ message: 'KYC verification is not enabled' });
+      }
+
+      // Validate request data
+      const { firstName, lastName, dateOfBirth, nationalId, documentType, documentImage, selfieImage } = req.body;
+      
+      if (!firstName || !lastName || !dateOfBirth || !nationalId || !documentImage || !selfieImage) {
+        return res.status(400).json({ message: 'All verification fields are required' });
+      }
+
+      // Submit verification to DidIT
+      const verificationResult = await KYCService.submitVerification({
+        firstName,
+        lastName,
+        dateOfBirth,
+        nationalId,
+        documentType: documentType || 'national_id',
+        documentImage,
+        selfieImage
+      });
+
+      // Create KYC verification record
+      const kycRecord = {
+        userId,
+        verificationType: 'didit',
+        status: verificationResult.status,
+        verificationData: {
+          verificationId: verificationResult.verificationId,
+          confidence: verificationResult.confidence,
+          matchScore: verificationResult.matchScore,
+          details: verificationResult.details
+        },
+        documentUploads: {
+          documentType,
+          documentUploaded: true,
+          selfieUploaded: true
+        },
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      };
+
+      // Save verification record (would need to add to storage interface)
+      console.log('KYC verification submitted:', kycRecord);
+
+      // Update user's KYC status to pending
+      await storage.updateUser(userId, { kycStatus: 'pending' });
+
+      // Create audit log
+      await storage.createAuditLog({
+        userId,
+        action: 'kyc_verification_submitted',
+        details: `KYC verification submitted via DidIT (ID: ${verificationResult.verificationId})`,
+        ipAddress: req.ip || '',
+        userAgent: req.headers['user-agent'] || '',
+        createdAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        verificationId: verificationResult.verificationId,
+        status: verificationResult.status,
+        message: 'Verification submitted successfully'
+      });
+    } catch (error) {
+      console.error('KYC verification error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Verification failed' });
+    }
+  });
+
   app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
     try {
-      const { verification_id, status, details } = req.body;
+      const { verification_id, status, details, user_id } = req.body;
       
-      // Update verification status in database based on webhook data
-      // This would typically update a verification record
-      console.log('DidIT webhook received:', { verification_id, status, details });
+      console.log('DidIT webhook received:', { verification_id, status, details, user_id });
+
+      // Find user by verification ID or user_id
+      // Update user's KYC status based on verification result
+      if (user_id) {
+        const finalStatus = status === 'approved' || status === 'completed' ? 'verified' : 
+                           status === 'rejected' || status === 'failed' ? 'rejected' : 'pending';
+        
+        await storage.updateUser(user_id, { 
+          kycStatus: finalStatus,
+          kycVerificationId: verification_id,
+          kycVerifiedAt: finalStatus === 'verified' ? new Date() : null
+        });
+
+        // Update extracted data if verification was successful and contains user info
+        if (finalStatus === 'verified' && details?.extractedData) {
+          const extracted = details.extractedData;
+          const updates: any = {};
+          
+          if (extracted.first_name) updates.firstName = extracted.first_name;
+          if (extracted.last_name) updates.lastName = extracted.last_name;
+          if (extracted.date_of_birth) updates.dateOfBirth = extracted.date_of_birth;
+          if (extracted.national_id) updates.nationalId = extracted.national_id;
+          
+          if (Object.keys(updates).length > 0) {
+            await storage.updateUser(user_id, updates);
+          }
+        }
+
+        // Create audit log
+        await storage.createAuditLog({
+          userId: user_id,
+          action: 'kyc_verification_completed',
+          details: `KYC verification ${finalStatus} via DidIT webhook (ID: ${verification_id})`,
+          ipAddress: req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          createdAt: new Date()
+        });
+      }
       
       res.json({ success: true, message: 'Webhook processed' });
     } catch (error) {
