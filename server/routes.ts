@@ -1248,8 +1248,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userIdParam = url.searchParams.get('userId');
       const userId = userIdParam ? Number(userIdParam) : null;
 
-      console.log(`WebSocket connection attempt - URL: ${req.url}, userId param: ${userIdParam}`);
-
       if (userId && !isNaN(userId)) {
         console.log(`WebSocket client connected for user: ${userId}`);
         clients.set(userId, ws);
@@ -1269,14 +1267,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('Received message:', data);
         
-        // Broadcast to all connected clients (example of general broadcast)
-        wss.clients.forEach((client) => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(data));
-          }
-        });
+        // Handle different message types
+        switch (data.type) {
+          case 'chat_message':
+            // Store message in database
+            if (data.roomId) {
+              // Room message - broadcast to all users in that room
+              wss.clients.forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify({
+                    ...data,
+                    timestamp: new Date(),
+                    id: Math.random().toString(36).substr(2, 9)
+                  }));
+                }
+              });
+            } else if (data.recipientId) {
+              // Direct message - send to specific user
+              const recipientWs = clients.get(data.recipientId);
+              if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+                recipientWs.send(JSON.stringify({
+                  ...data,
+                  timestamp: new Date(),
+                  id: Math.random().toString(36).substr(2, 9)
+                }));
+              }
+            }
+            break;
+            
+          case 'notification':
+            // Handle notifications
+            if (data.recipientId) {
+              const recipientWs = clients.get(data.recipientId);
+              if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+                recipientWs.send(JSON.stringify(data));
+              }
+            }
+            break;
+            
+          default:
+            // General broadcast for other message types
+            wss.clients.forEach((client) => {
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(data));
+              }
+            });
+        }
       } catch (error) {
         console.error('WebSocket message error:', error);
       }

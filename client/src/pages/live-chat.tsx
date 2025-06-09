@@ -24,8 +24,14 @@ export default function LiveChat() {
     if (socket) {
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === 'new_message') {
-          setMessages(prev => [...prev, data.message]);
+        if (data.type === 'chat_message') {
+          setMessages(prev => [...prev, {
+            id: data.id,
+            content: data.content,
+            senderId: data.senderId,
+            timestamp: data.timestamp,
+            messageType: data.messageType
+          }]);
         }
       };
     }
@@ -39,11 +45,14 @@ export default function LiveChat() {
     if (!message.trim() || !user) return;
 
     const newMessage = {
-      type: 'chat_message',
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'chat_message' as const,
+      content: message,
+      userId: user.id,
+      timestamp: new Date(),
       senderId: user.id,
       recipientId: selectedChat === 'general' ? null : parseInt(selectedChat || '0'),
       roomId: selectedChat === 'general' ? 'general' : null,
-      content: message,
       messageType: 'text'
     };
 
@@ -163,7 +172,7 @@ export default function LiveChat() {
                         <p className={`text-xs mt-1 ${
                           msg.senderId === user?.id ? 'text-white/70' : 'text-muted-foreground'
                         }`}>
-                          {new Date(msg.createdAt).toLocaleTimeString()}
+                          {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString()}
                         </p>
                       </div>
                     </div>

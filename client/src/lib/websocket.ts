@@ -1,10 +1,14 @@
 export interface WebSocketMessage {
   id: string;
-  type: 'chat' | 'notification' | 'alert' | 'system';
+  type: 'chat' | 'notification' | 'alert' | 'system' | 'chat_message';
   content: string;
   userId: number;
   timestamp: Date;
   metadata?: Record<string, any>;
+  senderId?: number;
+  recipientId?: number | null;
+  roomId?: string | null;
+  messageType?: string;
 }
 
 class WebSocketService {
@@ -14,12 +18,10 @@ class WebSocketService {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws?userId=${userId}`;
     
-    console.log(`Attempting WebSocket connection to: ${wsUrl} for user: ${userId}`);
-    
     this.ws = new WebSocket(wsUrl);
     
     this.ws.onopen = () => {
-      console.log(`WebSocket connected successfully for user: ${userId}`);
+      console.log("WebSocket connected");
     };
 
     return this.ws;
