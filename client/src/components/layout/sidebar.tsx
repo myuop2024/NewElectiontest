@@ -40,7 +40,6 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'Admin Panel', href: '/admin', icon: Shield },
-  { name: 'Admin Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -72,38 +71,36 @@ export default function Sidebar() {
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
-              
-              <div 
-                key={item.name}
-                onClick={() => window.location.href = item.href}
-                className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
-                isActive(item.href)
-                  ? "caffe-bg-primary text-white"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}>
-                <Icon className="mr-3 h-5 w-5" />
-                {item.name}
-              </div>
+              <Link key={item.name} href={item.href}>
+                <div 
+                  className={cn(
+                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
+                  isActive(item.href)
+                    ? "caffe-bg-primary text-white"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}>
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </div>
+              </Link>
             );
           })}
 
           {canAccessAdmin && adminNavigation.map((item) => {
             const Icon = item.icon;
             return (
-              
-              <div 
-                key={item.name}
-                onClick={() => window.location.href = item.href}
-                className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
-                isActive(item.href)
-                  ? "caffe-bg-primary text-white"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}>
-                <Icon className="mr-3 h-5 w-5" />
-                {item.name}
-              </div>
+              <Link key={item.name} href={item.href}>
+                <div 
+                  className={cn(
+                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
+                  isActive(item.href)
+                    ? "caffe-bg-primary text-white"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}>
+                  <Icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </div>
+              </Link>
             );
           })}
         </div>
