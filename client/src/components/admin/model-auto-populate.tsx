@@ -42,7 +42,10 @@ export default function ModelAutoPopulate({ onModelsPopulated }: ModelAutoPopula
       for (const update of updates) {
         await apiRequest('/api/settings', {
           method: 'POST',
-          body: update
+          body: JSON.stringify(update),
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
       }
 
