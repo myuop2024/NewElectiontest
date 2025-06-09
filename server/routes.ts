@@ -88,8 +88,7 @@ async function initializeAdminAccount() {
       role: "admin",
       status: "active",
       kycStatus: "verified",
-      trainingStatus: "certified",
-      observerId: observerId
+      trainingStatus: "certified"
     });
 
     console.log(`Admin account created successfully with ID: ${adminUser.id}`);
@@ -656,8 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user with verification ID
       if (req.user) {
         await storage.updateUser(req.user.id, { 
-          kycStatus: 'pending',
-          kycVerificationId: result.verificationId 
+          kycStatus: 'pending'
         });
       }
 
@@ -705,9 +703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const newKycStatus = status === 'completed' || status === 'approved' ? 'approved' : 'rejected';
         
         await storage.updateUser(user.id, { 
-          kycStatus: newKycStatus,
-          kycVerificationId: id,
-          kycVerificationData: req.body 
+          kycStatus: newKycStatus
         });
 
         console.log(`Updated user ${user.username} KYC status to ${newKycStatus}`);
