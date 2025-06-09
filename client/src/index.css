@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(248, 82%, 98%);
+  --foreground: hsl(225, 71%, 8%);
+  --muted: hsl(240, 4.8%, 95.9%);
+  --muted-foreground: hsl(0, 0%, 40%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(225, 71%, 8%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(225, 71%, 8%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+  --primary: hsl(217, 92%, 33%);
+  --primary-foreground: hsl(210, 100%, 98%);
+  --secondary: hsl(158, 85%, 39%);
+  --secondary-foreground: hsl(210, 100%, 98%);
+  --accent: hsl(240, 4.8%, 95.9%);
+  --accent-foreground: hsl(225, 71%, 8%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(225, 71%, 8%);
+  --radius: 0.5rem;
+  --chart-1: hsl(217, 92%, 33%);
+  --chart-2: hsl(158, 85%, 39%);
+  --chart-3: hsl(43, 96%, 56%);
+  --chart-4: hsl(0, 84%, 60%);
+  --chart-5: hsl(221, 83%, 53%);
+  --sidebar-background: hsl(0, 0%, 100%);
+  --sidebar-foreground: hsl(225, 71%, 8%);
+  --sidebar-primary: hsl(217, 92%, 33%);
+  --sidebar-primary-foreground: hsl(210, 100%, 98%);
+  --sidebar-accent: hsl(240, 4.8%, 95.9%);
+  --sidebar-accent-foreground: hsl(225, 71%, 8%);
+  --sidebar-border: hsl(214, 32%, 91%);
+  --sidebar-ring: hsl(217, 92%, 33%);
+  
+  /* CAFFE-specific colors */
+  --caffe-blue: hsl(217, 92%, 33%);
+  --caffe-green: hsl(158, 85%, 39%);
+  --caffe-background: hsl(248, 82%, 98%);
+  --caffe-text: hsl(225, 71%, 8%);
+  --caffe-alert: hsl(0, 84%, 60%);
+  --caffe-neutral: hsl(214, 20%, 42%);
+  --caffe-success: hsl(142, 76%, 36%);
+  --caffe-warning: hsl(43, 96%, 56%);
+}
+
+.dark {
+  --background: hsl(225, 71%, 8%);
+  --foreground: hsl(210, 100%, 98%);
+  --muted: hsl(217, 33%, 17%);
+  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --popover: hsl(225, 71%, 8%);
+  --popover-foreground: hsl(210, 100%, 98%);
+  --card: hsl(225, 71%, 8%);
+  --card-foreground: hsl(210, 100%, 98%);
+  --border: hsl(217, 33%, 17%);
+  --input: hsl(217, 33%, 17%);
+  --primary: hsl(217, 92%, 33%);
+  --primary-foreground: hsl(210, 100%, 98%);
+  --secondary: hsl(158, 85%, 39%);
+  --secondary-foreground: hsl(210, 100%, 98%);
+  --accent: hsl(217, 33%, 17%);
+  --accent-foreground: hsl(210, 100%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 100%, 98%);
+  --ring: hsl(217, 92%, 33%);
+  --chart-1: hsl(220, 70%, 50%);
+  --chart-2: hsl(160, 60%, 45%);
+  --chart-3: hsl(30, 80%, 55%);
+  --chart-4: hsl(280, 65%, 60%);
+  --chart-5: hsl(340, 75%, 55%);
+  --sidebar-background: hsl(225, 71%, 8%);
+  --sidebar-foreground: hsl(210, 100%, 98%);
+  --sidebar-primary: hsl(217, 92%, 33%);
+  --sidebar-primary-foreground: hsl(210, 100%, 98%);
+  --sidebar-accent: hsl(217, 33%, 17%);
+  --sidebar-accent-foreground: hsl(210, 100%, 98%);
+  --sidebar-border: hsl(217, 33%, 17%);
+  --sidebar-ring: hsl(217, 92%, 33%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* CAFFE-specific utility classes */
+  .caffe-primary {
+    color: var(--caffe-blue);
+  }
+  
+  .caffe-secondary {
+    color: var(--caffe-green);
+  }
+  
+  .caffe-alert {
+    color: var(--caffe-alert);
+  }
+  
+  .caffe-bg-primary {
+    background-color: var(--caffe-blue);
+  }
+  
+  .caffe-bg-secondary {
+    background-color: var(--caffe-green);
+  }
+  
+  .caffe-bg-alert {
+    background-color: var(--caffe-alert);
+  }
+
+  /* Professional government interface styling */
+  .government-card {
+    @apply bg-white border border-gray-200 shadow-sm rounded-lg;
+  }
+  
+  .government-header {
+    @apply bg-white border-b border-gray-200 shadow-sm;
+  }
+  
+  .government-sidebar {
+    @apply bg-white border-r border-gray-200 shadow-lg;
+  }
+  
+  .status-indicator {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-active {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .status-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .status-alert {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .status-neutral {
+    @apply bg-gray-100 text-gray-800;
+  }
+
+  /* Animation utilities */
+  .pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Professional button styling */
+  .btn-caffe-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors;
+  }
+  
+  .btn-caffe-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-2 rounded-md font-medium transition-colors;
+  }
+  
+  .btn-caffe-outline {
+    @apply border border-primary text-primary hover:bg-primary hover:text-primary-foreground px-4 py-2 rounded-md font-medium transition-colors;
+  }
+
+  /* Data table styling */
+  .data-table {
+    @apply min-w-full divide-y divide-gray-200;
+  }
+  
+  .data-table th {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+  }
+  
+  .data-table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+  }
+  
+  .data-table tr:nth-child(even) {
+    @apply bg-gray-50;
+  }
+
+  /* Form styling */
+  .form-field {
+    @apply space-y-2;
+  }
+  
+  .form-label {
+    @apply text-sm font-medium text-gray-700;
+  }
+  
+  .form-input {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary;
+  }
+  
+  .form-error {
+    @apply text-sm text-red-600;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+}
