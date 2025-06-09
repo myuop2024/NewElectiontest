@@ -1,22 +1,47 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Plus, Search, Filter } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { FileText, Plus, Search, Filter, AlertTriangle, Calendar, CheckCircle, Download, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocation } from "wouter";
 
 export default function Reports() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [selectedTab, setSelectedTab] = useState("my-reports");
   
-  const { data: reports, isLoading } = useQuery({
-    queryKey: ["/api/reports"],
+  // Fetch user's own reports
+  const { data: userReports, isLoading: userReportsLoading } = useQuery({
+    queryKey: ["/api/reports", "user", user?.id],
+    enabled: !!user?.id
   });
 
-  const filteredReports = reports?.filter((report: any) =>
-    report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.type.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Fetch all reports (for admins/roving observers)
+  const { data: allReports, isLoading: allReportsLoading } = useQuery({
+    queryKey: ["/api/reports"],
+    enabled: user?.role === 'admin' || user?.role === 'roving_observer'
+  });
+
+  const myFilteredReports = (userReports || []).filter((report: any) => {
+    const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.type.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "all" || report.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const allFilteredReports = (allReports || []).filter((report: any) => {
+    const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.type.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "all" || report.type === filterType;
+    return matchesSearch && matchesType;
+  });
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
