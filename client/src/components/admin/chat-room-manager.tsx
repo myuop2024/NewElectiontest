@@ -43,10 +43,8 @@ export default function ChatRoomManager() {
   // Assign users to room mutation
   const assignUsersMutation = useMutation({
     mutationFn: async ({ roomId, userIds }: { roomId: string; userIds: number[] }) => {
-      return apiRequest(`/api/chat/rooms/assign`, {
-        method: 'POST',
-        body: { roomId, userIds }
-      });
+      const response = await apiRequest('POST', '/api/chat/rooms/assign', { roomId, userIds });
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -68,10 +66,8 @@ export default function ChatRoomManager() {
   // Remove users from room mutation
   const removeUsersMutation = useMutation({
     mutationFn: async ({ roomId, userIds }: { roomId: string; userIds: number[] }) => {
-      return apiRequest(`/api/chat/rooms/remove`, {
-        method: 'POST',
-        body: { roomId, userIds }
-      });
+      const response = await apiRequest('POST', '/api/chat/rooms/remove', { roomId, userIds });
+      return response.json();
     },
     onSuccess: () => {
       toast({

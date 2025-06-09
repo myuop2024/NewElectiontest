@@ -320,6 +320,22 @@ export class AdminSettingsService {
         return { valid: true, message: 'Service disabled' };
       },
       
+      diditkyc: async () => {
+        // Alias for didit validation to handle frontend calls
+        const enabled = await storage.getSettingByKey('didit_kyc_enabled');
+        const clientId = await storage.getSettingByKey('didit_client_id');
+        const clientSecret = await storage.getSettingByKey('didit_client_secret');
+        const endpoint = await storage.getSettingByKey('didit_api_endpoint');
+        
+        if (enabled?.value === 'true') {
+          if (!clientId?.value) return { valid: false, message: 'Client ID required' };
+          if (!clientSecret?.value) return { valid: false, message: 'Client Secret required' };
+          if (!endpoint?.value) return { valid: false, message: 'API endpoint required' };
+          return { valid: true, message: 'Configuration valid' };
+        }
+        return { valid: true, message: 'Service disabled' };
+      },
+      
       huggingface: async () => {
         const enabled = await storage.getSettingByKey('huggingface_enabled');
         const apiKey = await storage.getSettingByKey('huggingface_api_key');

@@ -57,10 +57,8 @@ export default function AdminPanel() {
   // Update setting mutation
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      return apiRequest('/api/settings', {
-        method: 'POST',
-        body: { key, value }
-      });
+      const response = await apiRequest('POST', '/api/settings', { key, value });
+      return response.json();
     },
     onSuccess: () => {
       toast({
