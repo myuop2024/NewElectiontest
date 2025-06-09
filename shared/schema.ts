@@ -297,9 +297,6 @@ export const insertReportSchema = createInsertSchema(reports).omit({
 export const insertDocumentSchema = createInsertSchema(documents).omit({
   id: true,
   createdAt: true,
-  isProcessed: true,
-  ocrText: true,
-  aiAnalysis: true,
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({

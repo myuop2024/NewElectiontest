@@ -516,8 +516,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create document record
       const document = await storage.createDocument({
+        userId: req.user?.id || 0,
         reportId: parseInt(req.body.reportId) || null,
         fileName: req.file.originalname,
+        originalName: req.file.originalname,
         filePath: req.file.path,
         fileSize: req.file.size,
         fileType: req.file.mimetype,
