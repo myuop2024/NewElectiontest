@@ -203,6 +203,15 @@ export class DatabaseStorage implements IStorage {
     return newAssignment;
   }
 
+  async updateAssignment(id: number, updates: Partial<Assignment>): Promise<Assignment> {
+    const [assignment] = await db
+      .update(assignments)
+      .set(updates)
+      .where(eq(assignments.id, id))
+      .returning();
+    return assignment;
+  }
+
   async getCheckInsByUser(userId: number): Promise<CheckIn[]> {
     return await db.select().from(checkIns).where(eq(checkIns.userId, userId)).orderBy(desc(checkIns.timestamp));
   }

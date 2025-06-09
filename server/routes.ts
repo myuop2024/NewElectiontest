@@ -323,8 +323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create audit log for incident report
       await storage.createAuditLog({
         action: "incident_reported",
+        entityType: "report",
         userId: req.user?.id,
-        details: `Incident reported: ${req.body.title}`,
+        entityId: report.id.toString(),
         ipAddress: req.ip
       });
 
@@ -355,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalReports: reports.length,
           activeObservers: allObservers.length,
           pollingStations: stats.totalStations,
-          criticalIncidents: reports.filter(r => r.severity === 'critical').length
+          criticalIncidents: reports.filter(r => r.priority === 'critical').length
         },
         reportsByHour: Array.from({ length: 24 }, (_, i) => ({
           hour: `${i}:00`,
@@ -375,10 +376,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: allObservers.length
         })),
         incidentSeverity: [
-          { severity: "low", count: reports.filter(r => r.severity === 'low').length },
-          { severity: "medium", count: reports.filter(r => r.severity === 'medium').length },
-          { severity: "high", count: reports.filter(r => r.severity === 'high').length },
-          { severity: "critical", count: reports.filter(r => r.severity === 'critical').length }
+          { severity: "low", count: reports.filter(r => r.priority === 'low').length },
+          { severity: "medium", count: reports.filter(r => r.priority === 'medium').length },
+          { severity: "high", count: reports.filter(r => r.priority === 'high').length },
+          { severity: "critical", count: reports.filter(r => r.priority === 'critical').length }
         ]
       };
 
@@ -399,12 +400,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...recentReports.slice(-5).map(report => ({
           type: "report",
           message: `New incident reported: ${report.title}`,
-          location: report.location || "Location not specified",
+          location: "Polling Station",
           timestamp: new Date(report.createdAt).toLocaleString()
         })),
         ...recentLogs.slice(-3).map(log => ({
           type: "activity",
-          message: log.details,
+          message: log.action,
           location: "System",
           timestamp: new Date(log.createdAt).toLocaleString()
         }))
