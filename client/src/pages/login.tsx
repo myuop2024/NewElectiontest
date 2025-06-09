@@ -130,8 +130,8 @@ export default function Login() {
 
             <div className="mt-4 p-4 bg-primary/10 rounded-lg">
               <h4 className="text-sm font-semibold caffe-primary mb-2">Active Election</h4>
-              <p className="text-xs text-muted-foreground">2024 General Election</p>
-              <p className="text-xs text-muted-foreground">December 15, 2024</p>
+              <p className="text-xs text-muted-foreground">2025 General Election</p>
+              <p className="text-xs text-muted-foreground">Jamaica</p>
               <div className="mt-2 flex items-center text-xs text-green-600">
                 <div className="w-2 h-2 bg-green-600 rounded-full mr-2 pulse-slow"></div>
                 System Active

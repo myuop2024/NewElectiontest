@@ -15,7 +15,7 @@ export default function Dashboard() {
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground">Electoral Observer Dashboard</h2>
         <p className="text-muted-foreground mt-1">
-          Real-time monitoring and reporting for the 2024 General Election
+          Real-time monitoring and reporting for the 2025 General Election
         </p>
       </div>
 
