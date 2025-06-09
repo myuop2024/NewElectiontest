@@ -26,6 +26,7 @@ import { AdminSettingsService } from "./lib/admin-settings-service.js";
 import { createAIIncidentService } from "./lib/ai-incident-service.js";
 import { googleSheetsService } from "./lib/google-sheets-service.js";
 import { aiClassificationService } from "./lib/ai-classification-service.js";
+import { emergencyService } from "./lib/emergency-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
