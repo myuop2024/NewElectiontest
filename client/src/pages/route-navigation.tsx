@@ -278,15 +278,24 @@ export default function RouteNavigation() {
                     <div className="flex items-start gap-2">
                       <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
                       <div className="text-sm">
-                        <div className="font-medium text-blue-900">
-                          {stations.find((s: any) => s.id.toString() === selectedDestination)?.name}
-                        </div>
-                        <div className="text-blue-700">
-                          {stations.find((s: any) => s.id.toString() === selectedDestination)?.address}
-                        </div>
-                        <div className="text-blue-600 text-xs mt-1">
-                          Code: {stations.find((s: any) => s.id.toString() === selectedDestination)?.stationCode}
-                        </div>
+                        {(() => {
+                          const selectedStation = stations.find((s: any) => s.id.toString() === selectedDestination);
+                          if (!selectedStation) return null;
+                          
+                          return (
+                            <>
+                              <div className="font-medium text-blue-900">
+                                {selectedStation.name || 'Unknown Station'}
+                              </div>
+                              <div className="text-blue-700">
+                                {selectedStation.address || 'Address not available'}
+                              </div>
+                              <div className="text-blue-600 text-xs mt-1">
+                                Code: {selectedStation.stationCode || 'N/A'}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

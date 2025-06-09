@@ -14,19 +14,41 @@ interface RouteNavigatorProps {
 export default function RouteNavigator({ fromLocation, toLocation, onRouteCalculated }: RouteNavigatorProps) {
   const [routeData, setRouteData] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [hasCheckedApi, setHasCheckedApi] = useState(false);
 
   useEffect(() => {
-    calculateRoute();
+    // Reset API check when locations change
+    setHasCheckedApi(false);
+    setRouteData(null);
   }, [fromLocation, toLocation]);
 
+  useEffect(() => {
+    if (!hasCheckedApi && fromLocation && toLocation) {
+      calculateRoute();
+    }
+  }, [fromLocation, toLocation, hasCheckedApi]);
+
   const calculateRoute = async () => {
+    if (hasCheckedApi) return; // Prevent multiple API calls
+    
     setIsCalculating(true);
+    setHasCheckedApi(true);
+    
     try {
       const response = await fetch('/api/settings/here-api');
       const config = await response.json();
       
       if (!config.hasKey) {
-        setRouteData(null);
+        // Create fallback route data using straight-line distance
+        const distance = calculateStraightLineDistance(fromLocation, toLocation);
+        const fallbackRoute = {
+          summary: {
+            duration: Math.round(distance * 60), // Estimate 1 minute per km
+            length: Math.round(distance * 1000) // Convert to meters
+          }
+        };
+        setRouteData(fallbackRoute);
+        onRouteCalculated?.(fallbackRoute);
         return;
       }
 
@@ -41,7 +63,16 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
 
       if (!routeResponse.ok) {
         console.error('Route API error:', routeResponse.status);
-        setRouteData(null);
+        // Use fallback calculation
+        const distance = calculateStraightLineDistance(fromLocation, toLocation);
+        const fallbackRoute = {
+          summary: {
+            duration: Math.round(distance * 60),
+            length: Math.round(distance * 1000)
+          }
+        };
+        setRouteData(fallbackRoute);
+        onRouteCalculated?.(fallbackRoute);
         return;
       }
 
@@ -56,11 +87,12 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
         const distance = calculateStraightLineDistance(fromLocation, toLocation);
         const fallbackRoute = {
           summary: {
-            duration: Math.round(distance * 60), // Estimate 1 minute per km
-            length: Math.round(distance * 1000) // Convert to meters
+            duration: Math.round(distance * 60),
+            length: Math.round(distance * 1000)
           }
         };
         setRouteData(fallbackRoute);
+        onRouteCalculated?.(fallbackRoute);
       }
     } catch (error) {
       console.error('Route calculation failed:', error);
@@ -73,6 +105,7 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
         }
       };
       setRouteData(fallbackRoute);
+      onRouteCalculated?.(fallbackRoute);
     } finally {
       setIsCalculating(false);
     }
