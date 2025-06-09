@@ -56,16 +56,15 @@ export class KYCService {
     }
 
     try {
-      const response = await fetch(`${config.apiUrl}auth/token`, {
+      const response = await fetch(`${config.apiUrl}oauth/token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({
+        body: new URLSearchParams({
           grant_type: 'client_credentials',
           client_id: config.clientId,
-          client_secret: config.clientSecret,
-          scope: 'verify:identity'
+          client_secret: config.clientSecret
         })
       });
 
