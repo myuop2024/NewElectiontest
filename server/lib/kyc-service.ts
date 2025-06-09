@@ -28,7 +28,7 @@ export class KYCService {
   private static accessToken: string | null = null;
   private static tokenExpiry: number = 0;
 
-  // Get configuration from database settings
+  // Get configuration from database settings and environment
   private static async getConfiguration() {
     const { storage } = await import('../storage.js');
     const endpoint = await storage.getSettingByKey('didit_api_endpoint');
@@ -36,63 +36,34 @@ export class KYCService {
     const clientSecret = await storage.getSettingByKey('didit_client_secret');
     
     return {
-      apiUrl: endpoint?.value || 'https://api.didit.me/v2/',
-      clientId: clientId?.value,
-      clientSecret: clientSecret?.value
+      apiUrl: endpoint?.value || process.env.DIDIT_API_ENDPOINT || 'https://apx.didit.me/v2/',
+      clientId: clientId?.value || process.env.DIDIT_CLIENT_ID,
+      clientSecret: clientSecret?.value || process.env.DIDIT_CLIENT_SECRET,
+      apiKey: process.env.DIDIT_API_KEY
     };
   }
 
-  // Get OAuth access token
-  private static async getAccessToken(): Promise<string> {
+  // Get API key for direct authentication
+  private static async getApiKey(): Promise<string> {
     const config = await this.getConfiguration();
     
-    if (!config.clientId || !config.clientSecret) {
-      throw new Error("DidIT client credentials not configured");
+    if (!config.apiKey) {
+      throw new Error("DidIT API key not configured");
     }
 
-    // Return cached token if still valid
-    if (this.accessToken && Date.now() < this.tokenExpiry) {
-      return this.accessToken;
-    }
-
-    try {
-      const response = await fetch(`${config.apiUrl}oauth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: config.clientId,
-          client_secret: config.clientSecret
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OAuth token request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      this.accessToken = data.access_token;
-      this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Refresh 1 minute early
-
-      return this.accessToken!;
-    } catch (error) {
-      console.error('DidIT OAuth error:', error);
-      throw new Error('Failed to obtain DidIT access token');
-    }
+    return config.apiKey;
   }
 
   // Automatic KYC verification using DidIT API
   static async verifyWithDidIT(request: DidITVerificationRequest): Promise<DidITVerificationResponse> {
     const config = await this.getConfiguration();
-    const accessToken = await this.getAccessToken();
+    const apiKey = await this.getApiKey();
 
     try {
-      const response = await fetch(`${config.apiUrl}verifications`, {
+      const response = await fetch(`${config.apiUrl}verify`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'X-API-Version': '2.0'
         },
@@ -165,12 +136,12 @@ export class KYCService {
   // Check verification status
   static async checkVerificationStatus(verificationId: string): Promise<DidITVerificationResponse> {
     const config = await this.getConfiguration();
-    const accessToken = await this.getAccessToken();
+    const apiKey = await this.getApiKey();
 
     try {
-      const response = await fetch(`${config.apiUrl}verifications/${verificationId}`, {
+      const response = await fetch(`${config.apiUrl}verify/${verificationId}`, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${apiKey}`,
           'X-API-Version': '2.0'
         }
       });
