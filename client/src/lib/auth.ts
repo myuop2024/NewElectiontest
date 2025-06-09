@@ -1,7 +1,8 @@
 import { apiRequest } from "./queryClient";
+import type { User } from "@shared/schema";
 
 export interface LoginCredentials {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -11,103 +12,87 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
-  trn?: string;
-  role: string;
+  phoneNumber: string;
+  parishId: number;
+  role?: string;
 }
 
 export interface AuthResponse {
+  user: User;
   token: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    observerId: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    status: string;
-  };
 }
 
 class AuthService {
-  private static instance: AuthService;
   private token: string | null = null;
 
-  private constructor() {
-    this.token = localStorage.getItem('caffe_auth_token');
-  }
-
-  public static getInstance(): AuthService {
-    if (!AuthService.instance) {
-      AuthService.instance = new AuthService();
-    }
-    return AuthService.instance;
+  constructor() {
+    this.token = localStorage.getItem("auth_token");
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiRequest('POST', '/api/auth/login', credentials);
-    const data = await response.json();
-    
-    this.setToken(data.token);
+    const response = await apiRequest("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Login failed");
+    }
+
+    const data: AuthResponse = await response.json();
+    this.token = data.token;
+    localStorage.setItem("auth_token", data.token);
     return data;
   }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
-    const response = await apiRequest('POST', '/api/auth/register', userData);
-    const data = await response.json();
-    
-    this.setToken(data.token);
+    const response = await apiRequest("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Registration failed");
+    }
+
+    const data: AuthResponse = await response.json();
+    this.token = data.token;
+    localStorage.setItem("auth_token", data.token);
     return data;
   }
 
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<User> {
     if (!this.token) {
-      throw new Error('No authentication token found');
+      throw new Error("No authentication token");
     }
 
-    const response = await fetch('/api/auth/me', {
+    const response = await apiRequest("/api/auth/me", {
       headers: {
-        'Authorization': `Bearer ${this.token}`,
+        Authorization: `Bearer ${this.token}`,
       },
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        this.logout();
-        throw new Error('Session expired');
-      }
-      throw new Error('Failed to get current user');
+      throw new Error("Failed to get current user");
     }
 
     return response.json();
   }
 
-  setToken(token: string): void {
-    this.token = token;
-    localStorage.setItem('caffe_auth_token', token);
-  }
-
-  getToken(): string | null {
-    return this.token;
-  }
-
   logout(): void {
     this.token = null;
-    localStorage.removeItem('caffe_auth_token');
+    localStorage.removeItem("auth_token");
   }
 
   isAuthenticated(): boolean {
     return !!this.token;
   }
 
-  getAuthHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {};
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
-    return headers;
+  getToken(): string | null {
+    return this.token;
   }
 }
 
-export const authService = AuthService.getInstance();
+export const authService = new AuthService();

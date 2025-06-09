@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { authService, type LoginCredentials, type RegisterData, type AuthResponse } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import type { User } from "@/types";
+import type { User } from "@shared/schema";
 
 interface AuthContextType {
   user: User | null;
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
       authService.logout();
     } finally {
       setIsLoading(false);
@@ -41,17 +41,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response: AuthResponse = await authService.login(credentials);
-      setUser(response.user as User);
-      
+      setUser(response.user);
       toast({
-        title: "Login Successful",
+        title: "Login successful",
         description: `Welcome back, ${response.user.firstName}!`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Login failed:", error);
       toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "Invalid credentials. Please try again.",
       });
       throw error;
     } finally {
@@ -63,17 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response: AuthResponse = await authService.register(userData);
-      setUser(response.user as User);
-      
+      setUser(response.user);
       toast({
-        title: "Registration Successful",
-        description: `Welcome to CAFFE, ${response.user.firstName}! Your Observer ID: ${response.user.observerId}`,
+        title: "Registration successful",
+        description: `Welcome, ${response.user.firstName}! Your observer ID is ${response.user.observerId}`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Registration failed:", error);
       toast({
+        title: "Registration failed",
+        description: error instanceof Error ? error.message : "Registration failed",
         variant: "destructive",
-        title: "Registration Failed",
-        description: error.message || "Failed to create account. Please try again.",
       });
       throw error;
     } finally {
@@ -84,10 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     authService.logout();
     setUser(null);
-    
     toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
+      title: "Logged out",
+      description: "You have been logged out successfully",
     });
   };
 
@@ -110,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
