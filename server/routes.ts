@@ -2107,7 +2107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const classification = await aiClassificationService.classifyIncident(text, model);
 
       // Get historical data for pattern analysis
-      const historicalReports = await storage.getReports(req.user!.id);
+      const historicalReports = await storage.getReports();
       
       // Analyze patterns
       const patterns = await aiClassificationService.analyzeIncidentPatterns(
@@ -2160,7 +2160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { model, filters } = req.body;
 
       // Get unclassified reports
-      const reports = await storage.getReports(req.user!.id);
+      const reports = await storage.getReports();
       const unclassifiedReports = reports.filter(report => 
         !report.description?.includes('ai_classified')
       );
@@ -2214,7 +2214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/ai/classifications/recent", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const auditLogs = await storage.getAuditLogs(50);
+      const auditLogs = await storage.getAuditLogs();
       
       const classificationLogs = auditLogs
         .filter(log => 
@@ -2246,7 +2246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/ai/classifications/stats", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const auditLogs = await storage.getAuditLogs(1000);
+      const auditLogs = await storage.getAuditLogs();
       
       const classificationLogs = auditLogs.filter(log => 
         log.action === 'ai_classification' || log.action === 'ai_batch_classification'

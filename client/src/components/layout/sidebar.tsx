@@ -49,6 +49,7 @@ const navigation = [
 const adminNavigation = [
   { name: 'Admin Panel', href: '/admin', icon: Shield },
   { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
+  { name: 'AI Classifier', href: '/ai-classifier', icon: Brain },
   { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
   { name: 'Sheets Integration', href: '/sheets-integration', icon: FileSpreadsheet },
 ];
