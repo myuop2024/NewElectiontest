@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Paperclip } from "lucide-react";
+import { MessageCircle, X, Send, Paperclip, Users, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -11,6 +11,8 @@ export default function LiveChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState("support");
+  const [showRoomSelector, setShowRoomSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { sendMessage, isConnected } = useWebSocket();
@@ -25,7 +27,7 @@ export default function LiveChatWidget() {
     const newMessage = {
       type: 'chat_message',
       senderId: user.id,
-      roomId: 'support',
+      roomId: selectedRoom,
       content: message,
       messageType: 'text',
       createdAt: new Date().toISOString()
@@ -36,6 +38,15 @@ export default function LiveChatWidget() {
     setMessage("");
   };
 
+  const availableRooms = [
+    { id: 'support', name: 'Technical Support', icon: '🛠️', participants: 2 },
+    { id: 'general', name: 'General Discussion', icon: '💬', participants: 45 },
+    { id: 'emergency', name: 'Emergency Channel', icon: '🚨', participants: 12 },
+    { id: 'coordinators', name: 'Parish Coordinators', icon: '👥', participants: 8 },
+  ];
+
+  const currentRoom = availableRooms.find(room => room.id === selectedRoom);
+
   const toggleChat = () => {
     setIsOpen(!isOpen);
   };
@@ -45,12 +56,41 @@ export default function LiveChatWidget() {
       {/* Chat Widget */}
       {isOpen && (
         <Card className="fixed bottom-24 left-6 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-40 fade-in">
+          {/* Room Selector */}
+          {showRoomSelector && (
+            <div className="absolute -top-2 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 space-y-1">
+              {availableRooms.map((room) => (
+                <button
+                  key={room.id}
+                  onClick={() => {
+                    setSelectedRoom(room.id);
+                    setShowRoomSelector(false);
+                    setMessages([]); // Clear messages when switching rooms
+                  }}
+                  className={`w-full p-2 text-left rounded hover:bg-gray-100 flex items-center justify-between ${
+                    selectedRoom === room.id ? 'bg-primary/10' : ''
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>{room.icon}</span>
+                    <span className="text-sm font-medium">{room.name}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">{room.participants}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
+
           <CardHeader className="caffe-bg-primary text-white rounded-t-lg p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowRoomSelector(!showRoomSelector)}
+                className="flex items-center space-x-2 hover:bg-white/10 rounded p-1 transition-colors"
+              >
                 <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                <span className="text-sm font-medium">Live Support</span>
-              </div>
+                <span className="text-sm font-medium">{currentRoom?.icon} {currentRoom?.name}</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
               <Button 
                 variant="ghost" 
                 size="sm" 
