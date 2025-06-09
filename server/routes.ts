@@ -33,13 +33,11 @@ async function initializeAdminAccount() {
 
     // Create admin account
     const hashedPassword = await bcrypt.hash("Admin123!@#", 10);
-    const observerId = await storage.generateObserverId();
     
     const adminUser = await storage.createUser({
       username: "admin",
       email: "admin@caffe.org.jm",
       password: hashedPassword,
-      observerId,
       firstName: "CAFFE",
       lastName: "Administrator",
       phone: "876-000-0000",
@@ -109,17 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      console.log("Login request body:", req.body);
-      console.log("Login request body type:", typeof req.body);
-      
-      let credentials;
-      if (typeof req.body === 'string') {
-        credentials = JSON.parse(req.body);
-      } else {
-        credentials = req.body;
-      }
-      
-      const { username, password } = credentials;
+      const { username, password } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
