@@ -40,6 +40,7 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'Admin Panel', href: '/admin', icon: Shield },
+  { name: 'Admin Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
