@@ -5,6 +5,28 @@ import { formatTimeAgo } from "@/lib/utils";
 import { useLocation } from "wouter";
 
 export default function CommunicationCenter() {
+  const [, setLocation] = useLocation();
+
+  const handleCommunicationAction = (action: string) => {
+    switch (action) {
+      case 'broadcast':
+        setLocation('/live-chat');
+        break;
+      case 'video':
+        setLocation('/live-chat');
+        break;
+      case 'whatsapp':
+        setLocation('/live-chat');
+        break;
+      case 'sms':
+        setLocation('/live-chat');
+        break;
+      case 'emergency':
+        setLocation('/emergency-alert');
+        break;
+    }
+  };
+
   // Mock recent messages - in real app this would come from WebSocket/API
   const recentMessages = [
     {
@@ -24,10 +46,10 @@ export default function CommunicationCenter() {
   ];
 
   const communicationOptions = [
-    { icon: Radio, label: 'Broadcast', color: 'border-primary text-primary hover:bg-primary hover:text-white' },
-    { icon: Video, label: 'Video Call', color: 'border-secondary text-secondary hover:bg-secondary hover:text-white' },
-    { icon: MessageSquare, label: 'WhatsApp', color: 'border-green-500 text-green-600 hover:bg-green-500 hover:text-white' },
-    { icon: MessageSquare, label: 'SMS Alert', color: 'border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white' }
+    { icon: Radio, label: 'Broadcast', color: 'border-primary text-primary hover:bg-primary hover:text-white', action: 'broadcast' },
+    { icon: Video, label: 'Video Call', color: 'border-secondary text-secondary hover:bg-secondary hover:text-white', action: 'video' },
+    { icon: MessageSquare, label: 'WhatsApp', color: 'border-green-500 text-green-600 hover:bg-green-500 hover:text-white', action: 'whatsapp' },
+    { icon: MessageSquare, label: 'SMS Alert', color: 'border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white', action: 'sms' }
   ];
 
   return (
@@ -68,6 +90,7 @@ export default function CommunicationCenter() {
                   key={index}
                   variant="outline"
                   className={`p-3 ${option.color} transition-colors text-sm`}
+                  onClick={() => handleCommunicationAction(option.action)}
                 >
                   <Icon className="h-4 w-4 mr-2" />
                   {option.label}
@@ -82,7 +105,10 @@ export default function CommunicationCenter() {
             <p className="text-xs text-muted-foreground mb-3">
               For immediate assistance or serious incidents
             </p>
-            <Button className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <Button 
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => handleCommunicationAction('emergency')}
+            >
               <AlertTriangle className="h-4 w-4 mr-2" />
               Activate Emergency Response
             </Button>
