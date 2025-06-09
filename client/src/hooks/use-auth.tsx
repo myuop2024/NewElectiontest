@@ -25,13 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuthStatus = async () => {
     try {
-      if (authService.isAuthenticated()) {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-      }
+      // For session-based auth, always try to get current user
+      // The server will return 401 if not authenticated
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+      // Store session marker for future checks
+      localStorage.setItem("auth_token", "session-based");
     } catch (error) {
-      console.error("Auth check failed:", error);
-      authService.logout();
+      // If we get 401, user is not authenticated - this is normal
+      if (error instanceof Error && error.message.includes('401')) {
+        // Clear any stale auth markers
+        localStorage.removeItem("auth_token");
+        setUser(null);
+      } else {
+        console.error("Auth check failed:", error);
+      }
     } finally {
       setIsLoading(false);
     }

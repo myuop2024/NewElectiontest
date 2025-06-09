@@ -84,7 +84,10 @@ class AuthService {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to get current user");
+      if (response.status === 401) {
+        throw new Error("401: Unauthorized");
+      }
+      throw new Error(`${response.status}: Failed to get current user`);
     }
 
     return response.json();
@@ -106,8 +109,9 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    // For session-based auth, we'll check this during getCurrentUser call
-    return true;
+    // For session-based auth, we can't reliably check without a server call
+    // Return true if we have a stored token, but the real check happens in getCurrentUser
+    return !!localStorage.getItem("auth_token");
   }
 
   getToken(): string | null {
