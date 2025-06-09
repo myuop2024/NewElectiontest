@@ -29,16 +29,16 @@ export class AdminSettingsService {
       
       { key: 'openai_enabled', value: 'false' },
       { key: 'openai_api_key', value: '' },
-      { key: 'openai_model', value: 'gpt-4' },
+      { key: 'openai_model', value: 'gpt-4o' },
       
       { key: 'huggingface_enabled', value: 'false' },
       { key: 'huggingface_api_key', value: '' },
-      { key: 'huggingface_model', value: 'microsoft/DialoGPT-medium' },
+      { key: 'huggingface_model', value: 'meta-llama/Llama-3.1-8B-Instruct' },
       { key: 'huggingface_endpoint', value: 'https://api-inference.huggingface.co/models/' },
       
       { key: 'gemini_enabled', value: 'false' },
       { key: 'gemini_api_key', value: '' },
-      { key: 'gemini_model', value: 'gemini-1.5-pro-latest' },
+      { key: 'gemini_model', value: 'gemini-1.5-pro' },
       { key: 'gemini_endpoint', value: 'https://generativelanguage.googleapis.com/v1beta/models/' },
       
       { key: 'whatsapp_enabled', value: 'false' },
@@ -293,6 +293,17 @@ export class AdminSettingsService {
         return { valid: true, message: 'Service disabled' };
       },
       
+      heremaps: async () => {
+        const enabled = await storage.getSettingByKey('here_maps_enabled');
+        const apiKey = await storage.getSettingByKey('here_api_key');
+        
+        if (enabled?.value === 'true') {
+          if (!apiKey?.value) return { valid: false, message: 'API key required' };
+          return { valid: true, message: 'Configuration valid' };
+        }
+        return { valid: true, message: 'Service disabled' };
+      },
+      
       didit: async () => {
         const enabled = await storage.getSettingByKey('didit_kyc_enabled');
         const apiKey = await storage.getSettingByKey('didit_api_key');
@@ -301,6 +312,55 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           if (!endpoint?.value) return { valid: false, message: 'API endpoint required' };
+          return { valid: true, message: 'Configuration valid' };
+        }
+        return { valid: true, message: 'Service disabled' };
+      },
+      
+      huggingface: async () => {
+        const enabled = await storage.getSettingByKey('huggingface_enabled');
+        const apiKey = await storage.getSettingByKey('huggingface_api_key');
+        
+        if (enabled?.value === 'true') {
+          if (!apiKey?.value) return { valid: false, message: 'API key required' };
+          return { valid: true, message: 'Configuration valid' };
+        }
+        return { valid: true, message: 'Service disabled' };
+      },
+      
+      googlegeminiai: async () => {
+        const enabled = await storage.getSettingByKey('gemini_enabled');
+        const apiKey = await storage.getSettingByKey('gemini_api_key');
+        
+        if (enabled?.value === 'true') {
+          if (!apiKey?.value) return { valid: false, message: 'API key required' };
+          if (!apiKey.value.startsWith('AIza')) return { valid: false, message: 'Invalid Gemini API key format' };
+          return { valid: true, message: 'Configuration valid' };
+        }
+        return { valid: true, message: 'Service disabled' };
+      },
+      
+      whatsapp: async () => {
+        const enabled = await storage.getSettingByKey('whatsapp_enabled');
+        const phoneId = await storage.getSettingByKey('whatsapp_phone_id');
+        const token = await storage.getSettingByKey('whatsapp_access_token');
+        
+        if (enabled?.value === 'true') {
+          if (!phoneId?.value) return { valid: false, message: 'Phone ID required' };
+          if (!token?.value) return { valid: false, message: 'Access token required' };
+          return { valid: true, message: 'Configuration valid' };
+        }
+        return { valid: true, message: 'Service disabled' };
+      },
+      
+      email: async () => {
+        const enabled = await storage.getSettingByKey('email_enabled');
+        const password = await storage.getSettingByKey('email_password');
+        const user = await storage.getSettingByKey('email_user');
+        
+        if (enabled?.value === 'true') {
+          if (!user?.value) return { valid: false, message: 'Email user required' };
+          if (!password?.value) return { valid: false, message: 'Email password required' };
           return { valid: true, message: 'Configuration valid' };
         }
         return { valid: true, message: 'Service disabled' };

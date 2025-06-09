@@ -39,6 +39,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import FeatureStatusDashboard from "@/components/admin/feature-status-dashboard";
 import ChatRoomManager from "@/components/admin/chat-room-manager";
+import ModelAutoPopulate from "@/components/admin/model-auto-populate";
 
 interface ServiceConfig {
   name: string;
@@ -316,6 +317,11 @@ export default function UnifiedAdmin() {
         </TabsList>
 
         <TabsContent value="services" className="space-y-6">
+          <ModelAutoPopulate 
+            onModelsPopulated={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+            }}
+          />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SERVICE_CONFIGS.map((config) => {
               const status = getServiceStatus(config);
