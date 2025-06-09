@@ -44,28 +44,29 @@ export default function AdminSettings() {
   // Update setting mutation
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      return apiRequest(`/api/settings`, {
-        method: 'POST',
-        body: { key, value }
-      });
+      const response = await apiRequest('POST', '/api/settings', { key, value });
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Setting update successful:', data);
       toast({
         title: "Settings Updated",
         description: "Configuration has been saved successfully."
       });
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Setting update failed:', error);
       toast({
         title: "Update Failed",
-        description: "Failed to update settings.",
+        description: error.message || "Failed to update settings.",
         variant: "destructive"
       });
     }
   });
 
   const handleUpdateSetting = (key: string, value: string) => {
+    console.log(`Updating setting: ${key} = ${value}`);
     updateSettingMutation.mutate({ key, value });
   };
 

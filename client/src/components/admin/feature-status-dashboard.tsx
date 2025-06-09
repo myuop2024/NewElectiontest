@@ -36,9 +36,8 @@ export default function FeatureStatusDashboard() {
   // Initialize settings mutation
   const initializeSettingsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/admin/settings/initialize', {
-        method: 'POST'
-      });
+      const response = await apiRequest('POST', '/api/admin/settings/initialize');
+      return response.json();
     },
     onSuccess: () => {
       toast({
