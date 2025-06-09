@@ -111,6 +111,47 @@ async function initializeAdminAccount() {
   }
 }
 
+async function initializeChatRooms() {
+  try {
+    const existingRoom = await storage.getChatRoom("general");
+    if (existingRoom) {
+      return;
+    }
+
+    // Create default chat rooms
+    await storage.createChatRoom({
+      id: "general",
+      name: "General Discussion",
+      description: "Open discussion for all observers",
+      type: "public",
+      createdBy: 1,
+      isActive: true
+    });
+
+    await storage.createChatRoom({
+      id: "emergency",
+      name: "Emergency Channel",
+      description: "Emergency communications only",
+      type: "emergency",
+      createdBy: 1,
+      isActive: true
+    });
+
+    await storage.createChatRoom({
+      id: "coordinators",
+      name: "Parish Coordinators",
+      description: "Private channel for coordinators",
+      type: "private",
+      createdBy: 1,
+      isActive: true
+    });
+
+    console.log("Default chat rooms created");
+  } catch (error) {
+    console.error("Error creating chat rooms:", error);
+  }
+}
+
 function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) {
   // Check if user is logged in via session
   if (!req.session.userId || !req.session.username || !req.session.role) {
@@ -130,8 +171,9 @@ function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
-  // Initialize admin account
+  // Initialize admin account and chat rooms
   await initializeAdminAccount();
+  await initializeChatRooms();
 
   // Authentication routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {

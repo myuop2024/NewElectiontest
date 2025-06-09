@@ -35,29 +35,19 @@ export default function LiveChat() {
     enabled: !!selectedChat,
   });
 
+  // Load online users for selected room
+  const { data: onlineUsers } = useQuery({
+    queryKey: ["/api/chat/rooms", selectedChat, "online"],
+    enabled: !!selectedChat,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   // Update messages when history loads or selected chat changes
   useEffect(() => {
     if (messageHistory && Array.isArray(messageHistory)) {
       setMessages(messageHistory);
-    } else if (selectedChat) {
-      // Load sample messages for demo
-      const sampleMessages = [
-        {
-          id: '1',
-          content: 'Welcome to the ' + (defaultRooms.find(r => r.id === selectedChat)?.name || 'chat'),
-          senderId: 999,
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          messageType: 'text'
-        },
-        {
-          id: '2',
-          content: 'Election monitoring systems are operational',
-          senderId: 2,
-          timestamp: new Date(Date.now() - 180000).toISOString(),
-          messageType: 'text'
-        }
-      ];
-      setMessages(sampleMessages);
+    } else {
+      setMessages([]);
     }
   }, [messageHistory, selectedChat]);
 
@@ -159,23 +149,43 @@ export default function LiveChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!message.trim() || !user) return;
+  const handleSendMessage = async () => {
+    if (!message.trim() || !user || !selectedChat) return;
 
-    const newMessage: WebSocketMessage = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: 'chat_message',
-      content: message,
-      userId: user.id,
-      timestamp: new Date(),
-      senderId: user.id,
-      recipientId: selectedChat === 'general' ? null : parseInt(selectedChat || '0'),
-      roomId: selectedChat === 'general' ? 'general' : null,
-      messageType: 'text'
-    };
+    try {
+      // Send message to database via API
+      const response = await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          roomId: selectedChat,
+          content: message,
+          messageType: 'text'
+        })
+      });
 
-    sendMessage(newMessage);
-    setMessage("");
+      if (response.ok) {
+        const savedMessage = await response.json();
+        // Message will be broadcast via WebSocket from server
+        setMessage("");
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send message",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Send message error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleVoiceCall = () => {
@@ -306,7 +316,10 @@ export default function LiveChat() {
                       <div>
                         <p className="font-medium text-sm">{room.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {room.participants} participant{room.participants !== 1 ? 's' : ''}
+                          {selectedChat === room.id && onlineUsers ? 
+                            `${onlineUsers.length} online` : 
+                            'Loading...'
+                          }
                         </p>
                       </div>
                     </div>
