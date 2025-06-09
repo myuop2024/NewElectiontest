@@ -59,8 +59,21 @@ export class KYCService {
     const config = await this.getConfiguration();
     const apiKey = await this.getApiKey();
 
+    // Test API connectivity first
+    const healthResponse = await fetch(`${config.apiUrl}status`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!healthResponse.ok && healthResponse.status === 401) {
+      throw new Error('DidIT API credentials not activated. Please activate your API key in the DidIT developer portal.');
+    }
+
     try {
-      const response = await fetch(`${config.apiUrl}verify`, {
+      const response = await fetch(`${config.apiUrl}identity/verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -92,7 +105,11 @@ export class KYCService {
       });
 
       if (!response.ok) {
-        throw new Error(`DidIT API error: ${response.status}`);
+        const errorText = await response.text();
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('DidIT API credentials not activated. Please activate your API key in the DidIT developer portal.');
+        }
+        throw new Error(`DidIT API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();

@@ -650,12 +650,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       console.error('KYC verification error:', error);
+      
+      // Provide specific error messages for API issues
+      if (error instanceof Error) {
+        if (error.message.includes('not activated')) {
+          res.status(503).json({ 
+            message: 'DidIT API service needs activation',
+            details: 'Please activate your DidIT API credentials in the developer portal'
+          });
+          return;
+        }
+        if (error.message.includes('credentials')) {
+          res.status(401).json({ 
+            message: 'Invalid DidIT API credentials',
+            details: 'Please check your API key configuration'
+          });
+          return;
+        }
+      }
+      
       res.status(500).json({ message: 'KYC verification failed' });
     }
   });
 
   // DidIT Webhook for verification status updates
-  app.post("/api/kyc/verify", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
     try {
       const { KYCService } = await import('./lib/kyc-service.js');
       const userId = req.user!.id;
