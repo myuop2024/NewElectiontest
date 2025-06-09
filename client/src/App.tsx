@@ -21,8 +21,7 @@ import TrainingCenter from "@/pages/training-center";
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import Settings from "@/pages/settings";
-import AdminPanel from "@/pages/admin-panel";
-import AdminSettings from "@/pages/admin-settings";
+import UnifiedAdmin from "@/pages/unified-admin";
 import IncidentReporting from "@/pages/incident-reporting";
 import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
@@ -120,12 +119,7 @@ function Router() {
       </Route>
       <Route path="/admin">
         <ProtectedLayout>
-          <AdminPanel />
-        </ProtectedLayout>
-      </Route>
-      <Route path="/admin/settings">
-        <ProtectedLayout>
-          <AdminSettings />
+          <UnifiedAdmin />
         </ProtectedLayout>
       </Route>
       <Route path="/incident-reporting">
