@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   Users,
   Activity,
-  Brain
+  Brain,
+  Edit3,
+  FileSpreadsheet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
@@ -45,6 +47,8 @@ const navigation = [
 const adminNavigation = [
   { name: 'Admin Panel', href: '/admin', icon: Shield },
   { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
+  { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
+  { name: 'Sheets Integration', href: '/sheets-integration', icon: FileSpreadsheet },
 ];
 
 export default function Sidebar() {

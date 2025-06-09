@@ -24,6 +24,7 @@ import { FormBuilderService } from "./lib/form-builder-service.js";
 import { ChatService } from "./lib/chat-service.js";
 import { AdminSettingsService } from "./lib/admin-settings-service.js";
 import { createAIIncidentService } from "./lib/ai-incident-service.js";
+import { googleSheetsService } from "./lib/google-sheets-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1562,6 +1563,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Pattern analysis error:", error);
       res.status(500).json({ error: "Failed to analyze incident patterns" });
+    }
+  });
+
+  // Form Builder API endpoints
+  app.get("/api/forms/templates", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Get form templates from settings or database
+      const templateSettings = await storage.getSettings();
+      const formTemplates = templateSettings
+        .filter(setting => setting.key.startsWith('form_template_'))
+        .map(setting => ({
+          id: setting.key.replace('form_template_', ''),
+          ...JSON.parse(setting.value)
+        }));
+
+      res.json(formTemplates);
+    } catch (error) {
+      console.error("Error fetching form templates:", error);
+      res.status(500).json({ error: "Failed to fetch form templates" });
+    }
+  });
+
+  app.post("/api/forms/templates", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const template = req.body;
+      const templateId = `template_${Date.now()}`;
+      
+      await storage.createSetting({
+        key: `form_template_${templateId}`,
+        value: JSON.stringify(template),
+        description: `Form template: ${template.name}`,
+        category: 'forms',
+        isPublic: false
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "form_template_created",
+        entityType: "form_template",
+        userId: req.user!.id,
+        entityId: templateId,
+        ipAddress: req.ip || ''
+      });
+
+      res.json({ id: templateId, ...template });
+    } catch (error) {
+      console.error("Error creating form template:", error);
+      res.status(500).json({ error: "Failed to create form template" });
+    }
+  });
+
+  app.put("/api/forms/templates/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templateId = req.params.id;
+      const template = req.body;
+      
+      await storage.updateSetting(
+        `form_template_${templateId}`,
+        JSON.stringify(template),
+        req.user!.id
+      );
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "form_template_updated",
+        entityType: "form_template",
+        userId: req.user!.id,
+        entityId: templateId,
+        ipAddress: req.ip || ''
+      });
+
+      res.json({ id: templateId, ...template });
+    } catch (error) {
+      console.error("Error updating form template:", error);
+      res.status(500).json({ error: "Failed to update form template" });
+    }
+  });
+
+  // Google Sheets Integration API endpoints
+  app.post("/api/integration/sheets/test", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { spreadsheetId, range } = req.body;
+      
+      if (!spreadsheetId || !range) {
+        return res.status(400).json({ error: "Spreadsheet ID and range are required" });
+      }
+
+      const testResult = await googleSheetsService.testSheetAccess(spreadsheetId, range);
+      res.json(testResult);
+    } catch (error) {
+      console.error("Google Sheets test error:", error);
+      res.status(500).json({ error: "Failed to test Google Sheets connection" });
+    }
+  });
+
+  app.post("/api/integration/sheets/import", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { spreadsheetId, range } = req.body;
+      
+      if (!spreadsheetId || !range) {
+        return res.status(400).json({ error: "Spreadsheet ID and range are required" });
+      }
+
+      const importResult = await googleSheetsService.importIncidents({
+        spreadsheetId,
+        range
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "sheets_import_completed",
+        entityType: "import",
+        userId: req.user!.id,
+        entityId: spreadsheetId,
+        ipAddress: req.ip || ''
+      });
+
+      res.json(importResult);
+    } catch (error) {
+      console.error("Google Sheets import error:", error);
+      res.status(500).json({ error: "Failed to import from Google Sheets" });
+    }
+  });
+
+  app.get("/api/integration/sheets/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const isValid = await googleSheetsService.validateConnection();
+      res.json({ 
+        valid: isValid,
+        message: isValid ? 'Google Sheets connection is working' : 'Google Sheets connection failed'
+      });
+    } catch (error) {
+      console.error("Google Sheets validation error:", error);
+      res.status(500).json({ 
+        valid: false,
+        error: "Failed to validate Google Sheets connection" 
+      });
     }
   });
 

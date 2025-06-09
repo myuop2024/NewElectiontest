@@ -29,6 +29,8 @@ import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
 import AIAnalytics from "@/pages/ai-analytics";
 import IncidentManagement from "@/pages/incident-management";
+import FormBuilder from "@/pages/form-builder";
+import SheetsIntegration from "@/pages/sheets-integration";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -159,6 +161,16 @@ function Router() {
       <Route path="/incident-management">
         <ProtectedLayout>
           <IncidentManagement />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/form-builder">
+        <ProtectedLayout>
+          <FormBuilder />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/sheets-integration">
+        <ProtectedLayout>
+          <SheetsIntegration />
         </ProtectedLayout>
       </Route>
       <Route path="*">
