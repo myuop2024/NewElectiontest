@@ -1727,6 +1727,300 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location Tracking API endpoints
+  app.post("/api/location/start-tracking", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { latitude, longitude, accuracy, speed, heading } = req.body;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ error: "Latitude and longitude are required" });
+      }
+
+      const sessionId = `session_${Date.now()}_${req.user!.id}`;
+      
+      // Create location tracking session
+      await storage.createSetting({
+        key: `location_session_${sessionId}`,
+        value: JSON.stringify({
+          userId: req.user!.id,
+          startTime: new Date().toISOString(),
+          isActive: true,
+          initialLocation: { latitude, longitude, accuracy, speed, heading }
+        }),
+        description: `Location tracking session for user ${req.user!.id}`,
+        category: 'location_tracking',
+        isPublic: false
+      });
+
+      // Store initial location update
+      await storage.createAuditLog({
+        action: "location_update",
+        entityType: "location",
+        userId: req.user!.id,
+        entityId: sessionId,
+        ipAddress: req.ip || '',
+        newValues: JSON.stringify({ latitude, longitude, accuracy, speed, heading, type: 'start' })
+      });
+
+      res.json({ sessionId });
+    } catch (error) {
+      console.error("Error starting location tracking:", error);
+      res.status(500).json({ error: "Failed to start location tracking" });
+    }
+  });
+
+  app.post("/api/location/update", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { sessionId, latitude, longitude, accuracy, speed, heading, battery } = req.body;
+      
+      if (!sessionId || !latitude || !longitude) {
+        return res.status(400).json({ error: "Session ID, latitude and longitude are required" });
+      }
+
+      // Verify session belongs to user
+      const sessionSetting = await storage.getSettings();
+      const session = sessionSetting.find(s => s.key === `location_session_${sessionId}`);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Location session not found" });
+      }
+
+      const sessionData = JSON.parse(session.value);
+      if (sessionData.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Access denied to this session" });
+      }
+
+      // Store location update
+      await storage.createAuditLog({
+        action: "location_update",
+        entityType: "location",
+        userId: req.user!.id,
+        entityId: sessionId,
+        ipAddress: req.ip || '',
+        newValues: JSON.stringify({ 
+          latitude, 
+          longitude, 
+          accuracy, 
+          speed, 
+          heading, 
+          battery,
+          timestamp: new Date().toISOString(),
+          type: 'update'
+        })
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating location:", error);
+      res.status(500).json({ error: "Failed to update location" });
+    }
+  });
+
+  app.post("/api/location/stop-tracking", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID is required" });
+      }
+
+      // Update session to inactive
+      const sessionSettings = await storage.getSettings();
+      const session = sessionSettings.find(s => s.key === `location_session_${sessionId}`);
+      
+      if (!session) {
+        return res.status(404).json({ error: "Location session not found" });
+      }
+
+      const sessionData = JSON.parse(session.value);
+      if (sessionData.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Access denied to this session" });
+      }
+
+      // Mark session as ended
+      sessionData.endTime = new Date().toISOString();
+      sessionData.isActive = false;
+
+      await storage.updateSetting(
+        `location_session_${sessionId}`,
+        JSON.stringify(sessionData),
+        req.user!.id
+      );
+
+      // Log session end
+      await storage.createAuditLog({
+        action: "location_session_end",
+        entityType: "location",
+        userId: req.user!.id,
+        entityId: sessionId,
+        ipAddress: req.ip || '',
+        metadata: JSON.stringify({ type: 'stop', endTime: sessionData.endTime })
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error stopping location tracking:", error);
+      res.status(500).json({ error: "Failed to stop location tracking" });
+    }
+  });
+
+  app.get("/api/location/active-observers", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin" && req.user?.role !== "coordinator") {
+        return res.status(403).json({ message: "Admin or coordinator access required" });
+      }
+
+      // Get active location sessions
+      const settings = await storage.getSettings();
+      const activeSessions = settings.filter(s => 
+        s.key.startsWith('location_session_') && 
+        s.category === 'location_tracking'
+      );
+
+      const activeObservers = [];
+
+      for (const session of activeSessions) {
+        const sessionData = JSON.parse(session.value);
+        if (!sessionData.isActive) continue;
+
+        // Get latest location for this user
+        const auditLogs = await storage.getAuditLogs();
+        const userLocationLogs = auditLogs
+          .filter(log => 
+            log.userId === sessionData.userId && 
+            log.action === 'location_update' &&
+            log.entityId === session.key.replace('location_session_', '')
+          )
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        if (userLocationLogs.length > 0) {
+          const latestLog = userLocationLogs[0];
+          const locationData = JSON.parse(latestLog.metadata || '{}');
+          
+          activeObservers.push({
+            id: session.key,
+            userId: sessionData.userId,
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            accuracy: locationData.accuracy,
+            speed: locationData.speed,
+            heading: locationData.heading,
+            battery: locationData.battery,
+            timestamp: locationData.timestamp || latestLog.createdAt,
+            isActive: sessionData.isActive
+          });
+        }
+      }
+
+      res.json(activeObservers);
+    } catch (error) {
+      console.error("Error fetching active observers:", error);
+      res.status(500).json({ error: "Failed to fetch active observers" });
+    }
+  });
+
+  app.get("/api/location/route-history/:userId?", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const targetUserId = req.params.userId ? parseInt(req.params.userId) : req.user!.id;
+      
+      // Check permissions
+      if (targetUserId !== req.user!.id && 
+          req.user?.role !== "admin" && 
+          req.user?.role !== "coordinator") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get all sessions for the user
+      const settings = await storage.getSettings();
+      const userSessions = settings.filter(s => 
+        s.key.startsWith('location_session_') && 
+        s.category === 'location_tracking'
+      ).filter(s => {
+        const sessionData = JSON.parse(s.value);
+        return sessionData.userId === targetUserId;
+      });
+
+      const routeHistory = [];
+
+      for (const session of userSessions) {
+        const sessionData = JSON.parse(session.value);
+        const sessionId = session.key.replace('location_session_', '');
+
+        // Get all location updates for this session
+        const auditLogs = await storage.getAuditLogs();
+        const sessionLogs = auditLogs
+          .filter(log => 
+            log.userId === targetUserId && 
+            log.action === 'location_update' &&
+            log.entityId === sessionId
+          )
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        if (sessionLogs.length > 0) {
+          const locations = sessionLogs.map(log => {
+            const locationData = JSON.parse(log.metadata || '{}');
+            return {
+              id: log.id,
+              userId: targetUserId,
+              latitude: locationData.latitude,
+              longitude: locationData.longitude,
+              accuracy: locationData.accuracy,
+              speed: locationData.speed,
+              heading: locationData.heading,
+              timestamp: locationData.timestamp || log.createdAt,
+              isActive: sessionData.isActive
+            };
+          });
+
+          // Calculate total distance and average speed
+          let totalDistance = 0;
+          let totalSpeed = 0;
+          let speedCount = 0;
+
+          for (let i = 1; i < locations.length; i++) {
+            const prev = locations[i - 1];
+            const curr = locations[i];
+            
+            // Calculate distance using Haversine formula
+            const R = 6371; // Earth's radius in km
+            const dLat = (curr.latitude - prev.latitude) * Math.PI / 180;
+            const dLon = (curr.longitude - prev.longitude) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(prev.latitude * Math.PI / 180) * Math.cos(curr.latitude * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            totalDistance += R * c;
+
+            if (curr.speed) {
+              totalSpeed += curr.speed * 3.6; // Convert m/s to km/h
+              speedCount++;
+            }
+          }
+
+          routeHistory.push({
+            id: sessionId,
+            userId: targetUserId,
+            startTime: sessionData.startTime,
+            endTime: sessionData.endTime,
+            totalDistance,
+            averageSpeed: speedCount > 0 ? totalSpeed / speedCount : 0,
+            locations,
+            stations: [] // Could be enhanced to track visited stations
+          });
+        }
+      }
+
+      // Sort by start time, most recent first
+      routeHistory.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+      res.json(routeHistory);
+    } catch (error) {
+      console.error("Error fetching route history:", error);
+      res.status(500).json({ error: "Failed to fetch route history" });
+    }
+  });
+
   // Feature Testing Routes
   app.get("/api/admin/features/test-all", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

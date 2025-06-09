@@ -1,120 +1,102 @@
-import { useState, useEffect, useCallback } from "react";
-import type { GeolocationPosition } from "@/types";
+import { useState, useEffect } from 'react';
 
-interface GeolocationOptions {
-  enableHighAccuracy?: boolean;
-  timeout?: number;
-  maximumAge?: number;
-  watch?: boolean;
+interface GeolocationCoords {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  altitude?: number | null;
+  altitudeAccuracy?: number | null;
+  heading?: number | null;
+  speed?: number | null;
 }
 
 interface GeolocationState {
-  position: GeolocationPosition | null;
+  location: GeolocationCoords | null;
   error: string | null;
   isLoading: boolean;
-  isSupported: boolean;
 }
 
-export function useGeolocation(options: GeolocationOptions = {}) {
-  const {
-    enableHighAccuracy = true,
-    timeout = 10000,
-    maximumAge = 300000,
-    watch = false
-  } = options;
-
+export function useGeolocation(options?: PositionOptions): GeolocationState {
   const [state, setState] = useState<GeolocationState>({
-    position: null,
+    location: null,
     error: null,
-    isLoading: false,
-    isSupported: 'geolocation' in navigator
+    isLoading: true,
   });
 
-  const updatePosition = useCallback((position: GeolocationPosition) => {
-    setState(prev => ({
-      ...prev,
-      position: {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        timestamp: position.timestamp
-      },
-      error: null,
-      isLoading: false
-    }));
-  }, []);
-
-  const updateError = useCallback((error: GeolocationPositionError) => {
-    let errorMessage = 'An unknown error occurred';
-    
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        errorMessage = 'Location access denied by user';
-        break;
-      case error.POSITION_UNAVAILABLE:
-        errorMessage = 'Location information unavailable';
-        break;
-      case error.TIMEOUT:
-        errorMessage = 'Location request timed out';
-        break;
-    }
-
-    setState(prev => ({
-      ...prev,
-      error: errorMessage,
-      isLoading: false
-    }));
-  }, []);
-
-  const getCurrentPosition = useCallback(() => {
-    if (!state.isSupported) {
-      setState(prev => ({
-        ...prev,
-        error: 'Geolocation is not supported by this browser'
-      }));
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setState({
+        location: null,
+        error: 'Geolocation is not supported by this browser',
+        isLoading: false,
+      });
       return;
     }
+
+    const defaultOptions: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 60000,
+      ...options,
+    };
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
+    const successHandler = (position: GeolocationPosition) => {
+      setState({
+        location: {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          altitude: position.coords.altitude,
+          altitudeAccuracy: position.coords.altitudeAccuracy,
+          heading: position.coords.heading,
+          speed: position.coords.speed,
+        },
+        error: null,
+        isLoading: false,
+      });
+    };
+
+    const errorHandler = (error: GeolocationPositionError) => {
+      let errorMessage = 'An unknown error occurred';
+      
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'Location access denied by user';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'Location information unavailable';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'Location request timed out';
+          break;
+      }
+
+      setState({
+        location: null,
+        error: errorMessage,
+        isLoading: false,
+      });
+    };
+
     navigator.geolocation.getCurrentPosition(
-      updatePosition,
-      updateError,
-      {
-        enableHighAccuracy,
-        timeout,
-        maximumAge
-      }
+      successHandler,
+      errorHandler,
+      defaultOptions
     );
-  }, [state.isSupported, enableHighAccuracy, timeout, maximumAge, updatePosition, updateError]);
 
-  useEffect(() => {
-    if (!state.isSupported || !watch) {
-      return;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true }));
-
+    // Optional: Set up continuous tracking
     const watchId = navigator.geolocation.watchPosition(
-      updatePosition,
-      updateError,
-      {
-        enableHighAccuracy,
-        timeout,
-        maximumAge
-      }
+      successHandler,
+      errorHandler,
+      defaultOptions
     );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [watch, state.isSupported, enableHighAccuracy, timeout, maximumAge, updatePosition, updateError]);
+  }, []);
 
-  return {
-    ...state,
-    getCurrentPosition,
-    clearError: useCallback(() => {
-      setState(prev => ({ ...prev, error: null }));
-    }, [])
-  };
+  return state;
 }
