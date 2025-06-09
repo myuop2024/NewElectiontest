@@ -32,7 +32,17 @@ import ChatRoomManager from "@/components/admin/chat-room-manager";
 import FeatureStatusDashboard from "@/components/admin/feature-status-dashboard";
 
 export default function AdminSettings() {
-  const [showSecrets, setShowSecrets] = useState({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({
+    bigquery_key: false,
+    here_key: false,
+    twilio_sid: false,
+    twilio_token: false,
+    openai_key: false,
+    didit_client_id: false,
+    didit_client_secret: false,
+    whatsapp_token: false,
+    email_pass: false
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -75,7 +85,8 @@ export default function AdminSettings() {
   };
 
   const getSettingValue = (key: string) => {
-    return settings?.find((s: any) => s.key === key)?.value || '';
+    if (!settings || !Array.isArray(settings)) return '';
+    return settings.find((s: any) => s.key === key)?.value || '';
   };
 
   return (
@@ -144,7 +155,6 @@ export default function AdminSettings() {
                     <Textarea
                       placeholder="Paste your Google Cloud service account JSON key here..."
                       className="min-h-20"
-                      type={showSecrets['bigquery_key'] ? 'text' : 'password'}
                       defaultValue={getSettingValue('bigquery_service_key')}
                       onBlur={(e) => handleUpdateSetting('bigquery_service_key', e.target.value)}
                     />
