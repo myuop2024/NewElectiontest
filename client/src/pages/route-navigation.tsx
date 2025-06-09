@@ -6,7 +6,7 @@ import { Navigation, MapPin, Clock, Route, Car, Play, Square } from "lucide-reac
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatCoordinates } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import InteractiveHereMap from "@/components/maps/interactive-here-map";
+import OSMFallbackMap from "@/components/maps/osm-fallback-map";
 
 export default function RouteNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
@@ -233,7 +233,7 @@ export default function RouteNavigation() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <InteractiveHereMap
+              <OSMFallbackMap
                 height="400px"
                 center={position ? { lat: position.latitude, lng: position.longitude } : { lat: 18.1096, lng: -77.2975 }}
                 zoom={position ? 15 : 10}
@@ -251,7 +251,7 @@ export default function RouteNavigation() {
                     info: `${station.address} - ${station.stationCode}`
                   }))
                 ]}
-                onLocationSelect={(lat, lng) => {
+                onLocationSelect={(lat: number, lng: number) => {
                   console.log('Location selected:', lat, lng);
                 }}
                 interactive={true}
