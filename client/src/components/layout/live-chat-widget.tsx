@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Paperclip, Users, ChevronDown } from "lucide-react";
+import { MessageCircle, X, Send, Paperclip, Users, ChevronDown, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { useQuery } from "@tanstack/react-query";
 
 export default function LiveChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,9 +14,25 @@ export default function LiveChatWidget() {
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedRoom, setSelectedRoom] = useState("support");
   const [showRoomSelector, setShowRoomSelector] = useState(false);
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [chatMode, setChatMode] = useState<'room' | 'direct'>('room');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { sendMessage, isConnected } = useWebSocket();
+
+  // Search users for direct messaging
+  const { data: searchResults } = useQuery({
+    queryKey: ['/api/chat/users/search', searchQuery],
+    enabled: searchQuery.length > 2
+  });
+
+  // Get recent conversations
+  const { data: conversations } = useQuery({
+    queryKey: ['/api/chat/conversations'],
+    enabled: !!user
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,17 +41,31 @@ export default function LiveChatWidget() {
   const handleSendMessage = () => {
     if (!message.trim() || !user) return;
 
-    const newMessage = {
-      type: 'chat_message',
-      senderId: user.id,
-      roomId: selectedRoom,
-      content: message,
-      messageType: 'text',
-      createdAt: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    sendMessage(newMessage);
+    if (chatMode === 'direct' && selectedUser) {
+      // Send direct message
+      const directMessage = {
+        type: 'direct_message',
+        senderId: user.id,
+        recipientId: selectedUser.id || selectedUser.userId,
+        content: message.trim(),
+        messageType: 'text',
+        createdAt: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, directMessage]);
+      sendMessage(directMessage);
+    } else {
+      // Send room message
+      const newMessage = {
+        type: 'chat_message',
+        senderId: user.id,
+        roomId: selectedRoom,
+        content: message,
+        messageType: 'text',
+        createdAt: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newMessage]);
+      sendMessage(newMessage);
+    }
     setMessage("");
   };
 
@@ -88,21 +119,120 @@ export default function LiveChatWidget() {
                 className="flex items-center space-x-2 hover:bg-white/10 rounded p-1 transition-colors"
               >
                 <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                <span className="text-sm font-medium">{currentRoom?.icon} {currentRoom?.name}</span>
+                <span className="text-sm font-medium">
+                  {chatMode === 'room' ? `${currentRoom?.icon} ${currentRoom?.name}` : `💬 ${selectedUser?.firstName} ${selectedUser?.lastName}`}
+                </span>
                 <ChevronDown className="h-3 w-3" />
               </button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-white hover:text-gray-200 p-1"
-                onClick={toggleChat}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-white hover:text-gray-200 p-1"
+                  onClick={() => setShowUserSearch(!showUserSearch)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-white hover:text-gray-200 p-1"
+                  onClick={toggleChat}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           
           <CardContent className="p-0">
+            {/* User Search Panel */}
+            {showUserSearch && (
+              <div className="border-b border-gray-200 p-3 bg-white">
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Search users to chat with..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="text-sm"
+                  />
+                  
+                  {/* Recent Conversations */}
+                  {conversations && conversations.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 mb-1">Recent Conversations</p>
+                      <div className="space-y-1">
+                        {conversations.slice(0, 3).map((conv: any) => (
+                          <button
+                            key={conv.userId}
+                            onClick={() => {
+                              setSelectedUser(conv);
+                              setChatMode('direct');
+                              setShowUserSearch(false);
+                              setMessages([]);
+                            }}
+                            className="w-full p-2 text-left rounded hover:bg-gray-100 flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <User className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm">{conv.firstName} {conv.lastName}</span>
+                              {conv.online && <div className="w-2 h-2 bg-green-400 rounded-full"></div>}
+                            </div>
+                            {conv.unreadCount > 0 && (
+                              <Badge variant="destructive" className="text-xs">{conv.unreadCount}</Badge>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Search Results */}
+                  {searchResults && searchResults.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 mb-1">Search Results</p>
+                      <div className="space-y-1">
+                        {searchResults.map((userResult: any) => (
+                          <button
+                            key={userResult.id}
+                            onClick={() => {
+                              setSelectedUser(userResult);
+                              setChatMode('direct');
+                              setShowUserSearch(false);
+                              setMessages([]);
+                            }}
+                            className="w-full p-2 text-left rounded hover:bg-gray-100 flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <User className="h-4 w-4 text-gray-400" />
+                              <div>
+                                <span className="text-sm font-medium">{userResult.firstName} {userResult.lastName}</span>
+                                <p className="text-xs text-gray-500">{userResult.role}</p>
+                              </div>
+                              {userResult.online && <div className="w-2 h-2 bg-green-400 rounded-full"></div>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setChatMode('room');
+                      setShowUserSearch(false);
+                      setSelectedUser(null);
+                    }}
+                    className="w-full text-xs"
+                  >
+                    Back to Rooms
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Messages Area */}
             <div className="h-64 overflow-y-auto bg-gray-50 p-4 custom-scrollbar">
               {messages.length === 0 && (

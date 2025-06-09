@@ -17,6 +17,7 @@ import { TrainingService } from "./lib/training-service.js";
 import { RouteService } from "./lib/route-service.js";
 import { CommunicationService } from "./lib/communication-service.js";
 import { FormBuilderService } from "./lib/form-builder-service.js";
+import { ChatService } from "./lib/chat-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -792,6 +793,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Observer ID generation error:', error);
       res.status(500).json({ message: 'Failed to generate observer ID' });
+    }
+  });
+
+  // Chat Management Routes
+  app.post("/api/chat/rooms/assign", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { roomId, userIds } = req.body;
+      const assignments = await ChatService.assignUsersToRoom(roomId, userIds, req.user.id);
+      res.json({ success: true, assignments });
+    } catch (error) {
+      console.error('Room assignment error:', error);
+      res.status(500).json({ message: 'Failed to assign users to room' });
+    }
+  });
+
+  app.post("/api/chat/rooms/remove", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { roomId, userIds } = req.body;
+      await ChatService.removeUsersFromRoom(roomId, userIds, req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Room removal error:', error);
+      res.status(500).json({ message: 'Failed to remove users from room' });
+    }
+  });
+
+  app.get("/api/chat/users/search", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { q } = req.query;
+      const users = await ChatService.searchUsers(q as string, req.user!.id);
+      res.json(users);
+    } catch (error) {
+      console.error('User search error:', error);
+      res.status(500).json({ message: 'Failed to search users' });
+    }
+  });
+
+  app.get("/api/chat/conversations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const conversations = await ChatService.getRecentConversations(req.user!.id);
+      res.json(conversations);
+    } catch (error) {
+      console.error('Conversations error:', error);
+      res.status(500).json({ message: 'Failed to get conversations' });
+    }
+  });
+
+  app.post("/api/chat/direct-message", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { recipientId, content, messageType } = req.body;
+      const message = await ChatService.sendDirectMessage(req.user!.id, recipientId, content, messageType);
+      res.json(message);
+    } catch (error) {
+      console.error('Direct message error:', error);
+      res.status(500).json({ message: 'Failed to send direct message' });
+    }
+  });
+
+  app.get("/api/chat/rooms/:roomId/participants", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const participants = await ChatService.getRoomParticipants(req.params.roomId);
+      res.json(participants);
+    } catch (error) {
+      console.error('Room participants error:', error);
+      res.status(500).json({ message: 'Failed to get room participants' });
     }
   });
 
