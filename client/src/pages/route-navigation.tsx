@@ -5,12 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Navigation, MapPin, Clock, Route, Car, Play, Square } from "lucide-react";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatCoordinates } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import HereMap from "@/components/maps/here-map";
 
 export default function RouteNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<any>(null);
   const [routeHistory, setRouteHistory] = useState<any[]>([]);
   const { position, getCurrentPosition, isLoading, error } = useGeolocation({ watch: true });
+
+  const { data: pollingStations = [] } = useQuery({
+    queryKey: ["/api/polling-stations"],
+  });
 
   // Mock assigned stations for roving observer
   const assignedStations = [
@@ -218,18 +224,38 @@ export default function RouteNavigation() {
             </Card>
           )}
 
-          {/* Map Placeholder */}
+          {/* HERE Maps Integration */}
           <Card className="government-card">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MapPin className="h-5 w-5 mr-2" />
+                Live Navigation Map
+              </CardTitle>
+            </CardHeader>
             <CardContent className="p-0">
-              <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Interactive map would be displayed here</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Integration with Google Maps API for real-time navigation
-                  </p>
-                </div>
-              </div>
+              <HereMap
+                height="400px"
+                center={position ? { lat: position.latitude, lng: position.longitude } : { lat: 18.1096, lng: -77.2975 }}
+                zoom={position ? 15 : 10}
+                markers={[
+                  ...(position ? [{
+                    lat: position.latitude,
+                    lng: position.longitude,
+                    title: "Your Location",
+                    info: "Current observer position"
+                  }] : []),
+                  ...pollingStations.map(station => ({
+                    lat: parseFloat(station.latitude || '0'),
+                    lng: parseFloat(station.longitude || '0'),
+                    title: station.name,
+                    info: `${station.address} - ${station.stationCode}`
+                  }))
+                ]}
+                onLocationSelect={(lat, lng) => {
+                  console.log('Location selected:', lat, lng);
+                }}
+                interactive={true}
+              />
             </CardContent>
           </Card>
         </div>
