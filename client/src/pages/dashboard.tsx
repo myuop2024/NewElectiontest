@@ -11,11 +11,12 @@ import CommunicationCenter from "@/components/dashboard/communication-center";
 import KYCVerificationModal from "@/components/verification/kyc-verification-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [showKYCModal, setShowKYCModal] = useState(false);
+  const [, setLocation] = useLocation();
 
   // Fetch enhanced user data with KYC and device status
   const { data: enhancedUser = {} } = useQuery({
@@ -130,7 +131,7 @@ export default function Dashboard() {
                   <span className="text-sm">Document Capture</span>
                 </Button>
               </Link>
-              <Link href="/reports/create">
+              <Link href="/incident-reporting">
                 <Button variant="outline" className="h-20 w-full flex flex-col gap-2 hover:bg-green-600 hover:text-white">
                   <FileText className="h-6 w-6" />
                   <span className="text-sm">Submit Report</span>
@@ -156,21 +157,19 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start" onClick={() => {/* TODO: Implement video call */}}>
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/live-chat')}>
                 <Video className="h-4 w-4 mr-2" />
                 Video Conference
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/live-chat')}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Live Chat
               </Button>
-              <Link href="/training">
-                <Button variant="outline" className="w-full justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Training Modules
-                </Button>
-              </Link>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/training-center')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Training Modules
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => setShowKYCModal(true)}>
                 <Shield className="h-4 w-4 mr-2" />
                 KYC Verification
               </Button>
@@ -188,25 +187,19 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-3">
-              <Link href="/analytics">
-                <Button variant="outline" className="w-full justify-start">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  AI Analytics
-                </Button>
-              </Link>
-              <Link href="/routes">
-                <Button variant="outline" className="w-full justify-start">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Route Optimization
-                </Button>
-              </Link>
-              <Link href="/forms">
-                <Button variant="outline" className="w-full justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Form Builder
-                </Button>
-              </Link>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/ai-analytics')}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                AI Analytics
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/route-navigation')}>
+                <MapPin className="h-4 w-4 mr-2" />
+                Route Optimization
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/form-builder')}>
+                <FileText className="h-4 w-4 mr-2" />
+                Form Builder
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => setLocation('/settings')}>
                 <Smartphone className="h-4 w-4 mr-2" />
                 Device Management
               </Button>
