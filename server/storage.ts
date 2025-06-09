@@ -420,6 +420,8 @@ export class DatabaseStorage implements IStorage {
       return await this.createSetting({
         key,
         value,
+        category: "api",
+        description: `API configuration for ${key}`,
         updatedBy
       });
     }
