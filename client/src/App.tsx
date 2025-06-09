@@ -63,13 +63,6 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="*">
-        {() => {
-          const [, setLocation] = useLocation();
-          setLocation("/login");
-          return null;
-        }}
-      </Route>
       <Route path="/">
         <ProtectedLayout>
           <Dashboard />
