@@ -30,6 +30,8 @@ export default function EnhancedMap({
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
   const [showAllStations, setShowAllStations] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Web Mercator projection utilities
@@ -125,7 +127,7 @@ export default function EnhancedMap({
   };
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!interactive || !onLocationSelect) return;
+    if (!interactive || !onLocationSelect || isDragging) return;
 
     const rect = mapContainerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -135,6 +137,55 @@ export default function EnhancedMap({
     
     const { lat, lng } = pixelToLatLng(x, y, rect.width, rect.height);
     onLocationSelect(lat, lng);
+  };
+
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!interactive) return;
+    
+    const rect = mapContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    setIsDragging(true);
+    setDragStart({
+      x: event.clientX,
+      y: event.clientY,
+      lat: currentCenter.lat,
+      lng: currentCenter.lng
+    });
+    
+    event.preventDefault();
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !dragStart || !interactive) return;
+
+    const rect = mapContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const deltaX = event.clientX - dragStart.x;
+    const deltaY = event.clientY - dragStart.y;
+
+    // Convert pixel movement to lat/lng delta
+    const scale = Math.pow(2, currentZoom);
+    const worldSize = 256 * scale;
+    
+    const lngDelta = -(deltaX / rect.width) * (360 / scale);
+    const latDelta = (deltaY / rect.height) * (180 / scale);
+
+    setCurrentCenter({
+      lat: dragStart.lat + latDelta,
+      lng: dragStart.lng + lngDelta
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragStart(null);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    setDragStart(null);
   };
 
   const zoomIn = () => setCurrentZoom(prev => Math.min(prev + 1, 18));
@@ -189,8 +240,12 @@ export default function EnhancedMap({
       {/* High-Quality Map Tiles */}
       <div 
         ref={mapContainerRef}
-        className="w-full h-full relative cursor-crosshair"
+        className={`w-full h-full relative select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         onClick={handleMapClick}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
         {tiles.map((tile, index) => (
           <img
