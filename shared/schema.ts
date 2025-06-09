@@ -101,9 +101,11 @@ export const documents = pgTable("documents", {
   fileType: text("file_type").notNull(),
   fileSize: integer("file_size").notNull(),
   filePath: text("file_path").notNull(),
+  documentType: text("document_type").notNull().default("other"), // ballot_form, results_sheet, incident_report, etc.
   ocrText: text("ocr_text"), // Extracted text from OCR
   aiAnalysis: json("ai_analysis"), // AI processing results
-  isProcessed: boolean("is_processed").notNull().default(false),
+  processingStatus: text("processing_status").notNull().default("pending"), // pending, processing, completed, failed
+  uploadedBy: integer("uploaded_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

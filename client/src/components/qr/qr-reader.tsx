@@ -13,7 +13,7 @@ export default function QRReader({ onScanSuccess, onScanError }: QRReaderProps) 
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
 
   useEffect(() => {
     return () => {
@@ -23,60 +23,41 @@ export default function QRReader({ onScanSuccess, onScanError }: QRReaderProps) 
 
   const startScanning = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Use back camera
-          width: { ideal: 640 },
-          height: { ideal: 480 }
+      if (!videoRef.current) return;
+
+      const qrScanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          onScanSuccess(result.data);
+          stopScanning();
+        },
+        {
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          preferredCamera: 'environment'
         }
-      });
+      );
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        streamRef.current = stream;
-        setIsScanning(true);
-        setHasPermission(true);
+      qrScannerRef.current = qrScanner;
+      await qrScanner.start();
+      setIsScanning(true);
+      setHasPermission(true);
 
-        // Start QR scanning simulation
-        // In a real implementation, you'd use a QR scanning library like jsQR or zxing
-        simulateQRScanning();
-      }
     } catch (error) {
-      console.error('Failed to start camera:', error);
+      console.error('Failed to start QR scanner:', error);
       setHasPermission(false);
-      onScanError('Camera access denied or not available');
+      onScanError('Camera access denied or QR scanner not available');
     }
   };
 
   const stopScanning = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
     }
     setIsScanning(false);
-  };
-
-  const simulateQRScanning = () => {
-    // This simulates QR code detection
-    // In a real implementation, you'd analyze video frames for QR codes
-    const mockQRData = {
-      type: 'observer_id',
-      observerId: '142857',
-      timestamp: new Date().toISOString(),
-      signature: 'encrypted_signature_here'
-    };
-
-    // Simulate random QR detection after 3-5 seconds
-    setTimeout(() => {
-      if (isScanning) {
-        onScanSuccess(JSON.stringify(mockQRData));
-        stopScanning();
-      }
-    }, 3000 + Math.random() * 2000);
   };
 
   const resetCamera = () => {

@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
@@ -18,6 +19,22 @@ interface AuthenticatedRequest extends Request {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+// Configure multer for file uploads
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow images and PDFs
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images and PDF files are allowed'));
+    }
+  }
+});
 
 async function initializeAdminAccount() {
   try {
@@ -485,6 +502,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching settings:", error);
       res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  // Document upload routes
+  app.post("/api/documents/upload", authenticateToken, upload.single('document'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { documentType, stationId, description } = req.body;
+
+      // Create document record
+      const document = await storage.createDocument({
+        reportId: parseInt(req.body.reportId) || null,
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        documentType: documentType || 'other',
+        uploadedBy: req.user?.id || 0
+      });
+
+      // Simulate OCR processing (in production, integrate with actual OCR service)
+      setTimeout(async () => {
+        try {
+          await storage.updateDocument(document.id, {
+            ocrText: 'Sample OCR text extracted from document...',
+            processingStatus: 'completed'
+          });
+        } catch (error) {
+          console.error('Error updating document after OCR:', error);
+        }
+      }, 2000);
+
+      res.json({
+        id: document.id,
+        fileName: document.fileName,
+        fileSize: document.fileSize,
+        fileType: document.fileType,
+        status: 'processing',
+        uploadDate: document.createdAt
+      });
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  app.get("/api/documents", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const documents = await storage.getDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
+  app.get("/api/documents/report/:reportId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const reportId = parseInt(req.params.reportId);
+      const documents = await storage.getDocumentsByReport(reportId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching report documents:", error);
+      res.status(500).json({ error: "Failed to fetch report documents" });
     }
   });
 
