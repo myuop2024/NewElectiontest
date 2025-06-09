@@ -144,16 +144,40 @@ function Router() {
   );
 }
 
+function AppContent() {
+  const { isLoading, loadingMessage } = useLoading();
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  useEffect(() => {
+    // Simulate initial app loading
+    const timer = setTimeout(() => {
+      setInitialLoad(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (initialLoad || isLoading) {
+    return <BallotBoxLoader message={loadingMessage} />;
+  }
+
+  return (
+    <AuthProvider>
+      <WebSocketProvider>
+        <Router />
+      </WebSocketProvider>
+    </AuthProvider>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <WebSocketProvider>
-            <Toaster />
-            <Router />
-          </WebSocketProvider>
-        </AuthProvider>
+        <LoadingProvider>
+          <AppContent />
+          <Toaster />
+        </LoadingProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
