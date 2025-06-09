@@ -7,9 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Filter, Download, Database, Trash2 } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Database, Search, Download, Trash2 } from "lucide-react";
+
 interface SystemLogsProps {
   auditLogs: any[];
   isLoading: boolean;
+}
+
+function formatDateTime(dateString: string) {
+  return new Date(dateString).toLocaleString();
 }
 
 export default function SystemLogs({ auditLogs, isLoading }: SystemLogsProps) {

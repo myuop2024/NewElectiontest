@@ -285,7 +285,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/assignments", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const assignment = await storage.createAssignment(req.body);
+      const assignment = await storage.createAssignment({
+        ...req.body,
+        assignmentType: req.body.assignmentType || 'station',
+        startDate: req.body.startDate || new Date().toISOString(),
+        endDate: req.body.endDate || new Date().toISOString()
+      });
       res.json(assignment);
     } catch (error) {
       console.error("Error creating assignment:", error);
@@ -318,7 +323,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/reports", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const report = await storage.createReport(req.body);
+      const report = await storage.createReport({
+        ...req.body,
+        userId: req.user?.id
+      });
       
       // Create audit log for incident report
       await storage.createAuditLog({
