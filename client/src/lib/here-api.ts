@@ -37,6 +37,17 @@ export interface GeocodeResult {
   };
 }
 
+export interface RouteResult {
+  distance: number;
+  duration: number;
+  polyline: string;
+  instructions: Array<{
+    instruction: string;
+    distance: number;
+    duration: number;
+  }>;
+}
+
 class HereApiService {
   private apiKey: string | null = null;
 
@@ -139,6 +150,43 @@ class HereApiService {
       };
     } catch (error) {
       console.error('HERE API geocoding error:', error);
+      return null;
+    }
+  }
+
+  async calculateRoute(origin: {lat: number, lng: number}, destination: {lat: number, lng: number}): Promise<RouteResult | null> {
+    try {
+      const apiKey = this.getApiKey();
+      const response = await fetch(
+        `https://router.hereapi.com/v8/routes?` +
+        `transportMode=car&` +
+        `origin=${origin.lat},${origin.lng}&` +
+        `destination=${destination.lat},${destination.lng}&` +
+        `return=summary,polyline,instructions&` +
+        `apiKey=${apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HERE Routing API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const route = data.routes?.[0];
+
+      if (!route) return null;
+
+      return {
+        distance: route.sections[0].summary.length,
+        duration: route.sections[0].summary.duration,
+        polyline: route.sections[0].polyline,
+        instructions: route.sections[0].actions?.map((action: any) => ({
+          instruction: action.instruction,
+          distance: action.length,
+          duration: action.duration
+        })) || []
+      };
+    } catch (error) {
+      console.error('HERE Routing API error:', error);
       return null;
     }
   }
