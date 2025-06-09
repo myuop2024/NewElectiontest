@@ -43,15 +43,21 @@ export default function HereMap({
   useEffect(() => {
     // Check if HERE API key is available
     fetch('/api/settings/here-api')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
-        if (data.hasKey) {
-          setApiKey('configured');
+        if (data.hasKey && data.apiKey) {
+          setApiKey(data.apiKey);
         } else {
           setError("HERE API key not configured. Please set it in admin settings.");
         }
       })
-      .catch(() => {
+      .catch(err => {
+        console.error('HERE API config error:', err);
         setError("Failed to load HERE API configuration.");
       });
   }, []);
@@ -95,91 +101,79 @@ export default function HereMap({
 
     const initializeMap = () => {
       try {
-        // Get actual API key from backend
-        fetch('/api/settings/here-api')
-          .then(res => res.json())
-          .then(data => {
-            if (!data.apiKey) {
-              throw new Error("API key not available");
-            }
+        platform.current = new window.H.service.Platform({
+          'apikey': apiKey
+        });
 
-            platform.current = new window.H.service.Platform({
-              'apikey': data.apiKey
+        const defaultMapTypes = platform.current.createDefaultMapTypes();
+        
+        map.current = new window.H.Map(
+          mapRef.current,
+          defaultMapTypes.vector.normal.map,
+          {
+            zoom,
+            center: { lat: center.lat, lng: center.lng }
+          }
+        );
+
+        let ui: any = null;
+        
+        if (interactive) {
+          const behavior = new window.H.mapevents.Behavior();
+          ui = new window.H.ui.UI.createDefault(map.current);
+          
+          if (onLocationSelect) {
+            map.current.addEventListener('tap', (evt: any) => {
+              const coord = map.current.screenToGeo(
+                evt.currentPointer.viewportX,
+                evt.currentPointer.viewportY
+              );
+              onLocationSelect(coord.lat, coord.lng);
             });
+          }
+        }
 
-            const defaultMapOptions = platform.current.createDefaultMapOptions();
-            
-            map.current = new window.H.Map(
-              mapRef.current,
-              defaultMapOptions.baseMapOptions,
-              {
-                zoom,
-                center: { lat: center.lat, lng: center.lng }
-              }
+        // Add markers
+        if (markers.length > 0) {
+          const group = new window.H.map.Group();
+          
+          markers.forEach(marker => {
+            const icon = new window.H.map.Icon(
+              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#0066CC"/></svg>',
+              { size: { w: 24, h: 24 } }
             );
 
-            let ui: any = null;
-            
-            if (interactive) {
-              const behavior = new window.H.mapevents.Behavior();
-              ui = new window.H.ui.UI.createDefault(map.current);
+            const mapMarker = new window.H.map.Marker(
+              { lat: marker.lat, lng: marker.lng },
+              { icon }
+            );
+
+            if ((marker.title || marker.info) && ui) {
+              const bubble = new window.H.ui.InfoBubble(`
+                <div>
+                  ${marker.title ? `<h4>${marker.title}</h4>` : ''}
+                  ${marker.info ? `<p>${marker.info}</p>` : ''}
+                </div>
+              `);
               
-              if (onLocationSelect) {
-                map.current.addEventListener('tap', (evt: any) => {
-                  const coord = map.current.screenToGeo(
-                    evt.currentPointer.viewportX,
-                    evt.currentPointer.viewportY
-                  );
-                  onLocationSelect(coord.lat, coord.lng);
-                });
-              }
-            }
-
-            // Add markers
-            if (markers.length > 0) {
-              const group = new window.H.map.Group();
-              
-              markers.forEach(marker => {
-                const icon = new window.H.map.Icon(
-                  '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#0066CC"/></svg>',
-                  { size: { w: 24, h: 24 } }
-                );
-
-                const mapMarker = new window.H.map.Marker(
-                  { lat: marker.lat, lng: marker.lng },
-                  { icon }
-                );
-
-                if ((marker.title || marker.info) && ui) {
-                  const bubble = new window.H.ui.InfoBubble(`
-                    <div>
-                      ${marker.title ? `<h4>${marker.title}</h4>` : ''}
-                      ${marker.info ? `<p>${marker.info}</p>` : ''}
-                    </div>
-                  `);
-                  
-                  mapMarker.addEventListener('tap', () => {
-                    ui.addBubble(bubble);
-                    bubble.setPosition({ lat: marker.lat, lng: marker.lng });
-                  });
-                }
-
-                group.addObject(mapMarker);
+              mapMarker.addEventListener('tap', () => {
+                ui.addBubble(bubble);
+                bubble.setPosition({ lat: marker.lat, lng: marker.lng });
               });
-
-              map.current.addObject(group);
-              
-              if (markers.length > 1) {
-                map.current.setBounds(group.getBounds());
-              }
             }
 
-            setIsLoaded(true);
-            setError(null);
-          })
-          .catch(err => {
-            setError(`Failed to load API key: ${err.message}`);
+            group.addObject(mapMarker);
           });
+
+          map.current.addObject(group);
+          
+          if (markers.length > 1) {
+            map.current.setBounds(group.getBounds());
+          }
+        }
+
+        setIsLoaded(true);
+        setError(null);
       } catch (err) {
         setError(`Failed to initialize HERE Map: ${err}`);
       }

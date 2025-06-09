@@ -224,20 +224,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // HERE API Settings - Available to all authenticated users for map functionality
-  app.get("/api/settings/here-api", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  // HERE API Settings - Public endpoint for map functionality (API key needed for maps to load)
+  app.get("/api/settings/here-api", async (req: Request, res: Response) => {
     try {
       // Use environment variable if available, otherwise fall back to database
       const envApiKey = process.env.HERE_API_KEY;
-      const setting = await storage.getSettingByKey("HERE_API_KEY");
       
-      const apiKey = envApiKey || setting?.value;
-      const hasKey = !!apiKey;
+      if (envApiKey) {
+        res.json({ 
+          configured: true,
+          hasKey: true,
+          apiKey: envApiKey
+        });
+        return;
+      }
+
+      const setting = await storage.getSettingByKey("HERE_API_KEY");
+      const hasKey = !!(setting?.value);
       
       res.json({ 
         configured: hasKey,
         hasKey: hasKey,
-        apiKey: hasKey ? apiKey : undefined
+        apiKey: hasKey ? setting.value : undefined
       });
     } catch (error) {
       console.error("Get HERE API settings error:", error);
