@@ -14,6 +14,11 @@ export const users = pgTable("users", {
   lastName: text("last_name").notNull(),
   phone: text("phone"),
   trn: text("trn"), // Tax Registration Number (Jamaica)
+  parishId: integer("parish_id").notNull(),
+  address: text("address").notNull(), // Full Jamaican address
+  community: text("community"), // Community/District within parish
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
   role: text("role").notNull().default("observer"), // observer, admin, coordinator
   status: text("status").notNull().default("pending"), // pending, active, suspended
   deviceId: text("device_id"),

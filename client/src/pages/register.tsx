@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AddressInput } from "@/components/ui/address-input";
 import { useAuth } from "@/hooks/use-auth";
-import { AlertCircle, Vote, UserCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, Vote, UserCheck, MapPin } from "lucide-react";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -19,8 +21,12 @@ export default function Register() {
     lastName: "",
     phone: "",
     trn: "",
+    parishId: "",
+    address: "",
+    community: "",
     role: "observer"
   });
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
