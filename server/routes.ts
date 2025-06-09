@@ -402,6 +402,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update report status endpoint
+  app.patch("/api/reports/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      if (!reportId) {
+        return res.status(400).json({ error: "Invalid report ID" });
+      }
+
+      const updatedReport = await storage.updateReport(reportId, updates);
+      
+      // Create audit log for status update
+      await storage.createAuditLog({
+        action: "report_status_updated",
+        entityType: "report",
+        userId: req.user?.id,
+        entityId: reportId.toString(),
+        ipAddress: req.ip
+      });
+
+      res.json(updatedReport);
+    } catch (error) {
+      console.error("Error updating report:", error);
+      res.status(500).json({ error: "Failed to update report" });
+    }
+  });
+
   app.post("/api/reports", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const report = await storage.createReport({
