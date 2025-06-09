@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import type { WebSocketMessage } from "@/lib/websocket";
 import { Send, Phone, Video, Paperclip, Users, MessageCircle } from "lucide-react";
 
@@ -16,6 +17,7 @@ export default function LiveChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { socket, sendMessage } = useWebSocket();
+  const { toast } = useToast();
 
   const { data: chatRooms } = useQuery({
     queryKey: ["/api/messages"],
@@ -59,6 +61,63 @@ export default function LiveChat() {
 
     sendMessage(newMessage);
     setMessage("");
+  };
+
+  const handleVoiceCall = () => {
+    const currentRoom = defaultRooms.find(r => r.id === selectedChat);
+    if (!currentRoom) return;
+
+    toast({
+      title: "Voice Call Initiated",
+      description: `Starting voice call with ${currentRoom.name}...`
+    });
+
+    // Send call notification through WebSocket
+    const callMessage: WebSocketMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'notification',
+      content: `Voice call started by ${user?.firstName} ${user?.lastName}`,
+      userId: user?.id || 0,
+      timestamp: new Date(),
+      senderId: user?.id || 0,
+      recipientId: selectedChat === 'general' ? null : parseInt(selectedChat || '0'),
+      roomId: selectedChat === 'general' ? 'general' : null,
+      messageType: 'call'
+    };
+
+    sendMessage(callMessage);
+  };
+
+  const handleVideoCall = () => {
+    const currentRoom = defaultRooms.find(r => r.id === selectedChat);
+    if (!currentRoom) return;
+
+    toast({
+      title: "Video Call Initiated",
+      description: `Starting video call with ${currentRoom.name}...`
+    });
+
+    // Send video call notification through WebSocket
+    const videoMessage: WebSocketMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'notification',
+      content: `Video call started by ${user?.firstName} ${user?.lastName}`,
+      userId: user?.id || 0,
+      timestamp: new Date(),
+      senderId: user?.id || 0,
+      recipientId: selectedChat === 'general' ? null : parseInt(selectedChat || '0'),
+      roomId: selectedChat === 'general' ? 'general' : null,
+      messageType: 'video'
+    };
+
+    sendMessage(videoMessage);
+  };
+
+  const handleFileAttachment = () => {
+    toast({
+      title: "File Attachment",
+      description: "File upload functionality will be available soon."
+    });
   };
 
   const defaultRooms = [
@@ -137,10 +196,10 @@ export default function LiveChat() {
                     </div>
                   </div>
                   <div className="flex space-x-2">
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={handleVoiceCall}>
                       <Phone className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={handleVideoCall}>
                       <Video className="h-4 w-4" />
                     </Button>
                   </div>
@@ -185,7 +244,7 @@ export default function LiveChat() {
               {/* Message Input */}
               <div className="border-t border-border p-4">
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handleFileAttachment}>
                     <Paperclip className="h-4 w-4" />
                   </Button>
                   <Input
