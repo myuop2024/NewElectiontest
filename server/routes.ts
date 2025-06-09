@@ -584,6 +584,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // KYC Verification Routes
+  app.post("/api/kyc/verify", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { firstName, lastName, dateOfBirth, nationalId, documentType, documentImage, selfieImage } = req.body;
+      
+      const verificationRequest = {
+        firstName,
+        lastName,
+        dateOfBirth,
+        nationalId,
+        documentType,
+        documentImage,
+        selfieImage
+      };
+
+      const result = await KYCService.verifyWithDidIT(verificationRequest);
+      res.json(result);
+    } catch (error) {
+      console.error('KYC verification error:', error);
+      res.status(500).json({ message: 'KYC verification failed' });
+    }
+  });
+
+  // Device Management Routes
+  app.post("/api/devices/register", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { deviceName, deviceType, osVersion, browserInfo } = req.body;
+      const userAgent = req.headers['user-agent'] || '';
+      const ipAddress = req.ip || req.connection.remoteAddress || '';
+      
+      const deviceFingerprint = SecurityService.generateDeviceFingerprint(userAgent, ipAddress, {
+        deviceType,
+        osVersion,
+        browserInfo
+      });
+
+      res.json({ success: true, deviceFingerprint });
+    } catch (error) {
+      console.error('Device registration error:', error);
+      res.status(500).json({ message: 'Device registration failed' });
+    }
+  });
+
+  // Notification Routes
+  app.post("/api/notifications/send", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { type, recipient, message, priority, title } = req.body;
+      
+      const notificationRequest = {
+        userId: req.user.id,
+        type,
+        recipient,
+        message,
+        priority: priority || 'normal',
+        title
+      };
+
+      let result;
+      switch (type) {
+        case 'sms':
+          result = await NotificationService.sendSMS(notificationRequest);
+          break;
+        case 'whatsapp':
+          result = await NotificationService.sendWhatsApp(notificationRequest);
+          break;
+        case 'email':
+          result = await NotificationService.sendEmail(notificationRequest);
+          break;
+        default:
+          return res.status(400).json({ message: 'Invalid notification type' });
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Send notification error:', error);
+      res.status(500).json({ message: 'Failed to send notification' });
+    }
+  });
+
+  // Analytics Routes
+  app.get("/api/analytics/dashboard", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const metrics = await AnalyticsService.getDashboardMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Analytics dashboard error:', error);
+      res.status(500).json({ message: 'Failed to get analytics' });
+    }
+  });
+
+  app.post("/api/analytics/track", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { eventType, eventData, location } = req.body;
+      
+      const analyticsEvent = {
+        userId: req.user!.id,
+        eventType,
+        eventData,
+        timestamp: new Date(),
+        sessionId: req.headers['session-id'] as string,
+        deviceFingerprint: req.headers['device-fingerprint'] as string,
+        location
+      };
+
+      await AnalyticsService.trackEvent(analyticsEvent);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Analytics tracking error:', error);
+      res.status(500).json({ message: 'Failed to track event' });
+    }
+  });
+
+  // Training Routes
+  app.get("/api/training/learning-path/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const learningPath = await TrainingService.getPersonalizedLearningPath(userId, 'observer', 'beginner');
+      res.json(learningPath);
+    } catch (error) {
+      console.error('Learning path error:', error);
+      res.status(500).json({ message: 'Failed to get learning path' });
+    }
+  });
+
+  app.get("/api/training/templates", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const templates = FormBuilderService.getFormTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error('Training templates error:', error);
+      res.status(500).json({ message: 'Failed to get templates' });
+    }
+  });
+
+  // Route Optimization Routes
+  app.post("/api/routes/optimize", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const routeOptimization = req.body;
+      const optimizedRoute = await RouteService.optimizeRoute(routeOptimization);
+      res.json(optimizedRoute);
+    } catch (error) {
+      console.error('Route optimization error:', error);
+      res.status(500).json({ message: 'Route optimization failed' });
+    }
+  });
+
+  app.post("/api/routes/geocode", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { address } = req.body;
+      const location = await RouteService.geocodeAddress(address);
+      res.json(location);
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      res.status(500).json({ message: 'Geocoding failed' });
+    }
+  });
+
+  // Form Builder Routes
+  app.post("/api/forms/create", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const formData = req.body;
+      const form = FormBuilderService.createDynamicForm(formData);
+      res.json(form);
+    } catch (error) {
+      console.error('Form creation error:', error);
+      res.status(500).json({ message: 'Failed to create form' });
+    }
+  });
+
+  app.post("/api/forms/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { form, submissionData } = req.body;
+      const validation = FormBuilderService.validateFormSubmission(form, submissionData);
+      res.json(validation);
+    } catch (error) {
+      console.error('Form validation error:', error);
+      res.status(500).json({ message: 'Form validation failed' });
+    }
+  });
+
+  // Communication Routes
+  app.post("/api/communication/initiate-call", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { recipientId, callType } = req.body;
+      const session = await CommunicationService.initiateCall(req.user!.id, recipientId, callType);
+      res.json(session);
+    } catch (error) {
+      console.error('Initiate call error:', error);
+      res.status(500).json({ message: 'Failed to initiate call' });
+    }
+  });
+
+  // Observer ID Generation
+  app.post("/api/observers/generate-id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const observerId = SecurityService.generateObserverId();
+      res.json({ observerId });
+    } catch (error) {
+      console.error('Observer ID generation error:', error);
+      res.status(500).json({ message: 'Failed to generate observer ID' });
+    }
+  });
+
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
