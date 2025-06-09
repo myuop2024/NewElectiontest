@@ -12,8 +12,13 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  phoneNumber: string;
+  phone: string;
+  trn?: string;
   parishId: number;
+  address: string;
+  community?: string;
+  latitude?: number;
+  longitude?: number;
   role?: string;
 }
 

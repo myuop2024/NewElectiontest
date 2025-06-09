@@ -113,7 +113,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/parishes", async (_req: Request, res: Response) => {
     try {
       const parishes = await storage.getParishes();
-      res.json(parishes);
+      
+      // Initialize parishes if empty
+      if (parishes.length === 0) {
+        const jamaicanParishes = [
+          { name: "Kingston", code: "KGN" },
+          { name: "St. Andrew", code: "STA" },
+          { name: "St. Thomas", code: "STT" },
+          { name: "Portland", code: "POR" },
+          { name: "St. Mary", code: "STM" },
+          { name: "St. Ann", code: "SAN" },
+          { name: "Trelawny", code: "TRL" },
+          { name: "St. James", code: "STJ" },
+          { name: "Hanover", code: "HAN" },
+          { name: "Westmoreland", code: "WML" },
+          { name: "St. Elizabeth", code: "STE" },
+          { name: "Manchester", code: "MAN" },
+          { name: "Clarendon", code: "CLA" },
+          { name: "St. Catherine", code: "STC" }
+        ];
+
+        for (const parishData of jamaicanParishes) {
+          await storage.createParish(parishData);
+        }
+        
+        const newParishes = await storage.getParishes();
+        res.json(newParishes);
+      } else {
+        res.json(parishes);
+      }
     } catch (error) {
       console.error("Get parishes error:", error);
       res.status(500).json({ message: "Failed to get parishes" });

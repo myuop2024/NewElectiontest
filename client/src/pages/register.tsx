@@ -32,6 +32,13 @@ export default function Register() {
   const { register } = useAuth();
   const [, setLocation] = useLocation();
 
+  // Fetch parishes for dropdown
+  const { data: parishes } = useQuery({
+    queryKey: ["/api/parishes"],
+  });
+
+  const selectedParish = parishes?.find((p: any) => p.id.toString() === formData.parishId);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -46,10 +53,28 @@ export default function Register() {
       return;
     }
 
+    if (!formData.parishId) {
+      setError("Please select your parish");
+      return;
+    }
+
+    if (!formData.address) {
+      setError("Please enter your address");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(formData);
+      const registrationData = {
+        ...formData,
+        parishId: parseInt(formData.parishId),
+        ...(coordinates && {
+          latitude: coordinates.lat,
+          longitude: coordinates.lng
+        })
+      };
+      await register(registrationData);
       setLocation("/");
     } catch (err: any) {
       setError(err.message || "Registration failed");
@@ -77,7 +102,7 @@ export default function Register() {
           </div>
           <CardTitle className="text-xl font-semibold">Observer Registration</CardTitle>
           <CardDescription>
-            Register as an electoral observer for the 2024 General Election
+            Register as an electoral observer for the 2025 General Election
           </CardDescription>
         </CardHeader>
         
@@ -164,6 +189,51 @@ export default function Register() {
                   className="form-input"
                 />
               </div>
+            </div>
+
+            {/* Parish Selection */}
+            <div className="form-field">
+              <Label htmlFor="parish" className="form-label">Parish *</Label>
+              <Select value={formData.parishId} onValueChange={(value) => handleInputChange("parishId", value)}>
+                <SelectTrigger className="form-input">
+                  <SelectValue placeholder="Select your parish" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parishes?.map((parish: any) => (
+                    <SelectItem key={parish.id} value={parish.id.toString()}>
+                      {parish.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Address Input with HERE API */}
+            <div className="form-field">
+              <AddressInput
+                label="Address *"
+                value={formData.address}
+                onChange={(address, coords) => {
+                  handleInputChange("address", address);
+                  setCoordinates(coords || null);
+                }}
+                parish={selectedParish?.name}
+                placeholder="Start typing your Jamaican address..."
+                required
+                className="w-full"
+              />
+            </div>
+
+            {/* Community/District */}
+            <div className="form-field">
+              <Label htmlFor="community" className="form-label">Community/District</Label>
+              <Input
+                id="community"
+                value={formData.community}
+                onChange={(e) => handleInputChange("community", e.target.value)}
+                placeholder="Enter your community or district"
+                className="form-input"
+              />
             </div>
 
             <div className="form-field">
