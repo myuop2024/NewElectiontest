@@ -157,6 +157,18 @@ export class AdminSettingsService {
         description: 'OpenAI GPT-4 powered analytics and insights'
       },
       {
+        name: 'Hugging Face AI',
+        key: 'huggingface_enabled',
+        category: 'Analytics',
+        description: 'Hugging Face model inference for AI analysis'
+      },
+      {
+        name: 'Google Gemini AI',
+        key: 'gemini_enabled',
+        category: 'Analytics',
+        description: 'Google Gemini advanced AI capabilities'
+      },
+      {
         name: 'Video Calling',
         key: 'webrtc_enabled',
         category: 'Communications',

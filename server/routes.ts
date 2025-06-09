@@ -944,6 +944,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Hugging Face AI routes
+  app.post("/api/ai/huggingface/generate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { HuggingFaceService } = await import('./lib/huggingface-service');
+      const { prompt } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      const result = await HuggingFaceService.generateText(prompt);
+      res.json(result);
+    } catch (error) {
+      console.error('Hugging Face generation error:', error);
+      res.status(500).json({ error: 'Failed to generate text' });
+    }
+  });
+
+  app.post("/api/ai/huggingface/analyze-report", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { HuggingFaceService } = await import('./lib/huggingface-service');
+      const { reportContent } = req.body;
+      
+      if (!reportContent) {
+        return res.status(400).json({ error: 'Report content is required' });
+      }
+
+      const analysis = await HuggingFaceService.analyzeReport(reportContent);
+      res.json({ analysis });
+    } catch (error) {
+      console.error('Hugging Face analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze report' });
+    }
+  });
+
+  app.post("/api/ai/huggingface/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { HuggingFaceService } = await import('./lib/huggingface-service');
+      const validation = await HuggingFaceService.validateConfiguration();
+      res.json(validation);
+    } catch (error) {
+      console.error('Hugging Face validation error:', error);
+      res.status(500).json({ error: 'Failed to validate configuration' });
+    }
+  });
+
+  // Gemini AI routes
+  app.post("/api/ai/gemini/generate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { GeminiService } = await import('./lib/gemini-service');
+      const { prompt, systemInstruction } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      const result = await GeminiService.generateContent(prompt, systemInstruction);
+      res.json({ content: result });
+    } catch (error) {
+      console.error('Gemini generation error:', error);
+      res.status(500).json({ error: 'Failed to generate content' });
+    }
+  });
+
+  app.post("/api/ai/gemini/analyze-electoral", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { GeminiService } = await import('./lib/gemini-service');
+      const { data } = req.body;
+      
+      if (!data) {
+        return res.status(400).json({ error: 'Electoral data is required' });
+      }
+
+      const analysis = await GeminiService.analyzeElectoralData(data);
+      res.json({ analysis });
+    } catch (error) {
+      console.error('Gemini electoral analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze electoral data' });
+    }
+  });
+
+  app.post("/api/ai/gemini/detect-anomalies", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { GeminiService } = await import('./lib/gemini-service');
+      const { metrics } = req.body;
+      
+      if (!metrics) {
+        return res.status(400).json({ error: 'Metrics data is required' });
+      }
+
+      const anomalies = await GeminiService.detectAnomalies(metrics);
+      res.json({ anomalies });
+    } catch (error) {
+      console.error('Gemini anomaly detection error:', error);
+      res.status(500).json({ error: 'Failed to detect anomalies' });
+    }
+  });
+
+  app.post("/api/ai/gemini/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { GeminiService } = await import('./lib/gemini-service');
+      const validation = await GeminiService.validateConfiguration();
+      res.json(validation);
+    } catch (error) {
+      console.error('Gemini validation error:', error);
+      res.status(500).json({ error: 'Failed to validate configuration' });
+    }
+  });
+
+  // Feature Testing Routes
+  app.get("/api/admin/features/test-all", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { FeatureTester } = await import('./lib/feature-tester');
+      const testResults = await FeatureTester.testAllFeatures();
+      res.json(testResults);
+    } catch (error) {
+      console.error('Feature testing error:', error);
+      res.status(500).json({ message: 'Failed to test features' });
+    }
+  });
+
+  app.post("/api/admin/features/toggle", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { FeatureTester } = await import('./lib/feature-tester');
+      const { key, enabled } = req.body;
+      
+      if (!key || typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: 'Feature key and enabled status required' });
+      }
+
+      const result = await FeatureTester.toggleFeature(key, enabled);
+      res.json(result);
+    } catch (error) {
+      console.error('Feature toggle error:', error);
+      res.status(500).json({ message: 'Failed to toggle feature' });
+    }
+  });
+
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
