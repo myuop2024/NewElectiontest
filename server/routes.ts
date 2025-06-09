@@ -23,6 +23,7 @@ import { CommunicationService } from "./lib/communication-service.js";
 import { FormBuilderService } from "./lib/form-builder-service.js";
 import { ChatService } from "./lib/chat-service.js";
 import { AdminSettingsService } from "./lib/admin-settings-service.js";
+import { createAIIncidentService } from "./lib/ai-incident-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1304,6 +1305,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Gemini validation error:', error);
       res.status(500).json({ error: 'Failed to validate configuration' });
+    }
+  });
+
+  // AI Incident Analysis endpoints
+  app.post("/api/ai/analyze-incident", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { type, title, description, location, witnessCount, evidenceNotes, pollingStationId } = req.body;
+      
+      if (!title || !description) {
+        return res.status(400).json({ error: "Title and description are required" });
+      }
+
+      const aiService = createAIIncidentService(process.env.GEMINI_API_KEY);
+      
+      const analysis = await aiService.analyzeIncident({
+        type,
+        title,
+        description,
+        location,
+        witnessCount,
+        evidenceNotes,
+        pollingStationId
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "ai_incident_analysis",
+        entityType: "incident",
+        userId: req.user!.id,
+        entityId: title,
+        ipAddress: req.ip || ''
+      });
+
+      res.json({ success: true, analysis });
+    } catch (error) {
+      console.error("AI incident analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze incident" });
+    }
+  });
+
+  app.post("/api/ai/batch-analyze", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { incidents } = req.body;
+      
+      if (!Array.isArray(incidents) || incidents.length === 0) {
+        return res.status(400).json({ error: "Incidents array is required" });
+      }
+
+      const aiService = createAIIncidentService(process.env.GEMINI_API_KEY);
+      
+      const analyses = await aiService.classifyIncidentBatch(incidents);
+      const summary = await aiService.generateSummaryReport(analyses);
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "ai_batch_analysis",
+        entityType: "incidents",
+        userId: req.user!.id,
+        entityId: `batch_${incidents.length}`,
+        ipAddress: req.ip || '',
+        metadata: JSON.stringify({
+          batchSize: incidents.length,
+          summaryGenerated: true
+        })
+      });
+
+      res.json({ 
+        success: true, 
+        analyses, 
+        summary,
+        totalProcessed: incidents.length 
+      });
+    } catch (error) {
+      console.error("AI batch analysis error:", error);
+      res.status(500).json({ error: "Failed to process batch analysis" });
+    }
+  });
+
+  app.get("/api/ai/incident-patterns", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Get recent reports for pattern analysis
+      const recentReports = await storage.getReports();
+      
+      if (recentReports.length === 0) {
+        return res.json({ 
+          patterns: [],
+          message: "No incidents available for pattern analysis"
+        });
+      }
+
+      const aiService = createAIIncidentService(process.env.GEMINI_API_KEY);
+      
+      // Convert reports to incident format for analysis
+      const incidents = recentReports.map(report => ({
+        type: report.type || 'other',
+        title: report.title,
+        description: report.description,
+        location: report.metadata ? JSON.parse(report.metadata as string)?.location : undefined
+      }));
+
+      const analyses = await aiService.classifyIncidentBatch(incidents);
+      const summary = await aiService.generateSummaryReport(analyses);
+
+      res.json({ 
+        success: true,
+        patterns: summary.commonPatterns,
+        categoryDistribution: summary.categoryDistribution,
+        severityDistribution: summary.severityDistribution,
+        totalAnalyzed: summary.totalIncidents
+      });
+    } catch (error) {
+      console.error("Pattern analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze incident patterns" });
     }
   });
 
