@@ -424,6 +424,41 @@ export const syncLogs = pgTable("sync_logs", {
   completedAt: timestamp("completed_at"),
 });
 
+// Chat rooms for group messaging
+export const chatRooms = pgTable("chat_rooms", {
+  id: text("id").primaryKey(), // 'general', 'emergency', etc.
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // public, private, emergency
+  createdBy: integer("created_by").notNull(),
+  maxParticipants: integer("max_participants"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Chat messages for rooms and direct messages
+export const chatMessages = pgTable("chat_messages", {
+  id: text("id").primaryKey(),
+  roomId: text("room_id"), // null for direct messages
+  senderId: integer("sender_id").notNull(),
+  recipientId: integer("recipient_id"), // null for room messages
+  content: text("content").notNull(),
+  messageType: text("message_type").notNull().default("text"), // text, file, image, call, video
+  fileUrl: text("file_url"),
+  fileName: text("file_name"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Online users tracking
+export const onlineUsers = pgTable("online_users", {
+  userId: integer("user_id").primaryKey(),
+  socketId: text("socket_id"),
+  lastSeen: timestamp("last_seen").notNull().defaultNow(),
+  status: text("status").notNull().default("online"), // online, away, busy
+  currentRoom: text("current_room"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignments: many(assignments),
@@ -432,6 +467,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   documents: many(documents),
   sentMessages: many(messages, { relationName: "sender" }),
   receivedMessages: many(messages, { relationName: "recipient" }),
+  chatMessages: many(chatMessages),
   enrollments: many(enrollments),
   auditLogs: many(auditLogs),
 }));
@@ -472,6 +508,17 @@ export const documentsRelations = relations(documents, ({ one }) => ({
 export const messagesRelations = relations(messages, ({ one }) => ({
   sender: one(users, { fields: [messages.senderId], references: [users.id], relationName: "sender" }),
   recipient: one(users, { fields: [messages.recipientId], references: [users.id], relationName: "recipient" }),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
+  recipient: one(users, { fields: [chatMessages.recipientId], references: [users.id] }),
+  room: one(chatRooms, { fields: [chatMessages.roomId], references: [chatRooms.id] }),
+}));
+
+export const chatRoomsRelations = relations(chatRooms, ({ one, many }) => ({
+  creator: one(users, { fields: [chatRooms.createdBy], references: [users.id] }),
+  messages: many(chatMessages),
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
@@ -565,6 +612,18 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
   updatedAt: true,
 });
 
+export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
+  createdAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  createdAt: true,
+});
+
+export const insertOnlineUserSchema = createInsertSchema(onlineUsers).omit({
+  lastSeen: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -594,6 +653,12 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type OnlineUser = typeof onlineUsers.$inferSelect;
+export type InsertOnlineUser = z.infer<typeof insertOnlineUserSchema>;
 
 // Additional insert schemas for new tables
 export const insertDeviceSchema = createInsertSchema(devices).omit({
