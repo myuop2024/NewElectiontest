@@ -519,23 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // SPA fallback: serve index.html for all non-API, non-static requests
-  app.get("*", (req, res) => {
-    if (
-      !req.path.startsWith("/api") &&
-      !req.path.startsWith("/ws") &&
-      !req.path.includes(".")
-    ) {
-      const indexPath = path.resolve(__dirname, "../client/index.html");
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).send("index.html not found");
-      }
-    } else {
-      res.status(404).send("Not found");
-    }
-  });
+
 
   return httpServer;
 }
