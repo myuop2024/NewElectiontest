@@ -1,4 +1,5 @@
 import express, { type Express, type Request, type Response } from "express";
+import session from "express-session";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import bcrypt from "bcrypt";
@@ -30,9 +31,17 @@ const __dirname = path.dirname(__filename);
 const JWT_SECRET = process.env.JWT_SECRET || "caffe-electoral-observer-secret-2024";
 
 // Extend Express Request type to include user and session
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+    username?: string;
+    role?: string;
+  }
+}
+
 interface AuthenticatedRequest extends Request {
   user?: { id: number; username: string; role: string };
-  session?: any;
+  session: session.Session & Partial<session.SessionData>;
 }
 
 
@@ -1238,7 +1247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', (ws: WebSocket, req) => {
     // For simplicity, we'll assume a user ID is passed as a query parameter
     // In a real app, you'd use a secure authentication method (e.g., from the session)
-    const url = new URL(req.url, `http://${req.headers.host}`);
+    const baseUrl = `http://${req.headers.host}`;
+    const url = new URL(req.url || '/ws', baseUrl);
     const userId = Number(url.searchParams.get('userId'));
 
     if (userId) {
