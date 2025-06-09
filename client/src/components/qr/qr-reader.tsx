@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Camera, Square, RotateCcw } from "lucide-react";
+import QrScanner from "qr-scanner";
 
 interface QRReaderProps {
   onScanSuccess: (data: string) => void;

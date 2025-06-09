@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QrCode, Download, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateQRData } from "@/lib/qr-utils";
+import QRCode from "qrcode";
 
 interface QRGeneratorProps {
   user: any;
@@ -18,7 +19,7 @@ export default function QRGenerator({ user }: QRGeneratorProps) {
   const [generatedQR, setGeneratedQR] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const generateQR = () => {
+  const generateQR = async () => {
     try {
       let qrData;
       
@@ -46,10 +47,8 @@ export default function QRGenerator({ user }: QRGeneratorProps) {
           throw new Error("Unknown QR type");
       }
 
-      // In a real implementation, this would use a QR code library
-      // For now, we'll create a placeholder SVG
-      const qrSvg = createQRCodeSVG(JSON.stringify(qrData));
-      setGeneratedQR(qrSvg);
+      const qrDataURL = await createQRCodeSVG(JSON.stringify(qrData));
+      setGeneratedQR(qrDataURL);
 
       toast({
         title: "QR Code Generated",
@@ -64,27 +63,28 @@ export default function QRGenerator({ user }: QRGeneratorProps) {
     }
   };
 
-  const createQRCodeSVG = (data: string) => {
-    // This is a placeholder - in production you'd use a proper QR library
-    return `data:image/svg+xml,${encodeURIComponent(`
-      <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="200" fill="white"/>
-        <rect x="20" y="20" width="160" height="160" fill="none" stroke="black" stroke-width="2"/>
-        <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="10">
-          QR Code
-        </text>
-        <text x="100" y="120" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="8">
-          ${data.slice(0, 20)}...
-        </text>
-      </svg>
-    `)}`;
+  const createQRCodeSVG = async (data: string) => {
+    try {
+      const qrDataURL = await QRCode.toDataURL(data, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      return qrDataURL;
+    } catch (error) {
+      console.error('QR code generation failed:', error);
+      throw error;
+    }
   };
 
   const downloadQR = () => {
     if (generatedQR) {
       const link = document.createElement('a');
       link.href = generatedQR;
-      link.download = `qr-code-${qrType}-${Date.now()}.svg`;
+      link.download = `qr-code-${qrType}-${Date.now()}.png`;
       link.click();
       
       toast({
