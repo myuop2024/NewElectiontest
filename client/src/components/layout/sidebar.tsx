@@ -19,7 +19,8 @@ import {
   Circle,
   AlertTriangle,
   Users,
-  Activity
+  Activity,
+  Brain
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'Incident Reporting', href: '/incident-reporting', icon: AlertTriangle },
   { name: 'Observer Assignments', href: '/observer-assignments', icon: Users },
   { name: 'Real-Time Analytics', href: '/real-time-analytics', icon: Activity },
+  { name: 'AI Analytics', href: '/ai-analytics', icon: Brain },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Live Chat', href: '/live-chat', icon: MessageCircle },
   { name: 'Document Capture', href: '/document-capture', icon: Camera },

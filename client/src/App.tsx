@@ -27,6 +27,7 @@ import UnifiedAdmin from "@/pages/unified-admin";
 import IncidentReporting from "@/pages/incident-reporting";
 import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
+import AIAnalytics from "@/pages/ai-analytics";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -147,6 +148,11 @@ function Router() {
       <Route path="/real-time-analytics">
         <ProtectedLayout>
           <RealTimeAnalytics />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/ai-analytics">
+        <ProtectedLayout>
+          <AIAnalytics />
         </ProtectedLayout>
       </Route>
       <Route path="*">
