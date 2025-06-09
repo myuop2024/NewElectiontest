@@ -1,14 +1,15 @@
 import {
   users, parishes, pollingStations, assignments, checkIns, reports, documents, messages,
-  courses, enrollments, faqs, news, auditLogs, settings,
+  courses, enrollments, faqs, news, auditLogs, settings, chatRooms, chatMessages, onlineUsers,
   type User, type InsertUser, type Parish, type InsertParish, type PollingStation, type InsertPollingStation,
   type Assignment, type InsertAssignment, type CheckIn, type InsertCheckIn, type Report, type InsertReport,
   type Document, type InsertDocument, type Message, type InsertMessage, type Course, type InsertCourse,
   type Enrollment, type InsertEnrollment, type FAQ, type InsertFAQ, type News, type InsertNews,
-  type AuditLog, type InsertAuditLog, type Setting, type InsertSetting
+  type AuditLog, type InsertAuditLog, type Setting, type InsertSetting, type ChatRoom, type InsertChatRoom,
+  type ChatMessage, type InsertChatMessage, type OnlineUser, type InsertOnlineUser
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, count, sql, isNull } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -94,6 +95,22 @@ export interface IStorage {
   getSettingByKey(key: string): Promise<Setting | undefined>;
   createSetting(setting: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string, updatedBy?: number): Promise<Setting>;
+  
+  // Chat functionality
+  getChatRooms(): Promise<ChatRoom[]>;
+  getChatRoom(id: string): Promise<ChatRoom | undefined>;
+  createChatRoom(room: InsertChatRoom): Promise<ChatRoom>;
+  getChatMessages(roomId: string): Promise<ChatMessage[]>;
+  getDirectMessages(userId1: number, userId2: number): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  markChatMessageAsRead(id: string): Promise<ChatMessage>;
+  
+  // Online users tracking
+  setUserOnline(userId: number, socketId: string, roomId?: string): Promise<OnlineUser>;
+  setUserOffline(userId: number): Promise<void>;
+  getOnlineUsers(): Promise<OnlineUser[]>;
+  getOnlineUsersInRoom(roomId: string): Promise<OnlineUser[]>;
+  updateUserLastSeen(userId: number): Promise<void>;
   
   // Analytics
   getDashboardStats(): Promise<{
@@ -442,6 +459,102 @@ export class DatabaseStorage implements IStorage {
     }
     
     return setting;
+  }
+
+  // Chat functionality implementations
+  async getChatRooms(): Promise<ChatRoom[]> {
+    return await db.select().from(chatRooms).where(eq(chatRooms.isActive, true)).orderBy(chatRooms.createdAt);
+  }
+
+  async getChatRoom(id: string): Promise<ChatRoom | undefined> {
+    const [room] = await db.select().from(chatRooms).where(eq(chatRooms.id, id));
+    return room || undefined;
+  }
+
+  async createChatRoom(room: InsertChatRoom): Promise<ChatRoom> {
+    const [newRoom] = await db.insert(chatRooms).values(room).returning();
+    return newRoom;
+  }
+
+  async getChatMessages(roomId: string): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(eq(chatMessages.roomId, roomId))
+      .orderBy(chatMessages.createdAt)
+      .limit(100);
+  }
+
+  async getDirectMessages(userId1: number, userId2: number): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(
+        and(
+          isNull(chatMessages.roomId),
+          or(
+            and(eq(chatMessages.senderId, userId1), eq(chatMessages.recipientId, userId2)),
+            and(eq(chatMessages.senderId, userId2), eq(chatMessages.recipientId, userId1))
+          )
+        )
+      )
+      .orderBy(chatMessages.createdAt)
+      .limit(100);
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [newMessage] = await db.insert(chatMessages).values(message).returning();
+    return newMessage;
+  }
+
+  async markChatMessageAsRead(id: string): Promise<ChatMessage> {
+    const [message] = await db
+      .update(chatMessages)
+      .set({ isRead: true })
+      .where(eq(chatMessages.id, id))
+      .returning();
+    return message;
+  }
+
+  // Online users tracking implementations
+  async setUserOnline(userId: number, socketId: string, roomId?: string): Promise<OnlineUser> {
+    const onlineUser = {
+      userId,
+      socketId,
+      status: 'online' as const,
+      currentRoom: roomId || null,
+      lastSeen: new Date()
+    };
+
+    const [user] = await db.insert(onlineUsers)
+      .values(onlineUser)
+      .onConflictDoUpdate({
+        target: onlineUsers.userId,
+        set: {
+          socketId,
+          status: 'online',
+          currentRoom: roomId || null,
+          lastSeen: new Date()
+        }
+      })
+      .returning();
+    
+    return user;
+  }
+
+  async setUserOffline(userId: number): Promise<void> {
+    await db.delete(onlineUsers).where(eq(onlineUsers.userId, userId));
+  }
+
+  async getOnlineUsers(): Promise<OnlineUser[]> {
+    return await db.select().from(onlineUsers).where(eq(onlineUsers.status, 'online'));
+  }
+
+  async getOnlineUsersInRoom(roomId: string): Promise<OnlineUser[]> {
+    return await db.select().from(onlineUsers)
+      .where(and(eq(onlineUsers.status, 'online'), eq(onlineUsers.currentRoom, roomId)));
+  }
+
+  async updateUserLastSeen(userId: number): Promise<void> {
+    await db.update(onlineUsers)
+      .set({ lastSeen: new Date() })
+      .where(eq(onlineUsers.userId, userId));
   }
 
   async getDashboardStats(): Promise<{

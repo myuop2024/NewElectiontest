@@ -1258,6 +1258,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get chat messages for a room
+  app.get("/api/chat/messages", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { roomId, recipientId } = req.query;
+      
+      if (roomId) {
+        const messages = await storage.getChatMessages(roomId as string);
+        res.json(messages);
+      } else if (recipientId) {
+        const messages = await storage.getDirectMessages(req.user!.id, parseInt(recipientId as string));
+        res.json(messages);
+      } else {
+        res.json([]);
+      }
+    } catch (error) {
+      console.error('Get messages error:', error);
+      res.status(500).json({ message: 'Failed to get messages' });
+    }
+  });
+
+  // Send chat message
+  app.post("/api/chat/messages", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { roomId, recipientId, content, messageType = 'text' } = req.body;
+      
+      const messageId = Math.random().toString(36).substr(2, 9);
+      const message = await storage.createChatMessage({
+        id: messageId,
+        roomId: roomId || null,
+        senderId: req.user!.id,
+        recipientId: recipientId || null,
+        content,
+        messageType,
+        isRead: false
+      });
+
+      // Broadcast message via WebSocket
+      const wsMessage = {
+        type: 'chat_message',
+        id: message.id,
+        content: message.content,
+        senderId: message.senderId,
+        recipientId: message.recipientId,
+        roomId: message.roomId,
+        timestamp: message.createdAt,
+        messageType: message.messageType
+      };
+
+      // Send to all connected clients
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(wsMessage));
+        }
+      });
+
+      res.json(message);
+    } catch (error) {
+      console.error('Send message error:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  });
+
+  // Get online users in room
+  app.get("/api/chat/rooms/:roomId/online", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const onlineUsers = await storage.getOnlineUsersInRoom(req.params.roomId);
+      res.json(onlineUsers);
+    } catch (error) {
+      console.error('Get online users error:', error);
+      res.status(500).json({ message: 'Failed to get online users' });
+    }
+  });
+
   app.post("/api/chat/direct-message", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { recipientId, content, messageType } = req.body;
