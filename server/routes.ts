@@ -18,6 +18,7 @@ import { RouteService } from "./lib/route-service.js";
 import { CommunicationService } from "./lib/communication-service.js";
 import { FormBuilderService } from "./lib/form-builder-service.js";
 import { ChatService } from "./lib/chat-service.js";
+import { AdminSettingsService } from "./lib/admin-settings-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -866,6 +867,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Room participants error:', error);
       res.status(500).json({ message: 'Failed to get room participants' });
+    }
+  });
+
+  // Admin Settings Management
+  app.get("/api/admin/features/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const featureStatus = await AdminSettingsService.getFeatureStatus();
+      res.json(featureStatus);
+    } catch (error) {
+      console.error('Feature status error:', error);
+      res.status(500).json({ message: 'Failed to get feature status' });
+    }
+  });
+
+  app.get("/api/admin/system/health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const health = await AdminSettingsService.getSystemHealth();
+      res.json(health);
+    } catch (error) {
+      console.error('System health error:', error);
+      res.status(500).json({ message: 'Failed to get system health' });
+    }
+  });
+
+  app.post("/api/admin/settings/validate/:service", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const validation = await AdminSettingsService.validateAPIConfiguration(req.params.service);
+      res.json(validation);
+    } catch (error) {
+      console.error('API validation error:', error);
+      res.status(500).json({ message: 'Failed to validate API configuration' });
+    }
+  });
+
+  app.get("/api/admin/settings/export", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const config = await AdminSettingsService.exportConfiguration();
+      res.json(config);
+    } catch (error) {
+      console.error('Configuration export error:', error);
+      res.status(500).json({ message: 'Failed to export configuration' });
+    }
+  });
+
+  app.post("/api/admin/settings/initialize", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await AdminSettingsService.initializeDefaultSettings();
+      res.json({ success: true, message: 'Default settings initialized' });
+    } catch (error) {
+      console.error('Settings initialization error:', error);
+      res.status(500).json({ message: 'Failed to initialize settings' });
     }
   });
 

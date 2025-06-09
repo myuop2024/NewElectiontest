@@ -86,7 +86,13 @@ export class AdminSettingsService {
       try {
         const existing = await storage.getSettingByKey(setting.key);
         if (!existing) {
-          await storage.createSetting(setting);
+          await storage.createSetting({
+          key: setting.key,
+          value: setting.value,
+          category: 'system',
+          description: `Configuration for ${setting.key}`,
+          isPublic: false
+        });
           console.log(`Created default setting: ${setting.key}`);
         }
       } catch (error) {

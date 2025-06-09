@@ -29,6 +29,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ChatRoomManager from "@/components/admin/chat-room-manager";
+import FeatureStatusDashboard from "@/components/admin/feature-status-dashboard";
 
 export default function AdminSettings() {
   const [showSecrets, setShowSecrets] = useState({});
@@ -83,8 +84,9 @@ export default function AdminSettings() {
         <h1 className="text-2xl font-bold">Admin Settings & Configuration</h1>
       </div>
 
-      <Tabs defaultValue="apis" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="status" className="w-full">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="status">System Status</TabsTrigger>
           <TabsTrigger value="apis">API Keys</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
@@ -92,6 +94,11 @@ export default function AdminSettings() {
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="chat">Chat Management</TabsTrigger>
         </TabsList>
+
+        {/* System Status Dashboard */}
+        <TabsContent value="status" className="space-y-6">
+          <FeatureStatusDashboard />
+        </TabsContent>
 
         {/* API Keys Configuration */}
         <TabsContent value="apis" className="space-y-6">
