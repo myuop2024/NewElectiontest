@@ -38,30 +38,61 @@ export default function LiveChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle room join/leave when selectedRoom changes
+  useEffect(() => {
+    if (sendMessage && selectedRoom && chatMode === 'room') {
+      // Join the new room
+      sendMessage({
+        type: 'join_room',
+        roomId: selectedRoom,
+        userId: user?.id || 0,
+        content: '',
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date()
+      });
+
+      // Leave the room when component unmounts or room changes
+      return () => {
+        sendMessage({
+          type: 'leave_room',
+          roomId: selectedRoom,
+          userId: user?.id || 0,
+          content: '',
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date()
+        });
+      };
+    }
+  }, [sendMessage, selectedRoom, chatMode, user?.id]);
+
   const handleSendMessage = () => {
     if (!message.trim() || !user) return;
 
     if (chatMode === 'direct' && selectedUser) {
       // Send direct message
       const directMessage = {
-        type: 'direct_message',
+        type: 'chat_message' as const,
+        id: Math.random().toString(36).substr(2, 9),
         senderId: user.id,
-        recipientId: selectedUser.id || selectedUser.userId,
+        userId: user.id,
+        recipientId: (selectedUser as any).id || (selectedUser as any).userId,
         content: message.trim(),
         messageType: 'text',
-        createdAt: new Date().toISOString()
+        timestamp: new Date()
       };
       setMessages(prev => [...prev, directMessage]);
       sendMessage(directMessage);
     } else {
       // Send room message
       const newMessage = {
-        type: 'chat_message',
+        type: 'chat_message' as const,
+        id: Math.random().toString(36).substr(2, 9),
         senderId: user.id,
+        userId: user.id,
         roomId: selectedRoom,
         content: message,
         messageType: 'text',
-        createdAt: new Date().toISOString()
+        timestamp: new Date()
       };
       setMessages(prev => [...prev, newMessage]);
       sendMessage(newMessage);

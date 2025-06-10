@@ -1,6 +1,6 @@
 export interface WebSocketMessage {
   id: string;
-  type: 'chat' | 'notification' | 'alert' | 'system' | 'chat_message';
+  type: 'chat' | 'notification' | 'alert' | 'system' | 'chat_message' | 'join_room' | 'leave_room';
   content: string;
   userId: number;
   timestamp: Date;

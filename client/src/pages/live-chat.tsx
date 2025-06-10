@@ -87,7 +87,7 @@ export default function LiveChat() {
 
   useEffect(() => {
     if (socket) {
-      const handleMessage = (event) => {
+      const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'chat_message' && 
@@ -114,7 +114,7 @@ export default function LiveChat() {
         }
       };
 
-      const handleError = (error) => {
+      const handleError = (error: Event) => {
         console.error('WebSocket error in chat component:', error);
       };
 
