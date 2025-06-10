@@ -2523,8 +2523,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  // Simple in-memory store for connected clients
+  // Simple in-memory store for connected clients and their room subscriptions
   const clients = new Map<number, WebSocket>();
+  const userRooms = new Map<number, Set<string>>(); // Track which rooms each user is in
 
   wss.on('connection', (ws: WebSocket, req) => {
     let userId: number | null = null;
@@ -2539,6 +2540,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId && !isNaN(userId)) {
         console.log(`WebSocket client connected for user: ${userId}`);
         clients.set(userId, ws);
+        // Initialize user's room subscriptions
+        if (!userRooms.has(userId)) {
+          userRooms.set(userId, new Set());
+        }
       } else {
         console.log('WebSocket connection established without valid user ID');
       }
@@ -2551,6 +2556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId) {
         console.log(`WebSocket client disconnected for user: ${userId} (${code}: ${reason})`);
         clients.delete(userId);
+        userRooms.delete(userId);
       } else {
         console.log(`WebSocket client disconnected (${code}: ${reason})`);
       }
@@ -2568,11 +2574,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Handle different message types
         switch (data.type) {
+          case 'join_room':
+            // User joining a room
+            if (userId && data.roomId) {
+              const rooms = userRooms.get(userId) || new Set();
+              rooms.add(data.roomId);
+              userRooms.set(userId, rooms);
+              console.log(`User ${userId} joined room ${data.roomId}`);
+            }
+            break;
+            
+          case 'leave_room':
+            // User leaving a room
+            if (userId && data.roomId) {
+              const rooms = userRooms.get(userId);
+              if (rooms) {
+                rooms.delete(data.roomId);
+                console.log(`User ${userId} left room ${data.roomId}`);
+              }
+            }
+            break;
+            
           case 'chat_message':
-            // Room message - broadcast to all connected users
+            // Room message - broadcast only to users in that room
             if (data.roomId) {
-              wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
+              clients.forEach((client, clientUserId) => {
+                const clientRooms = userRooms.get(clientUserId);
+                if (client.readyState === WebSocket.OPEN && 
+                    clientRooms && clientRooms.has(data.roomId)) {
                   client.send(JSON.stringify({
                     ...data,
                     timestamp: new Date().toISOString(),

@@ -66,6 +66,25 @@ export default function LiveChat() {
     }
   }, [messageHistory, selectedChat]);
 
+  // Handle room join/leave when selectedChat changes
+  useEffect(() => {
+    if (socket && selectedChat) {
+      // Join the new room
+      socket.send(JSON.stringify({
+        type: 'join_room',
+        roomId: selectedChat
+      }));
+
+      // Leave the room when component unmounts or room changes
+      return () => {
+        socket.send(JSON.stringify({
+          type: 'leave_room',
+          roomId: selectedChat
+        }));
+      };
+    }
+  }, [socket, selectedChat]);
+
   useEffect(() => {
     if (socket) {
       const handleMessage = (event) => {
