@@ -102,8 +102,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, user]);
 
   const sendMessage = (message: WebSocketMessage) => {
-    if (socket && isConnected) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
+    } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+      // Queue message until connection is ready
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify(message));
+      }, { once: true });
     } else {
       console.warn("WebSocket not connected");
     }

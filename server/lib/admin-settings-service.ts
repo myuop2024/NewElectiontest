@@ -250,8 +250,17 @@ export class AdminSettingsService {
     return featureStatus;
   }
 
-  // Validate API configuration
+  // Validate API configuration with timeout and error handling
   static async validateAPIConfiguration(service: string) {
+    const API_TIMEOUT = 10000; // 10 seconds timeout for API tests
+    
+    const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+      );
+      return Promise.race([promise, timeout]);
+    };
+
     const validations: Record<string, () => Promise<{ valid: boolean; message: string }>> = {
       bigquery: async () => {
         const enabled = await storage.getSettingByKey('bigquery_enabled');
@@ -274,7 +283,22 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!accountSid?.value) return { valid: false, message: 'Account SID required' };
           if (!authToken?.value) return { valid: false, message: 'Auth token required' };
-          return { valid: true, message: 'Configuration valid' };
+          
+          // Test Twilio API connection
+          try {
+            const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid.value}.json`, {
+              headers: {
+                'Authorization': `Basic ${Buffer.from(`${accountSid.value}:${authToken.value}`).toString('base64')}`
+              }
+            });
+            
+            if (!response.ok) {
+              return { valid: false, message: 'Invalid credentials or API access denied' };
+            }
+            return { valid: true, message: 'Configuration valid - Twilio API tested successfully' };
+          } catch (error) {
+            return { valid: false, message: 'Twilio API connection test failed' };
+          }
         }
         return { valid: true, message: 'Service disabled' };
       },
@@ -286,7 +310,25 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           if (!apiKey.value.startsWith('sk-')) return { valid: false, message: 'Invalid API key format' };
-          return { valid: true, message: 'Configuration valid' };
+          
+          // Test API connection with timeout
+          try {
+            const testResponse = await withTimeout(
+              fetch('https://api.openai.com/v1/models', {
+                headers: { 'Authorization': `Bearer ${apiKey.value}` }
+              }),
+              API_TIMEOUT
+            );
+            if (!testResponse.ok) {
+              return { valid: false, message: 'Invalid API key or connection failed' };
+            }
+            return { valid: true, message: 'Configuration valid - API tested successfully' };
+          } catch (error: any) {
+            if (error.message === 'Request timeout') {
+              return { valid: false, message: 'API connection timeout - check network connectivity' };
+            }
+            return { valid: false, message: 'API connection test failed' };
+          }
         }
         return { valid: true, message: 'Service disabled' };
       },
@@ -297,7 +339,21 @@ export class AdminSettingsService {
         
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
-          return { valid: true, message: 'Configuration valid' };
+          
+          // Test HERE Maps API
+          try {
+            const testResponse = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=Kingston,Jamaica&apikey=${apiKey.value}`);
+            if (!testResponse.ok) {
+              return { valid: false, message: 'Invalid API key or rate limit exceeded' };
+            }
+            const data = await testResponse.json();
+            if (data.items && data.items.length > 0) {
+              return { valid: true, message: 'Configuration valid - HERE Maps API tested successfully' };
+            }
+            return { valid: false, message: 'API key valid but no results returned' };
+          } catch (error) {
+            return { valid: false, message: 'HERE Maps API connection test failed' };
+          }
         }
         return { valid: true, message: 'Service disabled' };
       },
@@ -358,7 +414,21 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           if (!apiKey.value.startsWith('AIza')) return { valid: false, message: 'Invalid Gemini API key format' };
-          return { valid: true, message: 'Configuration valid' };
+          
+          // Test Gemini API
+          try {
+            const testResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.value}`);
+            if (!testResponse.ok) {
+              return { valid: false, message: 'Invalid API key or access denied' };
+            }
+            const data = await testResponse.json();
+            if (data.models && data.models.length > 0) {
+              return { valid: true, message: 'Configuration valid - Gemini API tested successfully' };
+            }
+            return { valid: false, message: 'API key valid but no models available' };
+          } catch (error) {
+            return { valid: false, message: 'Gemini API connection test failed' };
+          }
         }
         return { valid: true, message: 'Service disabled' };
       },
