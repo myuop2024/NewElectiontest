@@ -56,6 +56,40 @@ export default function FeatureStatusDashboard() {
     }
   });
 
+  // Test all features mutation
+  const testAllFeaturesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/features/test-all');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Feature Tests Complete",
+        description: `Tested ${data.totalFeatures} features. ${data.passedFeatures} passed, ${data.failedFeatures} failed.`
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/features/status'] });
+    },
+    onError: () => {
+      toast({
+        title: "Feature Test Failed",
+        description: "Unable to complete comprehensive feature testing.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Emergency validation query
+  const { data: emergencyValidation, refetch: refetchEmergency } = useQuery({
+    queryKey: ['/api/admin/emergency/validate'],
+    enabled: false
+  });
+
+  // Database health query
+  const { data: databaseHealth, refetch: refetchDatabase } = useQuery({
+    queryKey: ['/api/admin/database/health'],
+    enabled: false
+  });
+
   const getStatusIcon = (enabled: boolean, configured: boolean) => {
     if (enabled && configured) {
       return <CheckCircle className="h-5 w-5 text-green-500" />;

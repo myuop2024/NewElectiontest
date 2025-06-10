@@ -270,7 +270,23 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!projectId?.value) return { valid: false, message: 'Project ID required' };
           if (!serviceKey?.value) return { valid: false, message: 'Service account key required' };
-          return { valid: true, message: 'Configuration valid' };
+          
+          // Validate service account key format
+          try {
+            const keyData = JSON.parse(serviceKey.value);
+            if (!keyData.type || keyData.type !== 'service_account') {
+              return { valid: false, message: 'Invalid service account key format' };
+            }
+            if (!keyData.project_id || keyData.project_id !== projectId.value) {
+              return { valid: false, message: 'Service account project ID mismatch' };
+            }
+            if (!keyData.private_key || !keyData.client_email) {
+              return { valid: false, message: 'Service account key missing required fields' };
+            }
+            return { valid: true, message: 'Configuration valid - Service account key format verified' };
+          } catch (error) {
+            return { valid: false, message: 'Invalid JSON format for service account key' };
+          }
         }
         return { valid: true, message: 'Service disabled' };
       },
@@ -284,19 +300,25 @@ export class AdminSettingsService {
           if (!accountSid?.value) return { valid: false, message: 'Account SID required' };
           if (!authToken?.value) return { valid: false, message: 'Auth token required' };
           
-          // Test Twilio API connection
+          // Test Twilio API connection with timeout
           try {
-            const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid.value}.json`, {
-              headers: {
-                'Authorization': `Basic ${Buffer.from(`${accountSid.value}:${authToken.value}`).toString('base64')}`
-              }
-            });
+            const response = await withTimeout(
+              fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid.value}.json`, {
+                headers: {
+                  'Authorization': `Basic ${Buffer.from(`${accountSid.value}:${authToken.value}`).toString('base64')}`
+                }
+              }),
+              API_TIMEOUT
+            );
             
             if (!response.ok) {
               return { valid: false, message: 'Invalid credentials or API access denied' };
             }
             return { valid: true, message: 'Configuration valid - Twilio API tested successfully' };
-          } catch (error) {
+          } catch (error: any) {
+            if (error.message === 'Request timeout') {
+              return { valid: false, message: 'Twilio API timeout - check network connectivity' };
+            }
             return { valid: false, message: 'Twilio API connection test failed' };
           }
         }
@@ -340,9 +362,12 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           
-          // Test HERE Maps API
+          // Test HERE Maps API with timeout
           try {
-            const testResponse = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=Kingston,Jamaica&apikey=${apiKey.value}`);
+            const testResponse = await withTimeout(
+              fetch(`https://geocode.search.hereapi.com/v1/geocode?q=Kingston,Jamaica&apikey=${apiKey.value}`),
+              API_TIMEOUT
+            );
             if (!testResponse.ok) {
               return { valid: false, message: 'Invalid API key or rate limit exceeded' };
             }
@@ -351,7 +376,10 @@ export class AdminSettingsService {
               return { valid: true, message: 'Configuration valid - HERE Maps API tested successfully' };
             }
             return { valid: false, message: 'API key valid but no results returned' };
-          } catch (error) {
+          } catch (error: any) {
+            if (error.message === 'Request timeout') {
+              return { valid: false, message: 'HERE Maps API timeout - check network connectivity' };
+            }
             return { valid: false, message: 'HERE Maps API connection test failed' };
           }
         }
@@ -402,7 +430,31 @@ export class AdminSettingsService {
         
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
-          return { valid: true, message: 'Configuration valid' };
+          
+          // Test HuggingFace API with timeout
+          try {
+            const testResponse = await withTimeout(
+              fetch('https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-8B-Instruct', {
+                headers: { 'Authorization': `Bearer ${apiKey.value}` },
+                method: 'POST',
+                body: JSON.stringify({ inputs: 'test' })
+              }),
+              API_TIMEOUT
+            );
+            
+            if (testResponse.status === 401) {
+              return { valid: false, message: 'Invalid API key or access denied' };
+            }
+            if (!testResponse.ok && testResponse.status !== 503) {
+              return { valid: false, message: 'API key invalid or model not accessible' };
+            }
+            return { valid: true, message: 'Configuration valid - HuggingFace API tested successfully' };
+          } catch (error: any) {
+            if (error.message === 'Request timeout') {
+              return { valid: false, message: 'HuggingFace API timeout - check network connectivity' };
+            }
+            return { valid: false, message: 'HuggingFace API connection test failed' };
+          }
         }
         return { valid: true, message: 'Service disabled' };
       },
@@ -415,9 +467,12 @@ export class AdminSettingsService {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           if (!apiKey.value.startsWith('AIza')) return { valid: false, message: 'Invalid Gemini API key format' };
           
-          // Test Gemini API
+          // Test Gemini API with timeout
           try {
-            const testResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.value}`);
+            const testResponse = await withTimeout(
+              fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.value}`),
+              API_TIMEOUT
+            );
             if (!testResponse.ok) {
               return { valid: false, message: 'Invalid API key or access denied' };
             }
@@ -426,7 +481,10 @@ export class AdminSettingsService {
               return { valid: true, message: 'Configuration valid - Gemini API tested successfully' };
             }
             return { valid: false, message: 'API key valid but no models available' };
-          } catch (error) {
+          } catch (error: any) {
+            if (error.message === 'Request timeout') {
+              return { valid: false, message: 'Gemini API timeout - check network connectivity' };
+            }
             return { valid: false, message: 'Gemini API connection test failed' };
           }
         }
@@ -447,14 +505,31 @@ export class AdminSettingsService {
       },
       
       email: async () => {
-        const enabled = await storage.getSettingByKey('email_enabled');
-        const password = await storage.getSettingByKey('email_password');
-        const user = await storage.getSettingByKey('email_user');
+        const enabled = await storage.getSettingByKey('email_notifications_enabled');
+        const smtpEmail = await storage.getSettingByKey('smtp_email');
+        const smtpPassword = await storage.getSettingByKey('smtp_password');
+        const smtpServer = await storage.getSettingByKey('smtp_server');
+        const smtpPort = await storage.getSettingByKey('smtp_port');
         
         if (enabled?.value === 'true') {
-          if (!user?.value) return { valid: false, message: 'Email user required' };
-          if (!password?.value) return { valid: false, message: 'Email password required' };
-          return { valid: true, message: 'Configuration valid' };
+          if (!smtpEmail?.value) return { valid: false, message: 'SMTP email required' };
+          if (!smtpPassword?.value) return { valid: false, message: 'SMTP password required' };
+          if (!smtpServer?.value) return { valid: false, message: 'SMTP server required' };
+          if (!smtpPort?.value) return { valid: false, message: 'SMTP port required' };
+          
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(smtpEmail.value)) {
+            return { valid: false, message: 'Invalid email format' };
+          }
+          
+          // Validate port number
+          const port = parseInt(smtpPort.value);
+          if (isNaN(port) || port < 1 || port > 65535) {
+            return { valid: false, message: 'Invalid SMTP port number' };
+          }
+          
+          return { valid: true, message: 'Configuration valid - SMTP settings verified' };
         }
         return { valid: true, message: 'Service disabled' };
       }

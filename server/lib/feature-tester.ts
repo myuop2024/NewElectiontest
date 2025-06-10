@@ -1,703 +1,240 @@
-import { storage } from '../storage';
-import { AdminSettingsService } from './admin-settings-service';
-import { HuggingFaceService } from './huggingface-service';
-import { GeminiService } from './gemini-service';
-
-export interface FeatureTestResult {
-  featureName: string;
-  key: string;
-  enabled: boolean;
-  configured: boolean;
-  testPassed: boolean;
-  message: string;
-  details?: any;
-}
+import { storage } from "../storage.js";
+import { AdminSettingsService } from "./admin-settings-service.js";
 
 export class FeatureTester {
-  static async testAllFeatures(): Promise<FeatureTestResult[]> {
-    const results: FeatureTestResult[] = [];
-    
-    // Test Observer ID Generation
-    results.push(await this.testObserverIdGeneration());
-    
-    // Test KYC Verification
-    results.push(await this.testKYCVerification());
-    
-    // Test Device Binding
-    results.push(await this.testDeviceBinding());
-    
-    // Test BigQuery Analytics
-    results.push(await this.testBigQueryAnalytics());
-    
-    // Test HERE Maps Integration
-    results.push(await this.testHEREMapsIntegration());
-    
-    // Test Twilio SMS/Voice
-    results.push(await this.testTwilioIntegration());
-    
-    // Test OpenAI Integration
-    results.push(await this.testOpenAIIntegration());
-    
-    // Test Hugging Face AI
-    results.push(await this.testHuggingFaceIntegration());
-    
-    // Test Gemini AI
-    results.push(await this.testGeminiIntegration());
-    
-    // Test WhatsApp Integration
-    results.push(await this.testWhatsAppIntegration());
-    
-    // Test Video Calling (WebRTC)
-    results.push(await this.testVideoCallling());
-    
-    // Test Dynamic Form Builder
-    results.push(await this.testDynamicFormBuilder());
-    
-    // Test Route Optimization
-    results.push(await this.testRouteOptimization());
-    
-    // Test Adaptive Training
-    results.push(await this.testAdaptiveTraining());
-    
-    // Test QR Code Integration
-    results.push(await this.testQRCodeIntegration());
-    
-    // Test Document Processing
-    results.push(await this.testDocumentProcessing());
-    
-    // Test Multi-Factor Authentication
-    results.push(await this.testMultiFactorAuth());
-    
-    // Test Real-time Notifications
-    results.push(await this.testRealTimeNotifications());
-    
-    // Test Emergency Broadcasting
-    results.push(await this.testEmergencyBroadcasting());
-    
-    // Test GPS Tracking
-    results.push(await this.testGPSTracking());
-    
-    // Test Biometric Verification
-    results.push(await this.testBiometricVerification());
-    
-    // Test Blockchain Logging
-    results.push(await this.testBlockchainLogging());
-    
-    // Test Crowd-sourced Validation
-    results.push(await this.testCrowdSourcedValidation());
-    
-    return results;
-  }
+  
+  // Test all admin features comprehensively
+  static async testAllFeatures() {
+    const testResults = {
+      overall: 'testing',
+      totalFeatures: 0,
+      passedFeatures: 0,
+      failedFeatures: 0,
+      warningFeatures: 0,
+      results: [] as any[],
+      systemHealth: 'unknown',
+      timestamp: new Date().toISOString()
+    };
 
-  private static async testObserverIdGeneration(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('observer_id_generation');
-      const enabled = setting?.value === 'true';
-      
-      if (!enabled) {
-        return {
-          featureName: 'Observer ID Generation',
-          key: 'observer_id_generation',
+    const criticalServices = [
+      'bigquery', 'twilio', 'openai', 'here', 'huggingface', 
+      'googlegeminiai', 'whatsapp', 'email', 'didit'
+    ];
+
+    // Test each critical service
+    for (const service of criticalServices) {
+      try {
+        const validation = await AdminSettingsService.validateAPIConfiguration(service);
+        const enabled = await storage.getSettingByKey(`${service}_enabled`) || 
+                       await storage.getSettingByKey(`${service === 'here' ? 'here_maps' : service === 'googlegeminiai' ? 'gemini' : service === 'email' ? 'email_notifications' : service}_enabled`);
+        
+        let status = 'disabled';
+        let severity = 'info';
+        
+        if (enabled?.value === 'true') {
+          if (validation.valid) {
+            status = 'active';
+            severity = 'success';
+            testResults.passedFeatures++;
+          } else {
+            status = 'error';
+            severity = 'error';
+            testResults.failedFeatures++;
+          }
+        } else {
+          testResults.warningFeatures++;
+        }
+
+        testResults.results.push({
+          service,
+          status,
+          severity,
+          message: validation.message,
+          enabled: enabled?.value === 'true',
+          testTimestamp: new Date().toISOString()
+        });
+        
+        testResults.totalFeatures++;
+      } catch (error: any) {
+        testResults.results.push({
+          service,
+          status: 'error',
+          severity: 'error',
+          message: `Test failed: ${error.message}`,
           enabled: false,
-          configured: true,
-          testPassed: false,
-          message: 'Feature disabled'
-        };
+          testTimestamp: new Date().toISOString()
+        });
+        testResults.failedFeatures++;
+        testResults.totalFeatures++;
       }
-
-      // Test observer ID generation
-      const observerId = await storage.generateObserverId();
-      const testPassed = observerId && observerId.length > 0;
-
-      return {
-        featureName: 'Observer ID Generation',
-        key: 'observer_id_generation',
-        enabled,
-        configured: true,
-        testPassed,
-        message: testPassed ? 'Observer ID generation working' : 'Failed to generate observer ID',
-        details: { observerId }
-      };
-    } catch (error) {
-      return {
-        featureName: 'Observer ID Generation',
-        key: 'observer_id_generation',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
     }
+
+    // Determine overall system health
+    const successRate = testResults.passedFeatures / Math.max(testResults.totalFeatures, 1);
+    if (successRate >= 0.8) {
+      testResults.overall = 'healthy';
+      testResults.systemHealth = 'excellent';
+    } else if (successRate >= 0.6) {
+      testResults.overall = 'degraded';
+      testResults.systemHealth = 'good';
+    } else if (successRate >= 0.4) {
+      testResults.overall = 'warning';
+      testResults.systemHealth = 'fair';
+    } else {
+      testResults.overall = 'critical';
+      testResults.systemHealth = 'poor';
+    }
+
+    return testResults;
   }
 
-  private static async testKYCVerification(): Promise<FeatureTestResult> {
+  // Test specific feature functionality
+  static async testFeatureConnectivity(serviceName: string) {
     try {
-      const setting = await storage.getSettingByKey('didit_kyc_enabled');
-      const enabled = setting?.value === 'true';
-      
+      const validation = await AdminSettingsService.validateAPIConfiguration(serviceName);
       return {
-        featureName: 'KYC Verification',
-        key: 'didit_kyc_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'KYC verification enabled' : 'KYC verification disabled'
+        service: serviceName,
+        success: validation.valid,
+        message: validation.message,
+        timestamp: new Date().toISOString()
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
-        featureName: 'KYC Verification',
-        key: 'didit_kyc_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testDeviceBinding(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('device_binding_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Device Binding',
-        key: 'device_binding_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Device binding enabled' : 'Device binding disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Device Binding',
-        key: 'device_binding_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testBigQueryAnalytics(): Promise<FeatureTestResult> {
-    try {
-      const validation = await AdminSettingsService.validateAPIConfiguration('bigquery');
-      const setting = await storage.getSettingByKey('bigquery_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'BigQuery Analytics',
-        key: 'bigquery_enabled',
-        enabled,
-        configured: validation.valid,
-        testPassed: validation.valid,
-        message: validation.message
-      };
-    } catch (error) {
-      return {
-        featureName: 'BigQuery Analytics',
-        key: 'bigquery_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testHEREMapsIntegration(): Promise<FeatureTestResult> {
-    try {
-      const validation = await AdminSettingsService.validateAPIConfiguration('here');
-      const setting = await storage.getSettingByKey('here_maps_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'HERE Maps Integration',
-        key: 'here_maps_enabled',
-        enabled,
-        configured: validation.valid,
-        testPassed: validation.valid,
-        message: validation.message
-      };
-    } catch (error) {
-      return {
-        featureName: 'HERE Maps Integration',
-        key: 'here_maps_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testTwilioIntegration(): Promise<FeatureTestResult> {
-    try {
-      const validation = await AdminSettingsService.validateAPIConfiguration('twilio');
-      const setting = await storage.getSettingByKey('twilio_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Twilio SMS/Voice',
-        key: 'twilio_enabled',
-        enabled,
-        configured: validation.valid,
-        testPassed: validation.valid,
-        message: validation.message
-      };
-    } catch (error) {
-      return {
-        featureName: 'Twilio SMS/Voice',
-        key: 'twilio_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testOpenAIIntegration(): Promise<FeatureTestResult> {
-    try {
-      const validation = await AdminSettingsService.validateAPIConfiguration('openai');
-      const setting = await storage.getSettingByKey('openai_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'OpenAI Integration',
-        key: 'openai_enabled',
-        enabled,
-        configured: validation.valid,
-        testPassed: validation.valid,
-        message: validation.message
-      };
-    } catch (error) {
-      return {
-        featureName: 'OpenAI Integration',
-        key: 'openai_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testHuggingFaceIntegration(): Promise<FeatureTestResult> {
-    try {
-      const validation = await HuggingFaceService.validateConfiguration();
-      const setting = await storage.getSettingByKey('huggingface_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Hugging Face AI',
-        key: 'huggingface_enabled',
-        enabled,
-        configured: validation.valid,
-        testPassed: validation.valid,
-        message: validation.message
-      };
-    } catch (error) {
-      return {
-        featureName: 'Hugging Face AI',
-        key: 'huggingface_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testGeminiIntegration(): Promise<FeatureTestResult> {
-    try {
-      const validation = await GeminiService.validateConfiguration();
-      const setting = await storage.getSettingByKey('gemini_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Google Gemini AI',
-        key: 'gemini_enabled',
-        enabled,
-        configured: validation.valid,
-        testPassed: validation.valid,
-        message: validation.message
-      };
-    } catch (error) {
-      return {
-        featureName: 'Google Gemini AI',
-        key: 'gemini_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testWhatsAppIntegration(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('whatsapp_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'WhatsApp Integration',
-        key: 'whatsapp_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'WhatsApp integration enabled' : 'WhatsApp integration disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'WhatsApp Integration',
-        key: 'whatsapp_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testVideoCallling(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('webrtc_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Video Calling',
-        key: 'webrtc_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Video calling enabled' : 'Video calling disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Video Calling',
-        key: 'webrtc_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testDynamicFormBuilder(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('dynamic_form_builder');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Dynamic Form Builder',
-        key: 'dynamic_form_builder',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Dynamic form builder enabled' : 'Dynamic form builder disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Dynamic Form Builder',
-        key: 'dynamic_form_builder',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testRouteOptimization(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('route_optimization');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Route Optimization',
-        key: 'route_optimization',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Route optimization enabled' : 'Route optimization disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Route Optimization',
-        key: 'route_optimization',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testAdaptiveTraining(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('adaptive_training');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Adaptive Training',
-        key: 'adaptive_training',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Adaptive training enabled' : 'Adaptive training disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Adaptive Training',
-        key: 'adaptive_training',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testQRCodeIntegration(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('qr_code_integration');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'QR Code Integration',
-        key: 'qr_code_integration',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'QR code integration enabled' : 'QR code integration disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'QR Code Integration',
-        key: 'qr_code_integration',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testDocumentProcessing(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('document_processing');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Document Processing',
-        key: 'document_processing',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Document processing enabled' : 'Document processing disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Document Processing',
-        key: 'document_processing',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testMultiFactorAuth(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('multi_factor_auth_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Multi-Factor Authentication',
-        key: 'multi_factor_auth_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Multi-factor authentication enabled' : 'Multi-factor authentication disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Multi-Factor Authentication',
-        key: 'multi_factor_auth_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testRealTimeNotifications(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('real_time_notifications');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Real-time Notifications',
-        key: 'real_time_notifications',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Real-time notifications enabled' : 'Real-time notifications disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Real-time Notifications',
-        key: 'real_time_notifications',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testEmergencyBroadcasting(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('emergency_broadcast_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Emergency Broadcasting',
-        key: 'emergency_broadcast_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Emergency broadcasting enabled' : 'Emergency broadcasting disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Emergency Broadcasting',
-        key: 'emergency_broadcast_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testGPSTracking(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('gps_tracking_enabled');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'GPS Tracking',
-        key: 'gps_tracking_enabled',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'GPS tracking enabled' : 'GPS tracking disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'GPS Tracking',
-        key: 'gps_tracking_enabled',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testBiometricVerification(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('biometric_verification');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Biometric Verification',
-        key: 'biometric_verification',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Biometric verification enabled' : 'Biometric verification disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Biometric Verification',
-        key: 'biometric_verification',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testBlockchainLogging(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('blockchain_logging');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Blockchain Logging',
-        key: 'blockchain_logging',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Blockchain logging enabled' : 'Blockchain logging disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Blockchain Logging',
-        key: 'blockchain_logging',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private static async testCrowdSourcedValidation(): Promise<FeatureTestResult> {
-    try {
-      const setting = await storage.getSettingByKey('crowd_sourced_validation');
-      const enabled = setting?.value === 'true';
-      
-      return {
-        featureName: 'Crowd-sourced Validation',
-        key: 'crowd_sourced_validation',
-        enabled,
-        configured: true,
-        testPassed: true,
-        message: enabled ? 'Crowd-sourced validation enabled' : 'Crowd-sourced validation disabled'
-      };
-    } catch (error) {
-      return {
-        featureName: 'Crowd-sourced Validation',
-        key: 'crowd_sourced_validation',
-        enabled: false,
-        configured: false,
-        testPassed: false,
-        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  static async toggleFeature(key: string, enabled: boolean): Promise<{ success: boolean; message: string }> {
-    try {
-      await storage.updateSetting(key, enabled.toString());
-      return {
-        success: true,
-        message: `Feature ${key} ${enabled ? 'enabled' : 'disabled'} successfully`
-      };
-    } catch (error) {
-      return {
+        service: serviceName,
         success: false,
-        message: `Failed to toggle feature: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Connection test failed: ${error.message}`,
+        timestamp: new Date().toISOString()
       };
     }
   }
+
+  // Emergency system validation
+  static async validateEmergencyFeatures() {
+    const emergencyFeatures = {
+      smsAlerts: false,
+      emailNotifications: false,
+      realTimeChat: false,
+      locationTracking: false,
+      escalationProtocol: false,
+      adminNotifications: false
+    };
+
+    try {
+      // Check Twilio SMS capability
+      const twilioEnabled = await storage.getSettingByKey('twilio_enabled');
+      emergencyFeatures.smsAlerts = twilioEnabled?.value === 'true';
+
+      // Check email notifications
+      const emailEnabled = await storage.getSettingByKey('email_notifications_enabled');
+      emergencyFeatures.emailNotifications = emailEnabled?.value === 'true';
+
+      // Check real-time chat (WebRTC)
+      const webrtcEnabled = await storage.getSettingByKey('webrtc_enabled');
+      emergencyFeatures.realTimeChat = webrtcEnabled?.value === 'true';
+
+      // Check GPS tracking
+      const gpsEnabled = await storage.getSettingByKey('gps_tracking_enabled');
+      emergencyFeatures.locationTracking = gpsEnabled?.value === 'true';
+
+      // Check emergency broadcast
+      const emergencyEnabled = await storage.getSettingByKey('emergency_broadcast_enabled');
+      emergencyFeatures.escalationProtocol = emergencyEnabled?.value === 'true';
+
+      // Check admin notifications
+      const adminNotifEnabled = await storage.getSettingByKey('real_time_notifications');
+      emergencyFeatures.adminNotifications = adminNotifEnabled?.value === 'true';
+
+      const enabledCount = Object.values(emergencyFeatures).filter(Boolean).length;
+      const totalFeatures = Object.keys(emergencyFeatures).length;
+      
+      return {
+        features: emergencyFeatures,
+        readinessScore: (enabledCount / totalFeatures) * 100,
+        status: enabledCount >= 4 ? 'ready' : enabledCount >= 2 ? 'partial' : 'insufficient',
+        recommendations: generateEmergencyRecommendations(emergencyFeatures)
+      };
+    } catch (error: any) {
+      return {
+        features: emergencyFeatures,
+        readinessScore: 0,
+        status: 'error',
+        error: error.message,
+        recommendations: ['Fix database connectivity issues before testing emergency features']
+      };
+    }
+  }
+
+  // Database connectivity and performance test
+  static async testDatabaseHealth() {
+    try {
+      const startTime = Date.now();
+      
+      // Test basic connectivity
+      const testUser = await storage.getUserByUsername('admin');
+      const connectTime = Date.now() - startTime;
+
+      // Test settings retrieval
+      const settingsStart = Date.now();
+      const settings = await storage.getSettings();
+      const settingsTime = Date.now() - settingsStart;
+
+      // Test chat rooms
+      const chatStart = Date.now();
+      const chatRooms = await storage.getChatRooms();
+      const chatTime = Date.now() - chatStart;
+
+      return {
+        status: 'healthy',
+        connectivity: connectTime < 1000 ? 'excellent' : connectTime < 3000 ? 'good' : 'slow',
+        performance: {
+          userQuery: connectTime,
+          settingsQuery: settingsTime,
+          chatQuery: chatTime,
+          averageResponseTime: (connectTime + settingsTime + chatTime) / 3
+        },
+        statistics: {
+          totalSettings: Array.isArray(settings) ? settings.length : 0,
+          totalChatRooms: Array.isArray(chatRooms) ? chatRooms.length : 0,
+          adminUser: !!testUser
+        }
+      };
+    } catch (error: any) {
+      return {
+        status: 'error',
+        connectivity: 'failed',
+        error: error.message,
+        performance: null,
+        statistics: null
+      };
+    }
+  }
+}
+
+function generateEmergencyRecommendations(features: any): string[] {
+  const recommendations = [];
+  
+  if (!features.smsAlerts) {
+    recommendations.push('Configure Twilio SMS for emergency text alerts');
+  }
+  if (!features.emailNotifications) {
+    recommendations.push('Set up SMTP email notifications for critical alerts');
+  }
+  if (!features.realTimeChat) {
+    recommendations.push('Enable WebRTC for emergency video communication');
+  }
+  if (!features.locationTracking) {
+    recommendations.push('Activate GPS tracking for observer safety monitoring');
+  }
+  if (!features.escalationProtocol) {
+    recommendations.push('Enable emergency broadcast system for mass alerts');
+  }
+  if (!features.adminNotifications) {
+    recommendations.push('Configure real-time admin notifications');
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push('Emergency system fully configured and operational');
+  }
+
+  return recommendations;
 }

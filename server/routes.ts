@@ -1479,6 +1479,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Comprehensive Admin Feature Testing Routes
+  app.get("/api/admin/features/test-all", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const testResults = await FeatureTester.testAllFeatures();
+      res.json(testResults);
+    } catch (error) {
+      console.error('Feature test error:', error);
+      res.status(500).json({ 
+        message: "Failed to run feature tests",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.post("/api/admin/features/test/:service", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const result = await FeatureTester.testFeatureConnectivity(req.params.service);
+      res.json(result);
+    } catch (error) {
+      console.error('Service test error:', error);
+      res.status(500).json({ 
+        message: "Failed to test service",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get("/api/admin/emergency/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const validation = await FeatureTester.validateEmergencyFeatures();
+      res.json(validation);
+    } catch (error) {
+      console.error('Emergency validation error:', error);
+      res.status(500).json({ 
+        message: "Failed to validate emergency features",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get("/api/admin/database/health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const health = await FeatureTester.testDatabaseHealth();
+      res.json(health);
+    } catch (error) {
+      console.error('Database health error:', error);
+      res.status(500).json({ 
+        message: "Failed to test database health",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Hugging Face AI routes
   app.post("/api/ai/huggingface/generate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
