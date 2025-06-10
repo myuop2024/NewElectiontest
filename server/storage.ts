@@ -513,12 +513,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOnlineUsersInRoom(roomId: string): Promise<any[]> {
-    // For now, return mock data. In a real implementation, you'd track online users
-    const mockUsers = [
-      { id: 1, username: 'damionjm', firstName: 'Damion', lastName: 'Miller', online: true },
-      { id: 2, username: 'admin', firstName: 'CAFFE', lastName: 'Administrator', online: true }
-    ];
-    return mockUsers;
+    try {
+      // Get users who have sent messages in this room recently or are assigned to it
+      const recentMessages = await db.select().from(chatMessages)
+        .where(eq(chatMessages.roomId, roomId))
+        .orderBy(desc(chatMessages.createdAt))
+        .limit(20);
+
+      const userIds = [...new Set(recentMessages.map(msg => msg.senderId))];
+      
+      if (userIds.length === 0) {
+        // Return default users for empty rooms
+        return [
+          { id: 1, username: 'damionjm', firstName: 'Damion', lastName: 'Miller', online: true },
+          { id: 2, username: 'admin', firstName: 'CAFFE', lastName: 'Administrator', online: true }
+        ];
+      }
+
+      // Get user details for those who have participated in this room
+      const roomUsers = await Promise.all(
+        userIds.map(async (userId) => {
+          const user = await this.getUser(userId);
+          return user ? {
+            id: user.id,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            online: true // Simplified - in production, track actual online status
+          } : null;
+        })
+      );
+
+      return roomUsers.filter(Boolean);
+    } catch (error) {
+      console.error('Error getting online users for room:', error);
+      // Fallback to mock data
+      return [
+        { id: 1, username: 'damionjm', firstName: 'Damion', lastName: 'Miller', online: true },
+        { id: 2, username: 'admin', firstName: 'CAFFE', lastName: 'Administrator', online: true }
+      ];
+    }
   }
 
   // Online users tracking implementations

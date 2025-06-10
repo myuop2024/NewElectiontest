@@ -1336,7 +1336,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isRead: false
       });
 
-      // Broadcast message via WebSocket
+      console.log(`Message saved to database: ${message.id} in room ${roomId}`);
+
+      // Broadcast message via WebSocket to other users (not the sender)
       const wsMessage = {
         type: 'chat_message',
         id: message.id,
@@ -1348,11 +1350,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         messageType: message.messageType
       };
 
-      // Send to all connected clients
+      // Send to all connected clients except the sender
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(wsMessage));
+          const clientUserId = (client as any).userId;
+          if (clientUserId !== req.user!.id) {
+            client.send(JSON.stringify(wsMessage));
+          }
         }
+      });
+
+      // Create audit log for message
+      await storage.createAuditLog({
+        action: "chat_message_sent",
+        entityType: "chat_message",
+        userId: req.user!.id,
+        entityId: message.id,
+        ipAddress: req.ip || ''
       });
 
       res.json(message);

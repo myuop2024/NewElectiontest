@@ -20,49 +20,75 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAuthenticated && user) {
       let reconnectAttempts = 0;
-      const maxReconnectAttempts = 5;
-      const reconnectDelay = 3000;
+      const maxReconnectAttempts = 10;
+      const reconnectDelay = 2000;
+      let reconnectTimeout: NodeJS.Timeout;
 
       const connectWebSocket = () => {
-        const ws = webSocketService.connect(user.id.toString());
-        setSocket(ws);
+        try {
+          const ws = webSocketService.connect(user.id.toString());
+          setSocket(ws);
 
-        ws.onopen = () => {
-          setIsConnected(true);
-          reconnectAttempts = 0;
-          console.log("WebSocket connected");
-        };
+          ws.onopen = () => {
+            setIsConnected(true);
+            reconnectAttempts = 0;
+            console.log("WebSocket connected");
+          };
 
-        ws.onclose = (event) => {
-          setIsConnected(false);
-          console.log("WebSocket disconnected");
-          
-          // Attempt to reconnect if not manually closed
-          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+          ws.onclose = (event) => {
+            setIsConnected(false);
+            console.log("WebSocket disconnected");
+            
+            // Clear any existing reconnect timeout
+            if (reconnectTimeout) {
+              clearTimeout(reconnectTimeout);
+            }
+            
+            // Attempt to reconnect if not manually closed
+            if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts++;
+              console.log(`Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
+              reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts);
+            }
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const message: WebSocketMessage = JSON.parse(event.data);
+              // Only add unique messages
+              setMessages(prev => {
+                const exists = prev.some(msg => 
+                  msg.id === message.id || 
+                  (msg.content === message.content && 
+                   msg.senderId === message.senderId && 
+                   Math.abs(new Date(msg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 5000)
+                );
+                return exists ? prev : [...prev, message];
+              });
+            } catch (error) {
+              console.error("Error parsing WebSocket message:", error);
+            }
+          };
+
+          ws.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            setIsConnected(false);
+          };
+        } catch (error) {
+          console.error("Error creating WebSocket connection:", error);
+          if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            console.log(`Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
-            setTimeout(connectWebSocket, reconnectDelay);
+            reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts);
           }
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const message: WebSocketMessage = JSON.parse(event.data);
-            setMessages(prev => [...prev, message]);
-          } catch (error) {
-            console.error("Error parsing WebSocket message:", error);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error("WebSocket error:", error);
-          setIsConnected(false);
-        };
+        }
       };
 
       connectWebSocket();
 
       return () => {
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+        }
         if (socket) {
           socket.close(1000); // Normal closure
           setSocket(null);

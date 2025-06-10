@@ -207,21 +207,33 @@ export default function LiveChat() {
 
       if (response.ok) {
         const savedMessage = await response.json();
-        // Add message to local state immediately for better UX
-        const newMessage = {
-          id: savedMessage.id,
-          content: savedMessage.content,
-          senderId: savedMessage.senderId,
-          timestamp: savedMessage.createdAt,
-          messageType: savedMessage.messageType || 'text'
-        };
-        setMessages(prev => [...prev, newMessage]);
+        
+        // Only add to local state if not already added by WebSocket
+        setMessages(prev => {
+          const exists = prev.some(msg => msg.id === savedMessage.id);
+          if (exists) return prev;
+          
+          return [...prev, {
+            id: savedMessage.id,
+            content: savedMessage.content,
+            senderId: savedMessage.senderId,
+            timestamp: savedMessage.createdAt,
+            messageType: savedMessage.messageType || 'text'
+          }];
+        });
+
+        // Force refetch messages to ensure persistence
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         toast({
           title: "Error",
           description: "Failed to send message",
           variant: "destructive"
         });
+        // Restore message input on error
+        setMessage(messageContent);
       }
     } catch (error) {
       console.error('Send message error:', error);
@@ -230,6 +242,8 @@ export default function LiveChat() {
         description: "Failed to send message",
         variant: "destructive"
       });
+      // Restore message input on error
+      setMessage(messageContent);
     }
   };
 
