@@ -15,6 +15,7 @@ export default function LiveChat() {
   const [selectedChat, setSelectedChat] = useState<string | null>('general');
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
+  const [roomMessages, setRoomMessages] = useState<Record<string, any[]>>({});
   const [isCallActive, setIsCallActive] = useState(false);
   const [callType, setCallType] = useState<'voice' | 'video' | null>(null);
   const [showCallDialog, setShowCallDialog] = useState(false);
@@ -59,12 +60,29 @@ export default function LiveChat() {
 
   // Update messages when history loads or selected chat changes
   useEffect(() => {
-    if (messageHistory && Array.isArray(messageHistory)) {
-      setMessages(messageHistory);
-    } else {
-      setMessages([]);
+    if (selectedChat) {
+      if (messageHistory && Array.isArray(messageHistory)) {
+        // Store room messages and set current messages
+        setRoomMessages(prev => ({
+          ...prev,
+          [selectedChat]: messageHistory
+        }));
+        setMessages(messageHistory);
+      } else if (roomMessages[selectedChat]) {
+        // Use cached messages for this room
+        setMessages(roomMessages[selectedChat]);
+      } else {
+        setMessages([]);
+      }
     }
   }, [messageHistory, selectedChat]);
+
+  // Handle switching between rooms and loading cached messages
+  useEffect(() => {
+    if (selectedChat && roomMessages[selectedChat]) {
+      setMessages(roomMessages[selectedChat]);
+    }
+  }, [selectedChat, roomMessages]);
 
   // Handle room join/leave when selectedChat changes
   useEffect(() => {
@@ -90,23 +108,37 @@ export default function LiveChat() {
       const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'chat_message' && 
-              (data.roomId === selectedChat || (!data.roomId && !selectedChat))) {
+          if (data.type === 'chat_message' && data.roomId) {
             // Only add message if it's from another user to avoid duplicates
             if (data.senderId !== user?.id) {
-              setMessages(prev => {
-                // Check if message already exists to prevent duplicates
-                const exists = prev.some(msg => msg.id === data.id);
+              const newMessage = {
+                id: data.id || Math.random().toString(36).substr(2, 9),
+                content: data.content,
+                senderId: data.senderId,
+                timestamp: data.timestamp || new Date().toISOString(),
+                messageType: data.messageType || 'text'
+              };
+
+              // Update room messages cache
+              setRoomMessages(prev => {
+                const roomMsgs = prev[data.roomId] || [];
+                const exists = roomMsgs.some(msg => msg.id === newMessage.id);
                 if (exists) return prev;
                 
-                return [...prev, {
-                  id: data.id || Math.random().toString(36).substr(2, 9),
-                  content: data.content,
-                  senderId: data.senderId,
-                  timestamp: data.timestamp || new Date().toISOString(),
-                  messageType: data.messageType || 'text'
-                }];
+                return {
+                  ...prev,
+                  [data.roomId]: [...roomMsgs, newMessage]
+                };
               });
+
+              // Update current messages if this is the selected room
+              if (data.roomId === selectedChat) {
+                setMessages(prev => {
+                  const exists = prev.some(msg => msg.id === newMessage.id);
+                  if (exists) return prev;
+                  return [...prev, newMessage];
+                });
+              }
             }
           }
         } catch (error) {
@@ -233,18 +265,31 @@ export default function LiveChat() {
       if (response.ok) {
         const savedMessage = await response.json();
         
-        // Only add to local state if not already added by WebSocket
+        const newMessage = {
+          id: savedMessage.id,
+          content: savedMessage.content,
+          senderId: savedMessage.senderId,
+          timestamp: savedMessage.createdAt,
+          messageType: savedMessage.messageType || 'text'
+        };
+
+        // Update room messages cache
+        setRoomMessages(prev => {
+          const roomMsgs = prev[selectedChat] || [];
+          const exists = roomMsgs.some(msg => msg.id === newMessage.id);
+          if (exists) return prev;
+          
+          return {
+            ...prev,
+            [selectedChat]: [...roomMsgs, newMessage]
+          };
+        });
+
+        // Only add to current messages if not already added
         setMessages(prev => {
           const exists = prev.some(msg => msg.id === savedMessage.id);
           if (exists) return prev;
-          
-          return [...prev, {
-            id: savedMessage.id,
-            content: savedMessage.content,
-            senderId: savedMessage.senderId,
-            timestamp: savedMessage.createdAt,
-            messageType: savedMessage.messageType || 'text'
-          }];
+          return [...prev, newMessage];
         });
 
         // Message successfully sent and added to local state
