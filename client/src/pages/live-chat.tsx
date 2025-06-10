@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -24,13 +24,14 @@ export default function LiveChat() {
   const { user } = useAuth();
   const { socket, sendMessage } = useWebSocket();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: chatRooms } = useQuery({
     queryKey: ["/api/chat/conversations"],
   });
 
   // Load message history for selected chat
-  const { data: messageHistory } = useQuery({
+  const { data: messageHistory, refetch: refetchMessages } = useQuery({
     queryKey: ["/api/chat/messages", selectedChat],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -41,7 +42,7 @@ export default function LiveChat() {
         credentials: 'include'
       }).then(res => res.json());
     },
-    enabled: !!selectedChat,
+    enabled: !!selectedChat
   });
 
   // Load online users for selected room
@@ -65,6 +66,14 @@ export default function LiveChat() {
       setMessages([]);
     }
   }, [messageHistory]);
+
+  // Handle room switching - clear messages and invalidate cache
+  useEffect(() => {
+    if (selectedChat) {
+      setMessages([]); // Clear current messages immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedChat] });
+    }
+  }, [selectedChat, queryClient]);
 
   // Handle room join/leave when selectedChat changes
   useEffect(() => {
@@ -245,6 +254,9 @@ export default function LiveChat() {
             messageType: savedMessage.messageType || 'text'
           }];
         });
+
+        // Invalidate the query cache to ensure fresh data on next room switch
+        queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedChat] });
 
         // Message successfully sent and added to local state
       } else {
