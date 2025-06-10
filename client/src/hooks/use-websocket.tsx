@@ -36,19 +36,18 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
           };
 
           ws.onclose = (event) => {
+            console.log("WebSocket disconnected", event.code, event.reason);
+            setSocket(null);
             setIsConnected(false);
-            console.log("WebSocket disconnected");
-            
-            // Clear any existing reconnect timeout
-            if (reconnectTimeout) {
-              clearTimeout(reconnectTimeout);
-            }
-            
-            // Attempt to reconnect if not manually closed
-            if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+
+            // Only attempt to reconnect if the connection was not closed intentionally
+            // and we haven't exceeded max attempts
+            if (event.code !== 1000 && event.code !== 1001 && reconnectAttempts < maxReconnectAttempts) {
               reconnectAttempts++;
               console.log(`Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
-              reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts);
+              // Use exponential backoff with jitter to prevent thundering herd
+              const delay = Math.min(reconnectDelay * Math.pow(2, reconnectAttempts - 1), 30000) + Math.random() * 1000;
+              reconnectTimeout = setTimeout(connectWebSocket, delay);
             }
           };
 

@@ -2527,21 +2527,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const clients = new Map<number, WebSocket>();
 
   wss.on('connection', (ws: WebSocket, req) => {
+    let userId: number | null = null;
+    
     // Parse the URL to extract userId from query parameters
     try {
       const baseUrl = `http://${req.headers.host}`;
       const url = new URL(req.url || '/ws', baseUrl);
       const userIdParam = url.searchParams.get('userId');
-      const userId = userIdParam ? Number(userIdParam) : null;
+      userId = userIdParam ? Number(userIdParam) : null;
 
       if (userId && !isNaN(userId)) {
         console.log(`WebSocket client connected for user: ${userId}`);
         clients.set(userId, ws);
-
-        ws.on('close', () => {
-          console.log(`WebSocket client disconnected for user: ${userId}`);
-          clients.delete(userId);
-        });
       } else {
         console.log('WebSocket connection established without valid user ID');
       }
@@ -2550,9 +2547,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('WebSocket connection established without user ID due to parsing error');
     }
 
+    ws.on('close', (code, reason) => {
+      if (userId) {
+        console.log(`WebSocket client disconnected for user: ${userId} (${code}: ${reason})`);
+        clients.delete(userId);
+      } else {
+        console.log(`WebSocket client disconnected (${code}: ${reason})`);
+      }
+    });
+
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
+        
+        // Validate message structure
+        if (!data.type) {
+          console.warn('Received WebSocket message without type');
+          return;
+        }
         
         // Handle different message types
         switch (data.type) {
@@ -2613,6 +2625,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
+      if (userId) {
+        clients.delete(userId);
+      }
+    });
+
+    ws.on('pong', () => {
+      // Reset any reconnection logic if needed
     });
   });
 

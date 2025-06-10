@@ -95,10 +95,16 @@ export default function LiveChat() {
         }
       };
 
+      const handleError = (error) => {
+        console.error('WebSocket error in chat component:', error);
+      };
+
       socket.addEventListener('message', handleMessage);
+      socket.addEventListener('error', handleError);
       
       return () => {
         socket.removeEventListener('message', handleMessage);
+        socket.removeEventListener('error', handleError);
       };
     }
   }, [socket, selectedChat, user?.id]);
@@ -222,10 +228,7 @@ export default function LiveChat() {
           }];
         });
 
-        // Force refetch messages to ensure persistence
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        // Message successfully sent and added to local state
       } else {
         toast({
           title: "Error",
@@ -497,7 +500,10 @@ export default function LiveChat() {
 
       {/* Call Dialog */}
       <Dialog open={showCallDialog} onOpenChange={setShowCallDialog}>
-        <DialogContent className="max-w-4xl w-full h-[80vh] p-0">
+        <DialogContent className="max-w-4xl w-full h-[80vh] p-0" aria-describedby="call-dialog-description">
+          <div id="call-dialog-description" className="sr-only">
+            {callType === 'voice' ? 'Voice call interface' : 'Video call interface'} for {roomsWithData.find(r => r.id === selectedChat)?.name}
+          </div>
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
