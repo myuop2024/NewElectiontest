@@ -210,40 +210,6 @@ export default function Dashboard() {
 
       {/* Enhanced Feature Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Advanced Features Overview */}
-        <Card className="government-card">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-lg font-semibold">23 Advanced Features</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <Badge variant="secondary" className="justify-center">✓ 6-Digit Observer ID</Badge>
-              <Badge variant="secondary" className="justify-center">✓ DidIT KYC Integration</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Device Binding</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Military Encryption</Badge>
-              <Badge variant="secondary" className="justify-center">✓ WhatsApp API</Badge>
-              <Badge variant="secondary" className="justify-center">✓ SMS Fallback</Badge>
-              <Badge variant="secondary" className="justify-center">✓ BigQuery Analytics</Badge>
-              <Badge variant="secondary" className="justify-center">✓ AI Models</Badge>
-              <Badge variant="secondary" className="justify-center">✓ WebRTC Calls</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Route Optimization</Badge>
-              <Badge variant="secondary" className="justify-center">✓ GPS Tracking</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Form Builder</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Training Platform</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Dynamic FAQs</Badge>
-              <Badge variant="secondary" className="justify-center">✓ News System</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Email Templates</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Google Sheets</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Three.js Viz</Badge>
-              <Badge variant="secondary" className="justify-center">✓ QR Generator</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Audit Logs</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Security Logs</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Sync System</Badge>
-              <Badge variant="secondary" className="justify-center">✓ Integration Hub</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Live Activity Feed */}
         <ActivityFeed />
       </div>
