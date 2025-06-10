@@ -13,7 +13,8 @@ import {
   MessageSquare,
   BarChart3,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  TestTube
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -122,13 +123,13 @@ export default function FeatureStatusDashboard() {
     }
   };
 
-  const groupedFeatures = features?.reduce((acc: any, feature: any) => {
+  const groupedFeatures = Array.isArray(features) ? features.reduce((acc: any, feature: any) => {
     if (!acc[feature.category]) {
       acc[feature.category] = [];
     }
     acc[feature.category].push(feature);
     return acc;
-  }, {}) || {};
+  }, {}) : {};
 
   if (featuresLoading || healthLoading) {
     return (
@@ -145,54 +146,115 @@ export default function FeatureStatusDashboard() {
           <Activity className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">System Status Overview</h2>
         </div>
-        <Button
-          onClick={() => initializeSettingsMutation.mutate()}
-          disabled={initializeSettingsMutation.isPending}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Initialize Defaults
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => testAllFeaturesMutation.mutate()}
+            disabled={testAllFeaturesMutation.isPending}
+            variant="default"
+            size="sm"
+          >
+            <TestTube className="h-4 w-4 mr-2" />
+            {testAllFeaturesMutation.isPending ? 'Testing...' : 'Test All Features'}
+          </Button>
+          <Button
+            onClick={() => initializeSettingsMutation.mutate()}
+            disabled={initializeSettingsMutation.isPending}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Initialize Defaults
+          </Button>
+        </div>
       </div>
 
       {/* System Health Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">System Health</CardTitle>
+          <CardTitle className="text-base flex items-center justify-between">
+            System Health
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => refetchEmergency()}
+                variant="outline"
+                size="sm"
+              >
+                Emergency Check
+              </Button>
+              <Button
+                onClick={() => refetchDatabase()}
+                variant="outline"
+                size="sm"
+              >
+                Database Health
+              </Button>
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              {systemHealth?.overall === 'healthy' && <CheckCircle className="h-5 w-5 text-green-500" />}
-              {systemHealth?.overall === 'warning' && <AlertTriangle className="h-5 w-5 text-yellow-500" />}
-              {systemHealth?.overall === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
-              <span className="font-medium capitalize">{systemHealth?.overall || 'Unknown'}</span>
+              {(systemHealth as any)?.overall === 'healthy' && <CheckCircle className="h-5 w-5 text-green-500" />}
+              {(systemHealth as any)?.overall === 'warning' && <AlertTriangle className="h-5 w-5 text-yellow-500" />}
+              {(systemHealth as any)?.overall === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
+              <span className="font-medium capitalize">{(systemHealth as any)?.overall || 'Unknown'}</span>
             </div>
             
             <div className="flex space-x-4 text-sm text-gray-600">
-              <span>{systemHealth?.services?.filter((s: any) => s.status === 'healthy').length || 0} Healthy</span>
-              <span>{systemHealth?.warnings?.length || 0} Warnings</span>
-              <span>{systemHealth?.errors?.length || 0} Errors</span>
+              <span>{(systemHealth as any)?.services?.filter((s: any) => s.status === 'healthy').length || 0} Healthy</span>
+              <span>{(systemHealth as any)?.warnings?.length || 0} Warnings</span>
+              <span>{(systemHealth as any)?.errors?.length || 0} Errors</span>
             </div>
           </div>
 
-          {systemHealth?.warnings?.length > 0 && (
+          {/* Emergency Validation Results */}
+          {emergencyValidation && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm font-medium text-blue-800 mb-2">Emergency System Status</p>
+              <div className="flex items-center space-x-4 text-sm">
+                <span className="text-blue-700">Readiness: {(emergencyValidation as any).readinessScore?.toFixed(0)}%</span>
+                <span className="capitalize text-blue-700">Status: {(emergencyValidation as any).status}</span>
+              </div>
+              {(emergencyValidation as any).recommendations && (
+                <ul className="mt-2 text-xs text-blue-600 space-y-1">
+                  {(emergencyValidation as any).recommendations.slice(0, 3).map((rec: string, index: number) => (
+                    <li key={index}>• {rec}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Database Health Results */}
+          {databaseHealth && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+              <p className="text-sm font-medium text-green-800 mb-2">Database Performance</p>
+              <div className="flex items-center space-x-4 text-sm text-green-700">
+                <span>Status: {(databaseHealth as any).status}</span>
+                <span>Connectivity: {(databaseHealth as any).connectivity}</span>
+                {(databaseHealth as any).performance && (
+                  <span>Avg Response: {(databaseHealth as any).performance.averageResponseTime?.toFixed(0)}ms</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(systemHealth as any)?.warnings?.length > 0 && (
             <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
               <p className="text-sm font-medium text-yellow-800 mb-1">Warnings:</p>
               <ul className="text-sm text-yellow-700 space-y-1">
-                {systemHealth.warnings.map((warning: string, index: number) => (
+                {(systemHealth as any).warnings.map((warning: string, index: number) => (
                   <li key={index}>• {warning}</li>
                 ))}
               </ul>
             </div>
           )}
 
-          {systemHealth?.errors?.length > 0 && (
+          {(systemHealth as any)?.errors?.length > 0 && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
               <p className="text-sm font-medium text-red-800 mb-1">Errors:</p>
               <ul className="text-sm text-red-700 space-y-1">
-                {systemHealth.errors.map((error: string, index: number) => (
+                {(systemHealth as any).errors.map((error: string, index: number) => (
                   <li key={index}>• {error}</li>
                 ))}
               </ul>
