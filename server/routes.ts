@@ -2882,7 +2882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.moveDown();
       doc.fontSize(14).text(`Certificate ID: ${enrollment.certificateId || enrollment.id}`, { align: 'center' });
       doc.moveDown(4);
-      doc.fontSize(12).text('Powered by CAFFE Election Training Center', { align: 'center', opacity: 0.7 });
+      doc.fontSize(12).fillOpacity(0.7).text('Powered by CAFFE Election Training Center', { align: 'center' });
       doc.end();
     } catch (error) {
       res.status(500).json({ message: "Failed to generate certificate" });
@@ -2895,7 +2895,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const courses = await storage.getCourses();
       const enrollmentsList = await db.select().from(enrollments);
       const totalCourses = courses.length;
-      const totalModules = courses.reduce((sum, c) => sum + (Array.isArray(c.content?.modules) ? c.content.modules.length : 0), 0);
+      const totalModules = courses.reduce((sum, c) => {
+        const content = c.content as any;
+        return sum + (Array.isArray(content?.modules) ? content.modules.length : 0);
+      }, 0);
       const totalEnrollments = enrollmentsList.length;
       const totalCompletions = enrollmentsList.filter((e: any) => e.status === 'completed').length;
       res.json({ totalCourses, totalModules, totalEnrollments, totalCompletions });
@@ -2912,7 +2915,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await GeminiService.getRecommendations(req.body.userProfile, storage);
       res.json({ recommendations: result });
     } catch (error) {
-      res.status(500).json({ message: "AI recommendation error", error: error.message });
+      res.status(500).json({ message: "AI recommendation error", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
   // Generate adaptive quiz questions
@@ -2922,7 +2925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await GeminiService.generateQuiz(req.body.module, req.body.userHistory, storage);
       res.json({ quiz: result });
     } catch (error) {
-      res.status(500).json({ message: "AI quiz error", error: error.message });
+      res.status(500).json({ message: "AI quiz error", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
   // Get smart feedback on user progress
@@ -2932,7 +2935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await GeminiService.getFeedback(req.body.progress, storage);
       res.json({ feedback: result });
     } catch (error) {
-      res.status(500).json({ message: "AI feedback error", error: error.message });
+      res.status(500).json({ message: "AI feedback error", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

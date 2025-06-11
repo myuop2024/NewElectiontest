@@ -91,7 +91,7 @@ export default function TrainingCenter() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/training/enrollments/my"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/training/enrollments/my"] });
       toast({ title: "Enrolled!", description: "You have been enrolled in the course." });
     },
     onError: () => {
@@ -111,7 +111,7 @@ export default function TrainingCenter() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/training/enrollments/my"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/training/enrollments/my"] });
       toast({ title: "Progress Updated!", description: "Your progress has been saved." });
     },
     onError: () => {
@@ -472,7 +472,7 @@ export default function TrainingCenter() {
                     <ModuleRow
                       key={index}
                       module={module}
-                      onAIQuiz={(e) => {
+                      onAIQuiz={(e: React.MouseEvent) => {
                         e.preventDefault();
                         fetchAIQuiz(module, /* userHistory */ {});
                       }}
