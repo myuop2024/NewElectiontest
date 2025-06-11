@@ -44,12 +44,10 @@ interface EscalationRule {
 }
 
 export class EmergencyService {
-  private notificationService: NotificationService;
   private activeAlerts: Map<string, EmergencyAlert> = new Map();
   private escalationTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor() {
-    this.notificationService = new NotificationService();
     this.loadActiveAlerts();
   }
 
@@ -134,25 +132,31 @@ export class EmergencyService {
       for (const channel of alert.channels) {
         switch (channel) {
           case 'email':
-            await this.notificationService.sendEmail({
-              to: alert.recipients,
-              subject: `EMERGENCY ALERT: ${alert.title}`,
-              html: `
-                <h2>Emergency Alert - ${alert.severity.toUpperCase()}</h2>
-                <p><strong>Location:</strong> ${alert.location.parish}${alert.location.pollingStation ? `, ${alert.location.pollingStation}` : ''}</p>
-                <p><strong>Category:</strong> ${alert.category}</p>
-                <p><strong>Description:</strong> ${alert.description}</p>
-                <p><strong>Time:</strong> ${new Date(alert.createdAt).toLocaleString()}</p>
-                <p>Please respond immediately to acknowledge this alert.</p>
-              `
+            await NotificationService.sendEmail({
+              userId: alert.createdBy,
+              type: 'email',
+              recipient: alert.recipients.join(','),
+              title: `EMERGENCY ALERT: ${alert.title}`,
+              message: `
+                Emergency Alert - ${alert.severity.toUpperCase()}
+                Location: ${alert.location.parish}${alert.location.pollingStation ? `, ${alert.location.pollingStation}` : ''}
+                Category: ${alert.category}
+                Description: ${alert.description}
+                Time: ${new Date(alert.createdAt).toLocaleString()}
+                Please respond immediately to acknowledge this alert.
+              `,
+              priority: alert.severity === 'critical' ? 'urgent' : alert.severity === 'high' ? 'high' : 'normal'
             });
             break;
           case 'sms':
             for (const recipient of alert.recipients) {
-              await this.notificationService.sendSMS(
+              await NotificationService.sendSMS({
+                userId: alert.createdBy,
+                type: 'sms',
                 recipient,
-                `EMERGENCY: ${alert.title} - ${alert.location.parish}. ${alert.description}`
-              );
+                message: `EMERGENCY: ${alert.title} - ${alert.location.parish}. ${alert.description}`,
+                priority: alert.severity === 'critical' ? 'urgent' : alert.severity === 'high' ? 'high' : 'normal'
+              });
             }
             break;
           case 'push':
@@ -202,18 +206,23 @@ export class EmergencyService {
   private async sendEscalationNotifications(alert: EmergencyAlert) {
     const escalationRecipients = ['supervisor@example.com', 'admin@example.com'];
     
-    await this.notificationService.sendEmail({
-      to: escalationRecipients,
-      subject: `ESCALATED ALERT: ${alert.title}`,
-      html: `
-        <h2>Escalated Emergency Alert - ${alert.severity.toUpperCase()}</h2>
-        <p><strong>Alert ID:</strong> ${alert.id}</p>
-        <p><strong>Location:</strong> ${alert.location.parish}</p>
-        <p><strong>Description:</strong> ${alert.description}</p>
-        <p><strong>Created:</strong> ${new Date(alert.createdAt).toLocaleString()}</p>
-        <p style="color: red;"><strong>This alert has been escalated due to lack of acknowledgment.</strong></p>
-      `
-    });
+    for (const recipient of escalationRecipients) {
+      await NotificationService.sendEmail({
+        userId: 0, // System escalation
+        type: 'email',
+        recipient,
+        title: `ESCALATED ALERT: ${alert.title}`,
+        message: `
+          Escalated Emergency Alert - ${alert.severity.toUpperCase()}
+          Alert ID: ${alert.id}
+          Location: ${alert.location.parish}
+          Description: ${alert.description}
+          Created: ${new Date(alert.createdAt).toLocaleString()}
+          This alert has been escalated due to lack of acknowledgment.
+        `,
+        priority: 'urgent'
+      });
+    }
   }
 
   async acknowledgeAlert(alertId: string, userId: number): Promise<boolean> {
