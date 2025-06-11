@@ -3606,6 +3606,254 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Course modules management
+  app.get("/api/training/courses/:courseId/modules", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const modules = await storage.getCourseModules(courseId);
+      res.json(modules);
+    } catch (error) {
+      console.error("Error fetching course modules:", error);
+      res.status(500).json({ error: "Failed to fetch course modules" });
+    }
+  });
+
+  app.post("/api/training/courses/:courseId/modules", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const courseId = parseInt(req.params.courseId);
+      const moduleData = {
+        ...req.body,
+        courseId
+      };
+
+      const module = await storage.createCourseModule(moduleData);
+      res.status(201).json(module);
+    } catch (error) {
+      console.error("Error creating course module:", error);
+      res.status(500).json({ error: "Failed to create course module" });
+    }
+  });
+
+  app.put("/api/training/modules/:moduleId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const moduleId = parseInt(req.params.moduleId);
+      const updatedModule = await storage.updateCourseModule(moduleId, req.body);
+      res.json(updatedModule);
+    } catch (error) {
+      console.error("Error updating course module:", error);
+      res.status(500).json({ error: "Failed to update course module" });
+    }
+  });
+
+  app.delete("/api/training/modules/:moduleId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const moduleId = parseInt(req.params.moduleId);
+      await storage.deleteCourseModule(moduleId);
+      res.json({ message: "Course module deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting course module:", error);
+      res.status(500).json({ error: "Failed to delete course module" });
+    }
+  });
+
+  // Course quizzes management
+  app.get("/api/training/courses/:courseId/quizzes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const quizzes = await storage.getCourseQuizzes(courseId);
+      res.json(quizzes);
+    } catch (error) {
+      console.error("Error fetching course quizzes:", error);
+      res.status(500).json({ error: "Failed to fetch course quizzes" });
+    }
+  });
+
+  app.post("/api/training/courses/:courseId/quizzes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const courseId = parseInt(req.params.courseId);
+      const quizData = {
+        ...req.body,
+        courseId
+      };
+
+      const quiz = await storage.createCourseQuiz(quizData);
+      res.status(201).json(quiz);
+    } catch (error) {
+      console.error("Error creating course quiz:", error);
+      res.status(500).json({ error: "Failed to create course quiz" });
+    }
+  });
+
+  app.put("/api/training/quizzes/:quizId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const quizId = parseInt(req.params.quizId);
+      const updatedQuiz = await storage.updateCourseQuiz(quizId, req.body);
+      res.json(updatedQuiz);
+    } catch (error) {
+      console.error("Error updating course quiz:", error);
+      res.status(500).json({ error: "Failed to update course quiz" });
+    }
+  });
+
+  app.delete("/api/training/quizzes/:quizId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const quizId = parseInt(req.params.quizId);
+      await storage.deleteCourseQuiz(quizId);
+      res.json({ message: "Course quiz deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting course quiz:", error);
+      res.status(500).json({ error: "Failed to delete course quiz" });
+    }
+  });
+
+  // Course contests management
+  app.get("/api/training/courses/:courseId/contests", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const contests = await storage.getCourseContests(courseId);
+      res.json(contests);
+    } catch (error) {
+      console.error("Error fetching course contests:", error);
+      res.status(500).json({ error: "Failed to fetch course contests" });
+    }
+  });
+
+  app.post("/api/training/courses/:courseId/contests", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const courseId = parseInt(req.params.courseId);
+      const contestData = {
+        ...req.body,
+        courseId,
+        createdBy: req.user.id
+      };
+
+      const contest = await storage.createCourseContest(contestData);
+      res.status(201).json(contest);
+    } catch (error) {
+      console.error("Error creating course contest:", error);
+      res.status(500).json({ error: "Failed to create course contest" });
+    }
+  });
+
+  app.put("/api/training/contests/:contestId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const contestId = parseInt(req.params.contestId);
+      const updatedContest = await storage.updateCourseContest(contestId, req.body);
+      res.json(updatedContest);
+    } catch (error) {
+      console.error("Error updating course contest:", error);
+      res.status(500).json({ error: "Failed to update course contest" });
+    }
+  });
+
+  app.delete("/api/training/contests/:contestId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const contestId = parseInt(req.params.contestId);
+      await storage.deleteCourseContest(contestId);
+      res.json({ message: "Course contest deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting course contest:", error);
+      res.status(500).json({ error: "Failed to delete course contest" });
+    }
+  });
+
+  // Enhanced media management for courses
+  app.get("/api/training/courses/:courseId/media", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const media = await storage.getCourseMedia(courseId);
+      res.json(media);
+    } catch (error) {
+      console.error("Error fetching course media:", error);
+      res.status(500).json({ error: "Failed to fetch course media" });
+    }
+  });
+
+  app.post("/api/training/courses/:courseId/media", authenticateToken, upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const courseId = parseInt(req.params.courseId);
+      const { moduleId, mediaType, description } = req.body;
+
+      const mediaData = {
+        courseId,
+        moduleId: moduleId ? parseInt(moduleId) : null,
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        mediaType: mediaType || 'document',
+        description: description || '',
+        uploadedBy: req.user.id
+      };
+
+      const media = await storage.createCourseMedia(mediaData);
+      res.status(201).json(media);
+    } catch (error) {
+      console.error("Error uploading course media:", error);
+      res.status(500).json({ error: "Failed to upload course media" });
+    }
+  });
+
+  app.delete("/api/training/media/:mediaId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const mediaId = parseInt(req.params.mediaId);
+      await storage.deleteCourseMedia(mediaId);
+      res.json({ message: "Course media deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting course media:", error);
+      res.status(500).json({ error: "Failed to delete course media" });
+    }
+  });
+
   // System health endpoint
   app.get("/api/admin/system/health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

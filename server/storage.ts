@@ -685,6 +685,117 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(certificateTemplates.isDefault, true), eq(certificateTemplates.isActive, true)));
     return template || undefined;
   }
+
+  // Course modules management
+  async getCourseModules(courseId: number): Promise<CourseModule[]> {
+    return await db
+      .select()
+      .from(courseModules)
+      .where(eq(courseModules.courseId, courseId))
+      .orderBy(courseModules.moduleOrder);
+  }
+
+  async createCourseModule(moduleData: InsertCourseModule): Promise<CourseModule> {
+    const [module] = await db
+      .insert(courseModules)
+      .values(moduleData)
+      .returning();
+    return module;
+  }
+
+  async updateCourseModule(id: number, updates: Partial<CourseModule>): Promise<CourseModule> {
+    const [updatedModule] = await db
+      .update(courseModules)
+      .set(updates)
+      .where(eq(courseModules.id, id))
+      .returning();
+    return updatedModule;
+  }
+
+  async deleteCourseModule(id: number): Promise<void> {
+    await db.delete(courseModules).where(eq(courseModules.id, id));
+  }
+
+  // Course quizzes management
+  async getCourseQuizzes(courseId: number): Promise<CourseQuiz[]> {
+    return await db
+      .select()
+      .from(courseQuizzes)
+      .where(eq(courseQuizzes.courseId, courseId))
+      .orderBy(courseQuizzes.createdAt);
+  }
+
+  async createCourseQuiz(quizData: InsertCourseQuiz): Promise<CourseQuiz> {
+    const [quiz] = await db
+      .insert(courseQuizzes)
+      .values(quizData)
+      .returning();
+    return quiz;
+  }
+
+  async updateCourseQuiz(id: number, updates: Partial<CourseQuiz>): Promise<CourseQuiz> {
+    const [updatedQuiz] = await db
+      .update(courseQuizzes)
+      .set(updates)
+      .where(eq(courseQuizzes.id, id))
+      .returning();
+    return updatedQuiz;
+  }
+
+  async deleteCourseQuiz(id: number): Promise<void> {
+    await db.delete(courseQuizzes).where(eq(courseQuizzes.id, id));
+  }
+
+  // Course contests management
+  async getCourseContests(courseId: number): Promise<CourseContest[]> {
+    return await db
+      .select()
+      .from(courseContests)
+      .where(eq(courseContests.courseId, courseId))
+      .orderBy(courseContests.createdAt);
+  }
+
+  async createCourseContest(contestData: InsertCourseContest): Promise<CourseContest> {
+    const [contest] = await db
+      .insert(courseContests)
+      .values(contestData)
+      .returning();
+    return contest;
+  }
+
+  async updateCourseContest(id: number, updates: Partial<CourseContest>): Promise<CourseContest> {
+    const [updatedContest] = await db
+      .update(courseContests)
+      .set(updates)
+      .where(eq(courseContests.id, id))
+      .returning();
+    return updatedContest;
+  }
+
+  async deleteCourseContest(id: number): Promise<void> {
+    await db.delete(courseContests).where(eq(courseContests.id, id));
+  }
+
+  // Course media management
+  async getCourseMedia(courseId: number): Promise<CourseMedia[]> {
+    return await db
+      .select()
+      .from(courseMedia)
+      .where(eq(courseMedia.courseId, courseId))
+      .orderBy(courseMedia.createdAt);
+  }
+
+  async createCourseMedia(mediaData: InsertCourseMedia): Promise<CourseMedia> {
+    const [media] = await db
+      .insert(courseMedia)
+      .values(mediaData)
+      .returning();
+    return media;
+  }
+
+  async deleteCourseMedia(id: number): Promise<void> {
+    await db.delete(courseMedia).where(eq(courseMedia.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();
