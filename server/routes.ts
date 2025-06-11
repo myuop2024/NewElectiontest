@@ -27,6 +27,8 @@ import { createAIIncidentService } from "./lib/ai-incident-service.js";
 import { googleSheetsService } from "./lib/google-sheets-service.js";
 import { aiClassificationService } from "./lib/ai-classification-service.js";
 import { emergencyService } from "./lib/emergency-service.js";
+import PDFDocument from "pdfkit";
+import { GeminiService } from "./lib/training-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2740,6 +2742,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Attach wss to the app instance so we can access it in route handlers
   (app as any).wss = wss;
   (app as any).clients = clients;
+
+  // --- Training Center API Overhaul ---
+  // List all courses
+  app.get("/api/training/courses", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courses = await storage.getCourses();
+      res.json(courses);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+  // Get course detail (with modules)
+  app.get("/api/training/courses/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const courses = await storage.getCourses();
+      const course = courses.find(c => c.id === courseId);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch course detail" });
+    }
+  });
+  // (Admin) Create course
+  app.post("/api/training/courses", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const newCourse = await storage.createCourse(req.body);
+      res.json(newCourse);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+  // (Admin) Update course
+  app.put("/api/training/courses/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const courseId = parseInt(req.params.id);
+      const updated = await db.update(courses).set(req.body).where(eq(courses.id, courseId)).returning();
+      if (!updated[0]) return res.status(404).json({ message: "Course not found" });
+      res.json(updated[0]);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update course" });
+    }
+  });
+  // (Admin) Delete course
+  app.delete("/api/training/courses/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const courseId = parseInt(req.params.id);
+      const deleted = await db.update(courses).set({ isActive: false }).where(eq(courses.id, courseId)).returning();
+      if (!deleted[0]) return res.status(404).json({ message: "Course not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+  // Enroll in a course
+  app.post("/api/training/enroll", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { courseId } = req.body;
+      const userId = req.user!.id;
+      // Prevent duplicate enrollment
+      const enrollments = await storage.getEnrollmentsByUser(userId);
+      if (enrollments.some(e => e.courseId === courseId)) {
+        return res.status(400).json({ message: "Already enrolled" });
+      }
+      const enrollment = await storage.createEnrollment({ userId, courseId, status: "enrolled", progress: 0 });
+      res.json(enrollment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to enroll" });
+    }
+  });
+  // Get my enrollments & progress
+  app.get("/api/training/enrollments/my", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const enrollments = await storage.getEnrollmentsByUser(userId);
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch enrollments" });
+    }
+  });
+  // Update module/course progress
+  app.post("/api/training/progress", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { enrollmentId, progress, status, score } = req.body;
+      const updated = await storage.updateEnrollment(enrollmentId, { progress, status, score });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update progress" });
+    }
+  });
+  // Download certificate PDF for a completed course
+  app.get("/api/training/certificate/:enrollmentId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId);
+      const userId = req.user!.id;
+      // Fetch enrollment
+      const enrollments = await storage.getEnrollmentsByUser(userId);
+      const enrollment = enrollments.find(e => e.id === enrollmentId);
+      if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
+      if (enrollment.status !== "completed") return res.status(403).json({ message: "Course not completed" });
+      // Fetch course
+      const courses = await storage.getCourses();
+      const course = courses.find(c => c.id === enrollment.courseId);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      // Fetch user
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      // Generate PDF
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=certificate-${enrollmentId}.pdf`);
+      doc.pipe(res);
+      // Certificate content
+      doc.fontSize(28).text('Certificate of Completion', { align: 'center' });
+      doc.moveDown(2);
+      doc.fontSize(18).text(`This certifies that`, { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(22).text(`${user.firstName} ${user.lastName}`, { align: 'center', underline: true });
+      doc.moveDown();
+      doc.fontSize(18).text(`has successfully completed the course`, { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(20).text(`${course.title}`, { align: 'center', underline: true });
+      doc.moveDown(2);
+      doc.fontSize(16).text(`Completion Date: ${enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString() : ''}`, { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(14).text(`Certificate ID: ${enrollment.certificateId || enrollment.id}`, { align: 'center' });
+      doc.moveDown(4);
+      doc.fontSize(12).text('Powered by CAFFE Election Training Center', { align: 'center', opacity: 0.7 });
+      doc.end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate certificate" });
+    }
+  });
+  // (Admin) Get course/user analytics
+  app.get("/api/training/analytics", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+      const courses = await storage.getCourses();
+      const enrollments = await db.select().from(enrollments);
+      const totalCourses = courses.length;
+      const totalModules = courses.reduce((sum, c) => sum + (Array.isArray(c.content?.modules) ? c.content.modules.length : 0), 0);
+      const totalEnrollments = enrollments.length;
+      const totalCompletions = enrollments.filter((e: any) => e.status === 'completed').length;
+      res.json({ totalCourses, totalModules, totalEnrollments, totalCompletions });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // --- AI-powered endpoints ---
+  // Get AI-powered course/module recommendations
+  app.post("/api/training/ai/recommendations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Expects userProfile in body
+      const result = await GeminiService.getRecommendations(req.body.userProfile, storage);
+      res.json({ recommendations: result });
+    } catch (error) {
+      res.status(500).json({ message: "AI recommendation error", error: error.message });
+    }
+  });
+  // Generate adaptive quiz questions
+  app.post("/api/training/ai/quiz", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Expects module and userHistory in body
+      const result = await GeminiService.generateQuiz(req.body.module, req.body.userHistory, storage);
+      res.json({ quiz: result });
+    } catch (error) {
+      res.status(500).json({ message: "AI quiz error", error: error.message });
+    }
+  });
+  // Get smart feedback on user progress
+  app.post("/api/training/ai/feedback", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Expects progress in body
+      const result = await GeminiService.getFeedback(req.body.progress, storage);
+      res.json({ feedback: result });
+    } catch (error) {
+      res.status(500).json({ message: "AI feedback error", error: error.message });
+    }
+  });
 
   return httpServer;
 }

@@ -1,3 +1,5 @@
+import fetch from 'node-fetch';
+
 export interface TrainingModule {
   id: number;
   title: string;
@@ -315,5 +317,49 @@ export class TrainingService {
     if (totalPoints < 500) return 500 - totalPoints;
     if (totalPoints < 1000) return 1000 - totalPoints;
     return 0;
+  }
+}
+
+export class GeminiService {
+  static async getApiKey(storage: any) {
+    // Assumes 'gemini_api_key' is stored in settings
+    const setting = await storage.getSettingByKey('gemini_api_key');
+    return setting?.value;
+  }
+
+  static async getRecommendations(userProfile: any, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    const prompt = `Recommend personalized election training modules for this user: ${JSON.stringify(userProfile)}`;
+    return this.callGemini(prompt, apiKey);
+  }
+
+  static async generateQuiz(module: any, userHistory: any, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    const prompt = `Generate a quiz for the following module: ${JSON.stringify(module)}. User history: ${JSON.stringify(userHistory)}`;
+    return this.callGemini(prompt, apiKey);
+  }
+
+  static async getFeedback(progress: any, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    const prompt = `Provide smart feedback for this user progress: ${JSON.stringify(progress)}`;
+    return this.callGemini(prompt, apiKey);
+  }
+
+  static async callGemini(prompt: string, apiKey: string) {
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey;
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }]
+    };
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) throw new Error('Gemini API error');
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || data;
   }
 }
