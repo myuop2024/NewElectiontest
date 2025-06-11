@@ -3412,5 +3412,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Training programs API endpoints
+  app.get("/api/training/programs", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courses = await storage.getCourses();
+      const programs = courses.map(course => ({
+        ...course,
+        modules: course.content?.modules || [],
+        completions: 0,
+        totalEnrollments: 0
+      }));
+      res.json(programs);
+    } catch (error) {
+      console.error("Error fetching training programs:", error);
+      res.status(500).json({ error: "Failed to fetch training programs" });
+    }
+  });
+
+  app.post("/api/training/programs", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { title, description, targetRole, modules, passingScore } = req.body;
+      
+      const courseData = {
+        title,
+        description,
+        role: targetRole,
+        duration: modules?.reduce((total: number, module: any) => total + (module.duration || 30), 0) || 60,
+        passingScore: passingScore || 80,
+        content: { modules: modules || [] },
+        isActive: true
+      };
+
+      const course = await storage.createCourse(courseData);
+      res.status(201).json(course);
+    } catch (error) {
+      console.error("Error creating training program:", error);
+      res.status(500).json({ error: "Failed to create training program" });
+    }
+  });
+
+  // System health endpoint
+  app.get("/api/admin/system/health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const health = {
+        database: true,
+        websocket: true,
+        storage: true,
+        notifications: true,
+        timestamp: new Date().toISOString()
+      };
+
+      // Test database connection
+      try {
+        await storage.getSettings();
+      } catch (error) {
+        health.database = false;
+      }
+
+      res.json(health);
+    } catch (error) {
+      console.error("Error checking system health:", error);
+      res.status(500).json({ error: "Failed to check system health" });
+    }
+  });
+
   return httpServer;
 }

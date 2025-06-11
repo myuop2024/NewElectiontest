@@ -18,7 +18,7 @@ import LiveChat from "@/pages/live-chat";
 import DocumentCapture from "@/pages/document-capture";
 import RouteNavigation from "@/pages/route-navigation";
 import TrainingCenter from "@/pages/training-center";
-import AdminTraining from "@/pages/admin-training";
+import TrainingManagement from "@/pages/TrainingManagement";
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import CheckIn from "@/pages/check-in";
@@ -26,7 +26,7 @@ import EmergencyAlert from "@/pages/emergency-alert";
 import Settings from "@/pages/settings";
 import UnifiedAdmin from "@/pages/unified-admin";
 import AdminPanel from "@/pages/admin-panel";
-import AdminSettings from "@/pages/admin-settings";
+import AdminSettings from "@/pages/AdminSettings";
 import IncidentReporting from "@/pages/incident-reporting";
 import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
@@ -117,7 +117,7 @@ function Router() {
       </Route>
       <Route path="/admin-training">
         <ProtectedLayout>
-          <AdminTraining />
+          <TrainingManagement />
         </ProtectedLayout>
       </Route>
       <Route path="/analytics">
@@ -158,6 +158,11 @@ function Router() {
       <Route path="/admin-settings">
         <ProtectedLayout>
           <AdminSettings />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/training-management">
+        <ProtectedLayout>
+          <TrainingManagement />
         </ProtectedLayout>
       </Route>
       <Route path="/polling-station-management">

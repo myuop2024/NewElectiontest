@@ -47,7 +47,7 @@ export default function AdminSettings() {
     queryFn: async () => {
       const response = await fetch('/api/settings');
       if (!response.ok) throw new Error('Failed to fetch settings');
-      return response.json() as SystemSetting[];
+      return response.json();
     }
   });
 
