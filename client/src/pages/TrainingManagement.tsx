@@ -123,7 +123,9 @@ export default function TrainingManagement() {
   const [activeTab, setActiveTab] = useState('programs');
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showModuleDialog, setShowModuleDialog] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
   const [editingModule, setEditingModule] = useState<TrainingModule | null>(null);
 
   // New program form
@@ -191,6 +193,52 @@ export default function TrainingManagement() {
     }
   });
 
+  // Update program mutation
+  const updateProgramMutation = useMutation({
+    mutationFn: async ({ id, programData }: { id: number; programData: any }) => {
+      const response = await fetch(`/api/training/programs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(programData)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update program');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/training/programs'] });
+      setShowEditDialog(false);
+      setEditingProgram(null);
+      toast({ title: "Training program updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  });
+
+  // Delete program mutation
+  const deleteProgramMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/training/programs/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete program');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/training/programs'] });
+      toast({ title: "Training program deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  });
+
   // Initialize predefined programs
   const initializePredefinedPrograms = async () => {
     try {
@@ -220,6 +268,32 @@ export default function TrainingManagement() {
       return;
     }
     createProgramMutation.mutate(newProgram);
+  };
+
+  const handleEditProgram = (program: any) => {
+    setEditingProgram(program);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateProgram = () => {
+    if (!editingProgram) return;
+    updateProgramMutation.mutate({
+      id: editingProgram.id,
+      programData: {
+        title: editingProgram.title,
+        description: editingProgram.description,
+        targetRole: editingProgram.targetRole || editingProgram.role,
+        modules: editingProgram.modules,
+        passingScore: editingProgram.passingScore,
+        isActive: editingProgram.isActive
+      }
+    });
+  };
+
+  const handleDeleteProgram = (programId: number) => {
+    if (confirm('Are you sure you want to delete this training program? This action cannot be undone.')) {
+      deleteProgramMutation.mutate(programId);
+    }
   };
 
   const calculateCompletionRate = (program: TrainingProgram) => {

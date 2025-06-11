@@ -3456,6 +3456,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update training program
+  app.put("/api/training/programs/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const { title, description, targetRole, modules, passingScore, isActive } = req.body;
+      
+      const updates = {
+        title,
+        description,
+        role: targetRole,
+        duration: modules?.reduce((total: number, module: any) => total + (module.duration || 30), 0) || 60,
+        passingScore: passingScore || 80,
+        content: { modules: modules || [] },
+        isActive: isActive !== undefined ? isActive : true
+      };
+
+      const course = await storage.updateCourse(id, updates);
+      res.json(course);
+    } catch (error) {
+      console.error("Error updating training program:", error);
+      res.status(500).json({ error: "Failed to update training program" });
+    }
+  });
+
+  // Delete training program
+  app.delete("/api/training/programs/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteCourse(id);
+      res.json({ message: "Training program deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting training program:", error);
+      res.status(500).json({ error: "Failed to delete training program" });
+    }
+  });
+
+  // Get single training program
+  app.get("/api/training/programs/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const course = await storage.getCourse(id);
+      
+      if (!course) {
+        return res.status(404).json({ error: "Training program not found" });
+      }
+
+      const program = {
+        ...course,
+        modules: course.content?.modules || [],
+        completions: 0,
+        totalEnrollments: 0
+      };
+
+      res.json(program);
+    } catch (error) {
+      console.error("Error fetching training program:", error);
+      res.status(500).json({ error: "Failed to fetch training program" });
+    }
+  });
+
   // System health endpoint
   app.get("/api/admin/system/health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

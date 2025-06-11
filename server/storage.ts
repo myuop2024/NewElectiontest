@@ -70,8 +70,11 @@ export interface IStorage {
   
   // Training
   getCourses(): Promise<Course[]>;
+  getCourse(id: number): Promise<Course | undefined>;
   getCoursesByRole(role: string): Promise<Course[]>;
   createCourse(course: InsertCourse): Promise<Course>;
+  updateCourse(id: number, updates: Partial<Course>): Promise<Course>;
+  deleteCourse(id: number): Promise<void>;
   getEnrollmentsByUser(userId: number): Promise<Enrollment[]>;
   createEnrollment(enrollment: InsertEnrollment): Promise<Enrollment>;
   updateEnrollment(id: number, updates: Partial<Enrollment>): Promise<Enrollment>;
@@ -362,6 +365,24 @@ export class DatabaseStorage implements IStorage {
   async createCourse(course: InsertCourse): Promise<Course> {
     const [newCourse] = await db.insert(courses).values(course).returning();
     return newCourse;
+  }
+
+  async getCourse(id: number): Promise<Course | undefined> {
+    const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    return course || undefined;
+  }
+
+  async updateCourse(id: number, updates: Partial<Course>): Promise<Course> {
+    const [course] = await db
+      .update(courses)
+      .set(updates)
+      .where(eq(courses.id, id))
+      .returning();
+    return course;
+  }
+
+  async deleteCourse(id: number): Promise<void> {
+    await db.delete(courses).where(eq(courses.id, id));
   }
 
   async getEnrollmentsByUser(userId: number): Promise<Enrollment[]> {
