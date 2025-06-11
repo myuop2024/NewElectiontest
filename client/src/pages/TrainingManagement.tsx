@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -478,9 +478,13 @@ export default function TrainingManagement() {
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleEditProgram(program)}>
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDeleteProgram(program.id)}>
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </CardContent>
@@ -504,44 +508,148 @@ export default function TrainingManagement() {
         </TabsContent>
 
         <TabsContent value="content" className="space-y-4">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Content management tools for creating and editing training materials, videos, and assessments.
-            </AlertDescription>
-          </Alert>
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Library</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Media Library</h3>
+              <p className="text-sm text-muted-foreground">Upload and manage training documents, videos, and other media</p>
+            </div>
+            <Button>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Media
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
                     <div>
                       <div className="font-medium">Electoral Law Overview</div>
-                      <div className="text-sm text-muted-foreground">PDF document • 1.2 MB</div>
+                      <div className="text-sm text-muted-foreground">PDF • 1.2 MB • Uploaded today</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost">
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded">
-                  <div className="flex items-center gap-3">
-                    <Video className="h-5 w-5" />
+                  <div className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
                     <div>
-                      <div className="font-medium">Polling Station Setup</div>
-                      <div className="text-sm text-muted-foreground">Video • 15:30</div>
+                      <div className="font-medium">Observer Code of Conduct</div>
+                      <div className="text-sm text-muted-foreground">PDF • 856 KB • 2 days ago</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost">
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Eye className="h-4 w-4 mr-1" />
-                    Preview
-                  </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Video className="h-5 w-5" />
+                  Videos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+                    <div>
+                      <div className="font-medium">Polling Station Setup Procedures</div>
+                      <div className="text-sm text-muted-foreground">Video • 15:30 • Uploaded today</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost">
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+                    <div>
+                      <div className="font-medium">Incident Reporting Walkthrough</div>
+                      <div className="text-sm text-muted-foreground">Video • 8:45 • 1 week ago</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost">
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload New Media</CardTitle>
+              <CardDescription>Add documents, videos, or other training materials</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="media-file">Select File</Label>
+                  <Input
+                    id="media-file"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.mp4,.mov,.avi,.png,.jpg,.jpeg"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Supported: PDF, DOC, MP4, MOV, Images (max 50MB)
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="media-type">Media Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="document">Document</SelectItem>
+                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="image">Image</SelectItem>
+                      <SelectItem value="audio">Audio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="media-description">Description (Optional)</Label>
+                <Textarea
+                  id="media-description"
+                  placeholder="Brief description of the content..."
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Media
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -601,6 +709,84 @@ export default function TrainingManagement() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Program Dialog */}
+      {editingProgram && (
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Training Program</DialogTitle>
+              <DialogDescription>
+                Update the training program details
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">Program Title</Label>
+                <Input
+                  id="edit-title"
+                  value={editingProgram.title}
+                  onChange={(e) => setEditingProgram({ ...editingProgram, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingProgram.description}
+                  onChange={(e) => setEditingProgram({ ...editingProgram, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-targetRole">Target Role</Label>
+                  <Select 
+                    value={editingProgram.targetRole || editingProgram.role} 
+                    onValueChange={(value) => setEditingProgram({ ...editingProgram, targetRole: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Observer">Observer</SelectItem>
+                      <SelectItem value="Coordinator">Parish Coordinator</SelectItem>
+                      <SelectItem value="Admin">Administrator</SelectItem>
+                      <SelectItem value="All">All Roles</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-passingScore">Passing Score (%)</Label>
+                  <Input
+                    id="edit-passingScore"
+                    type="number"
+                    min="50"
+                    max="100"
+                    value={editingProgram.passingScore}
+                    onChange={(e) => setEditingProgram({ ...editingProgram, passingScore: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-active"
+                  checked={editingProgram.isActive}
+                  onCheckedChange={(checked) => setEditingProgram({ ...editingProgram, isActive: checked })}
+                />
+                <Label htmlFor="edit-active">Program is active</Label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateProgram}>
+                  Update Program
+                </Button>
               </div>
             </div>
           </DialogContent>

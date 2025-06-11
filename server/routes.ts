@@ -3524,6 +3524,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload training media
+  app.post("/api/training/media/upload", authenticateToken, upload.single('media'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { programId, moduleId, type } = req.body;
+      
+      const mediaData = {
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        programId: programId ? parseInt(programId) : null,
+        moduleId: moduleId ? parseInt(moduleId) : null,
+        type: type || 'document',
+        uploadedBy: req.user.id
+      };
+
+      // Store media reference in documents table for now
+      const document = await storage.createDocument({
+        userId: req.user.id,
+        fileName: req.file.originalname,
+        originalName: req.file.originalname,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+        filePath: req.file.path,
+        uploadedBy: req.user.id,
+        documentType: type || 'training-media',
+        reportId: programId ? parseInt(programId) : null
+      });
+
+      res.status(201).json({
+        id: document.id,
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        url: `/uploads/${req.file.filename}`,
+        type: type || 'document'
+      });
+    } catch (error) {
+      console.error("Error uploading media:", error);
+      res.status(500).json({ error: "Failed to upload media" });
+    }
+  });
+
+  // Get training media
+  app.get("/api/training/media", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { programId, type } = req.query;
+      
+      // For now, return mock media data - in production this would query a proper media table
+      const mediaFiles = [
+        {
+          id: 1,
+          fileName: "Electoral_Law_Overview.pdf",
+          type: "document",
+          url: "/uploads/electoral-law.pdf",
+          size: "1.2 MB",
+          uploadedAt: new Date().toISOString()
+        },
+        {
+          id: 2,
+          fileName: "Polling_Station_Setup.mp4",
+          type: "video",
+          url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          duration: "15:30",
+          uploadedAt: new Date().toISOString()
+        }
+      ];
+
+      res.json(mediaFiles);
+    } catch (error) {
+      console.error("Error fetching media:", error);
+      res.status(500).json({ error: "Failed to fetch media" });
+    }
+  });
+
   // System health endpoint
   app.get("/api/admin/system/health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
