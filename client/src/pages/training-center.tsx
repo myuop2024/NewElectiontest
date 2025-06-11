@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,17 @@ import {
   BookOpen,
   Users,
   Download,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useScreenPresence } from "@/hooks/useScreenPresence";
+import { VideoPlayer } from "@/components/training/VideoPlayer";
 
 // Utility for downloading files
 import { downloadFile } from "@/lib/utils";
@@ -37,6 +42,7 @@ interface Module {
   title: string;
   duration: number;
   completed?: boolean;
+  videoId?: string;
 }
 interface Enrollment {
   id: number;
@@ -58,6 +64,71 @@ export default function TrainingCenter() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedback, setFeedback] = useState({ name: "", email: "", message: "" });
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+
+  // Screen presence and timer management
+  const {
+    isPresent,
+    isActive,
+    totalActiveTime,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    hasMetMinimumDuration,
+    formatTime,
+    getRemainingTime,
+  } = useScreenPresence({
+    minimumDuration: 300, // 5 minutes minimum per course (configurable)
+    autoStart: true,
+    onPresenceChange: (present) => {
+      if (!present) {
+        toast({
+          title: "⚠️ Screen Focus Lost",
+          description: "Course timer paused. Return to continue learning.",
+          variant: "destructive",
+        });
+      }
+    },
+    onTimeUpdate: (time) => {
+      // Auto-save progress every minute
+      if (time % 60 === 0 && selectedCourse) {
+        const enrollment = getEnrollmentForCourse(selectedCourse.id);
+        if (enrollment) {
+          // Could auto-save progress here
+        }
+      }
+    },
+  });
+
+  // Video completion tracking
+  const [videoCompletions, setVideoCompletions] = useState<Record<string, boolean>>({});
+  
+  const handleVideoComplete = useCallback((moduleId: string, completed: boolean) => {
+    setVideoCompletions(prev => ({
+      ...prev,
+      [moduleId]: completed
+    }));
+    
+    if (completed) {
+      toast({
+        title: "✅ Video Completed",
+        description: "You can now proceed to the next module.",
+      });
+    }
+  }, [toast]);
+
+  const canProceedFromModule = useCallback((module: any, index: number) => {
+    // Check if module has video requirement
+    if (module.videoId && !videoCompletions[`${selectedCourse?.id}-${index}`]) {
+      return false;
+    }
+    
+    // Check minimum time requirement for course
+    if (!hasMetMinimumDuration()) {
+      return false;
+    }
+    
+    return true;
+  }, [videoCompletions, selectedCourse, hasMetMinimumDuration]);
 
   // Fetch courses
   const { data: courses, isLoading: coursesLoading, error: coursesError } = useQuery({
@@ -349,6 +420,44 @@ export default function TrainingCenter() {
 
   return (
     <div className="p-2 sm:p-4 md:p-6 space-y-6 fade-in">
+      {/* Screen Presence & Timer Status Bar */}
+      {selectedCourse && (
+        <div className={`sticky top-0 z-40 p-3 rounded-lg border-2 ${
+          isPresent ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+        } transition-colors duration-300`}>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              {isPresent ? (
+                <>
+                  <Eye className="h-4 w-4 text-green-600" />
+                  <span className="text-green-800 font-medium">Active Learning</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="h-4 w-4 text-red-600" />
+                  <span className="text-red-800 font-medium">Timer Paused - Return to Screen</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>Active Time: {formatTime()}</span>
+              </div>
+              {!hasMetMinimumDuration() && (
+                <div className="flex items-center gap-1 text-orange-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>Need {formatTime(getRemainingTime())} more</span>
+                </div>
+              )}
+              {hasMetMinimumDuration() && (
+                <span className="text-green-600 font-medium">✓ Minimum time met</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-0">
         <div>
@@ -443,7 +552,11 @@ export default function TrainingCenter() {
                 status={status}
                 progress={progress}
                 onEnroll={() => enrollMutation.mutate(course.id)}
-                onSelect={() => setSelectedCourse(course)}
+                onSelect={() => {
+                  setSelectedCourse(course);
+                  resetTimer(); // Reset timer for new course
+                  startTimer(); // Start timer for course
+                }}
                 onDownload={() => handleDownloadCertificate(getEnrollmentForCourse(course.id).id)}
                 hasCertificate={hasCertificate(course.id)}
               />
@@ -453,7 +566,10 @@ export default function TrainingCenter() {
       ) : (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-            <Button variant="outline" onClick={() => setSelectedCourse(null)} className="w-full sm:w-auto mb-2 sm:mb-0">
+            <Button variant="outline" onClick={() => {
+              setSelectedCourse(null);
+              pauseTimer(); // Pause timer when leaving course
+            }} className="w-full sm:w-auto mb-2 sm:mb-0">
               ← Back to Courses
             </Button>
             <div>
@@ -469,14 +585,46 @@ export default function TrainingCenter() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {Array.isArray(selectedCourse.content?.modules) && selectedCourse.content.modules.map((module: any, index: number) => (
-                    <ModuleRow
-                      key={index}
-                      module={module}
-                      onAIQuiz={(e: React.MouseEvent) => {
-                        e.preventDefault();
-                        fetchAIQuiz(module, /* userHistory */ {});
-                      }}
-                    />
+                    <div key={index} className="space-y-4">
+                      {/* Module Header */}
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${module.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                            {module.completed ? <CheckCircle className="h-5 w-5" /> : <div className="w-3 h-3 border-2 border-current rounded-full" />}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{module.title}</h4>
+                            <p className="text-sm text-muted-foreground">{module.duration} minutes</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant={module.completed ? "outline" : "default"} 
+                            className={!module.completed ? "btn-caffe-primary" : ""}
+                            disabled={!canProceedFromModule(module, index)}
+                            aria-label={module.completed ? "Review module" : "Start module"}
+                          >
+                            {module.completed ? "Review" : "Start"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => fetchAIQuiz(module, {})} aria-label="Get AI Quiz">
+                            <Sparkles className="h-4 w-4 mr-1 text-blue-500" />
+                            AI Quiz
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Video Player for modules with videos */}
+                      {module.videoId && (
+                        <VideoPlayer
+                          videoId={module.videoId}
+                          title={`${module.title} - Training Video`}
+                          onComplete={(completed) => handleVideoComplete(`${selectedCourse.id}-${index}`, completed)}
+                          required={true}
+                          className="ml-11" // Align with module content
+                        />
+                      )}
+                    </div>
                   ))}
                   {aiQuiz && (
                     <AIPanel title="AI Quiz" value={aiQuiz} />
@@ -504,6 +652,12 @@ export default function TrainingCenter() {
                       <span>Passing score:</span>
                       <span>{selectedCourse.passingScore}%</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Time requirement:</span>
+                      <span className={hasMetMinimumDuration() ? 'text-green-600' : 'text-orange-600'}>
+                        {hasMetMinimumDuration() ? '✓ Met' : `${formatTime(getRemainingTime())} left`}
+                      </span>
+                    </div>
                     {getCourseStatus(selectedCourse.id) === 'completed' && (
                       <div className="flex justify-between font-medium text-green-600">
                         <span>Your score:</span>
@@ -520,7 +674,7 @@ export default function TrainingCenter() {
                   )}
                 </CardContent>
               </Card>
-              {hasCertificate(selectedCourse.id) && (
+              {hasCertificate(selectedCourse.id) && hasMetMinimumDuration() && (
                 <Card className="government-card border-green-200">
                   <CardContent className="p-6 text-center">
                     <Award className="h-12 w-12 text-green-600 mx-auto mb-4" />

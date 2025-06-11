@@ -2938,6 +2938,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "AI feedback error", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
+  // Generate AI-powered course structure
+  app.post("/api/training/ai/create-course", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+      
+      const { topic, role, difficulty, targetDuration } = req.body;
+      if (!topic || !role || !difficulty || !targetDuration) {
+        return res.status(400).json({ message: "Missing required parameters: topic, role, difficulty, targetDuration" });
+      }
+      
+      const courseStructure = await GeminiService.generateCourse({
+        topic,
+        role,
+        difficulty,
+        targetDuration: parseInt(targetDuration)
+      }, storage);
+      
+      res.json({ course: courseStructure });
+    } catch (error) {
+      res.status(500).json({ message: "AI course generation error", error: error.message });
+    }
+  });
+
+  // AI course editing assistance
+  app.post("/api/training/ai/edit-course", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+      
+      const { courseData, editRequest } = req.body;
+      if (!courseData || !editRequest) {
+        return res.status(400).json({ message: "Missing required parameters: courseData, editRequest" });
+      }
+      
+      const editedCourse = await GeminiService.editCourse(courseData, editRequest, storage);
+      res.json({ course: editedCourse });
+    } catch (error) {
+      res.status(500).json({ message: "AI course editing error", error: error.message });
+    }
+  });
+
+  // Generate question bank with AI
+  app.post("/api/training/ai/question-bank", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { topic, difficulty, questionTypes, count } = req.body;
+      if (!topic || !difficulty || !questionTypes || !count) {
+        return res.status(400).json({ message: "Missing required parameters: topic, difficulty, questionTypes, count" });
+      }
+      
+      const questionBank = await GeminiService.generateQuestionBank({
+        topic,
+        difficulty,
+        questionTypes: Array.isArray(questionTypes) ? questionTypes : [questionTypes],
+        count: parseInt(count)
+      }, storage);
+      
+      res.json(questionBank);
+    } catch (error) {
+      res.status(500).json({ message: "AI question bank error", error: error.message });
+    }
+  });
+
+  // Generate graphics prompt for AI image generation
+  app.post("/api/training/ai/graphics-prompt", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { content, style, context } = req.body;
+      if (!content || !style || !context) {
+        return res.status(400).json({ message: "Missing required parameters: content, style, context" });
+      }
+      
+      const prompt = await GeminiService.generateGraphicsPrompt({ content, style, context }, storage);
+      res.json({ prompt });
+    } catch (error) {
+      res.status(500).json({ message: "AI graphics prompt error", error: error.message });
+    }
+  });
+
+  // Enhance existing module with AI
+  app.post("/api/training/ai/enhance-module", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+      
+      const { moduleData, enhancementType } = req.body;
+      if (!moduleData || !enhancementType) {
+        return res.status(400).json({ message: "Missing required parameters: moduleData, enhancementType" });
+      }
+      
+      const enhancedModule = await GeminiService.enhanceModule(moduleData, enhancementType, storage);
+      res.json({ module: enhancedModule });
+    } catch (error) {
+      res.status(500).json({ message: "AI module enhancement error", error: error.message });
+    }
+  });
 
   return httpServer;
 }

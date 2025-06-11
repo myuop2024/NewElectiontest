@@ -362,4 +362,197 @@ export class GeminiService {
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || data;
   }
+
+  static async generateCourse(params: { topic: string, role: string, difficulty: string, targetDuration: number }, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    
+    const prompt = `Create a comprehensive training course for electoral observers with the following specifications:
+
+Topic: ${params.topic}
+Role: ${params.role} 
+Difficulty: ${params.difficulty}
+Target Duration: ${params.targetDuration} minutes
+
+Please generate a complete course structure in the following JSON format:
+{
+  "title": "Course Title",
+  "description": "Detailed course description (2-3 sentences)",
+  "role": "${params.role}",
+  "duration": ${params.targetDuration},
+  "passingScore": 80,
+  "content": {
+    "modules": [
+      {
+        "title": "Module 1 Title",
+        "duration": 30,
+        "objectives": ["Learning objective 1", "Learning objective 2"],
+        "content": "Brief module description"
+      }
+    ]
+  }
+}
+
+Requirements:
+- Create 4-8 modules that add up to approximately ${params.targetDuration} minutes
+- Each module should be 10-45 minutes long
+- Include realistic learning objectives for each module
+- Focus on practical skills for ${params.role} in electoral observation
+- Adjust complexity based on ${params.difficulty} level
+- Ensure content is relevant to Jamaica's electoral context
+- Set appropriate passing score (70-90% based on difficulty)
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      // Try to parse the JSON response
+      const courseData = JSON.parse(result);
+      return courseData;
+    } catch (error) {
+      // If parsing fails, return a structured error
+      throw new Error('Failed to generate course structure. Please try again.');
+    }
+  }
+
+  static async editCourse(courseData: any, editRequest: string, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    
+    const prompt = `You are an expert course designer. Please edit the following course based on the request:
+
+CURRENT COURSE:
+${JSON.stringify(courseData, null, 2)}
+
+EDIT REQUEST: ${editRequest}
+
+Please return the updated course in the same JSON format, incorporating the requested changes while maintaining educational quality and structure. Only modify what was requested and keep the rest intact.
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to edit course. Please try again.');
+    }
+  }
+
+  static async generateQuestionBank(params: { topic: string, difficulty: string, questionTypes: string[], count: number }, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    
+    const prompt = `Generate a comprehensive question bank for electoral observation training with the following specifications:
+
+Topic: ${params.topic}
+Difficulty: ${params.difficulty}
+Question Types: ${params.questionTypes.join(', ')}
+Number of Questions: ${params.count}
+
+Create questions in the following JSON format:
+{
+  "questions": [
+    {
+      "id": 1,
+      "type": "multiple_choice",
+      "question": "Question text here?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct": 0,
+      "explanation": "Why this answer is correct",
+      "difficulty": "${params.difficulty}",
+      "topic": "${params.topic}"
+    },
+    {
+      "id": 2,
+      "type": "true_false",
+      "question": "Statement to evaluate",
+      "correct": true,
+      "explanation": "Explanation of the answer"
+    },
+    {
+      "id": 3,
+      "type": "scenario",
+      "question": "Scenario description followed by question",
+      "options": ["Action A", "Action B", "Action C"],
+      "correct": 0,
+      "explanation": "Why this action is appropriate"
+    }
+  ]
+}
+
+Requirements:
+- Mix question types: ${params.questionTypes.join(', ')}
+- Focus on practical electoral observation scenarios
+- Include challenging but fair questions for ${params.difficulty} level
+- Provide clear explanations for each answer
+- Ensure questions test real-world application, not just memorization
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to generate question bank. Please try again.');
+    }
+  }
+
+  static async generateGraphicsPrompt(params: { content: string, style: string, context: string }, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    
+    const prompt = `Create a detailed prompt for AI image generation (DALL-E, Midjourney, etc.) based on these requirements:
+
+Content: ${params.content}
+Style: ${params.style}
+Context: ${params.context}
+
+Generate a comprehensive image generation prompt that would create educational graphics suitable for electoral observer training materials. The prompt should be specific, detailed, and optimized for AI image generation.
+
+Focus on:
+- Professional, educational appearance
+- Clear visual communication
+- Appropriate for training materials
+- Culturally relevant to Jamaica if applicable
+- ${params.style} aesthetic
+
+Return just the image generation prompt text, optimized for AI image generators.`;
+
+    return await this.callGemini(prompt, apiKey);
+  }
+
+  static async enhanceModule(moduleData: any, enhancementType: string, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini API key not set');
+    
+    const prompt = `Enhance the following training module:
+
+CURRENT MODULE:
+${JSON.stringify(moduleData, null, 2)}
+
+ENHANCEMENT TYPE: ${enhancementType}
+
+Please improve the module by:
+- Adding more detailed content if requested
+- Improving learning objectives
+- Suggesting interactive elements
+- Adding practical exercises
+- Enhancing engagement factors
+- Including real-world examples from Jamaica's electoral context
+
+Return the enhanced module in the same JSON format with improvements incorporated.
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to enhance module. Please try again.');
+    }
+  }
 }
