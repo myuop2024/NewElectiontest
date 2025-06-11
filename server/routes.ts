@@ -10,7 +10,7 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { db } from "./db";
-import { settings } from "@shared/schema";
+import { settings, courses, enrollments } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
 import { SecurityService } from "./lib/security.js";
@@ -1749,12 +1749,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiService = createAIIncidentService(process.env.GOOGLE_API_KEY);
       
       // Convert reports to incident format for analysis
-      const incidents = recentReports.map(report => ({
-        type: report.type || 'other',
-        title: report.title,
-        description: report.description,
-        location: report.metadata ? JSON.parse(report.metadata as string)?.location : undefined
-      }));
+      const incidents = recentReports.map(report => {
+        let metadata = null;
+        try {
+          metadata = typeof report.metadata === 'string' ? JSON.parse(report.metadata) : report.metadata;
+        } catch (error) {
+          console.warn('Failed to parse report metadata:', error);
+          metadata = {};
+        }
+        
+        return {
+          type: report.type || 'other',
+          title: report.title,
+          description: report.description,
+          location: metadata?.location
+        };
+      });
 
       const analyses = await aiService.classifyIncidentBatch(incidents);
       const summary = await aiService.generateSummaryReport(analyses);
@@ -2883,11 +2893,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
       const courses = await storage.getCourses();
-      const enrollments = await db.select().from(enrollments);
+      const enrollmentsList = await db.select().from(enrollments);
       const totalCourses = courses.length;
       const totalModules = courses.reduce((sum, c) => sum + (Array.isArray(c.content?.modules) ? c.content.modules.length : 0), 0);
-      const totalEnrollments = enrollments.length;
-      const totalCompletions = enrollments.filter((e: any) => e.status === 'completed').length;
+      const totalEnrollments = enrollmentsList.length;
+      const totalCompletions = enrollmentsList.filter((e: any) => e.status === 'completed').length;
       res.json({ totalCourses, totalModules, totalEnrollments, totalCompletions });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch analytics" });
