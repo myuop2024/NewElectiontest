@@ -309,9 +309,10 @@ export default function UnifiedAdmin() {
       </div>
 
       <Tabs defaultValue="services" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="services">API Services</TabsTrigger>
           <TabsTrigger value="features">Feature Control</TabsTrigger>
+          <TabsTrigger value="training">Training Management</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="security">Security Settings</TabsTrigger>
           <TabsTrigger value="monitoring">System Health</TabsTrigger>
@@ -439,6 +440,123 @@ export default function UnifiedAdmin() {
 
         <TabsContent value="features">
           <FeatureStatusDashboard />
+        </TabsContent>
+
+        <TabsContent value="training" className="space-y-6">
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Brain className="h-5 w-5 mr-2" />
+                  Enhanced Training Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">5</div>
+                        <p className="text-xs text-muted-foreground">Training Programs</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">10</div>
+                        <p className="text-xs text-muted-foreground">Course Modules</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">8</div>
+                        <p className="text-xs text-muted-foreground">Active Quizzes</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">3</div>
+                        <p className="text-xs text-muted-foreground">Live Contests</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button 
+                      onClick={() => window.open('/training-center', '_blank')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Open Training Center
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.open('/admin/enhanced-training', '_blank')}
+                    >
+                      Enhanced Management
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.open('/admin/training', '_blank')}
+                    >
+                      Basic Training Management
+                    </Button>
+                  </div>
+                  
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Course Modules</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Create structured learning modules with lessons, videos, and resources
+                        </p>
+                        <ul className="text-sm space-y-1">
+                          <li>• Interactive lesson content</li>
+                          <li>• Video and document resources</li>
+                          <li>• Progress tracking</li>
+                          <li>• Completion criteria</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Quizzes & Assessments</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Build comprehensive quizzes to test knowledge and skills
+                        </p>
+                        <ul className="text-sm space-y-1">
+                          <li>• Multiple choice questions</li>
+                          <li>• Time limits and attempts</li>
+                          <li>• Automatic scoring</li>
+                          <li>• Certification requirements</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Contests & Challenges</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Organize competitive training events and skill challenges
+                        </p>
+                        <ul className="text-sm space-y-1">
+                          <li>• Practical challenges</li>
+                          <li>• Leaderboards and rankings</li>
+                          <li>• Prize distribution</li>
+                          <li>• Team competitions</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">

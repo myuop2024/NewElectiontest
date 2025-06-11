@@ -19,6 +19,7 @@ import DocumentCapture from "@/pages/document-capture";
 import RouteNavigation from "@/pages/route-navigation";
 import TrainingCenter from "@/pages/training-center";
 import TrainingManagement from "@/pages/TrainingManagement";
+import EnhancedTrainingManagement from "@/pages/EnhancedTrainingManagement";
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import CheckIn from "@/pages/check-in";
@@ -116,6 +117,16 @@ function Router() {
         </ProtectedLayout>
       </Route>
       <Route path="/admin-training">
+        <ProtectedLayout>
+          <TrainingManagement />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin/enhanced-training">
+        <ProtectedLayout>
+          <EnhancedTrainingManagement />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin/training">
         <ProtectedLayout>
           <TrainingManagement />
         </ProtectedLayout>
