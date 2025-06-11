@@ -1,10 +1,12 @@
 import {
   users, parishes, pollingStations, assignments, checkIns, reports, documents, messages,
   courses, enrollments, faqs, news, auditLogs, settings, chatRooms, chatMessages, onlineUsers,
-  certificateTemplates,
+  certificateTemplates, courseModules, courseQuizzes, courseContests, courseMedia,
   type User, type InsertUser, type Parish, type InsertParish, type PollingStation, type InsertPollingStation,
   type Assignment, type InsertAssignment, type CheckIn, type InsertCheckIn, type Report, type InsertReport,
   type Document, type InsertDocument, type Message, type InsertMessage, type Course, type InsertCourse,
+  type CourseModule, type InsertCourseModule, type CourseQuiz, type InsertCourseQuiz,
+  type CourseContest, type InsertCourseContest, type CourseMedia, type InsertCourseMedia,
   type Enrollment, type InsertEnrollment, type FAQ, type InsertFAQ, type News, type InsertNews,
   type AuditLog, type InsertAuditLog, type Setting, type InsertSetting, type ChatRoom, type InsertChatRoom,
   type ChatMessage, type InsertChatMessage, type OnlineUser, type InsertOnlineUser,
