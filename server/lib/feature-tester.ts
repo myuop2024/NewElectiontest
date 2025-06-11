@@ -208,6 +208,49 @@ export class FeatureTester {
       };
     }
   }
+
+  // Toggle feature on/off
+  static async toggleFeature(featureKey: string, enabled: boolean) {
+    try {
+      // Map feature keys to actual setting keys
+      const featureMap: { [key: string]: string } = {
+        'twilio': 'twilio_enabled',
+        'email': 'email_notifications_enabled',
+        'bigquery': 'bigquery_enabled',
+        'openai': 'openai_enabled',
+        'here': 'here_maps_enabled',
+        'huggingface': 'huggingface_enabled',
+        'gemini': 'gemini_enabled',
+        'whatsapp': 'whatsapp_enabled',
+        'didit': 'didit_enabled',
+        'emergency_broadcast': 'emergency_broadcast_enabled',
+        'gps_tracking': 'gps_tracking_enabled',
+        'webrtc': 'webrtc_enabled',
+        'real_time_notifications': 'real_time_notifications'
+      };
+
+      const settingKey = featureMap[featureKey] || `${featureKey}_enabled`;
+      
+      // Update the setting
+      await storage.updateSetting(settingKey, enabled.toString());
+
+      return {
+        success: true,
+        feature: featureKey,
+        enabled: enabled,
+        message: `Feature '${featureKey}' has been ${enabled ? 'enabled' : 'disabled'}`,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        feature: featureKey,
+        enabled: enabled,
+        message: `Failed to toggle feature '${featureKey}': ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 }
 
 function generateEmergencyRecommendations(features: any): string[] {

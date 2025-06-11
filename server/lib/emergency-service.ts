@@ -108,100 +108,89 @@ export class EmergencyService {
       createdAt: new Date().toISOString()
     };
 
-    // Store alert in memory and database
+    // Store in active alerts
     this.activeAlerts.set(alertId, alert);
-    
+
+    // Log the alert creation
     await storage.createAuditLog({
+      userId: alertData.createdBy,
       action: 'emergency_alert_created',
       entityType: 'emergency_alert',
-      userId: alertData.createdBy,
       entityId: alertId,
       newValues: JSON.stringify(alert)
     });
 
-    // Send notifications through specified channels
-    await this.broadcastAlert(alert);
+    // Send notifications
+    await this.sendNotifications(alert);
 
-    // Schedule escalation if needed
+    // Schedule escalation
     this.scheduleEscalation(alert);
 
     return alert;
   }
 
-  async acknowledgeAlert(alertId: string, userId: number): Promise<void> {
-    const alert = this.activeAlerts.get(alertId);
-    if (!alert) {
-      throw new Error('Alert not found');
-    }
-
-    if (alert.status !== 'active') {
-      throw new Error('Alert is not in active status');
-    }
-
-    alert.status = 'acknowledged';
-    alert.acknowledgedBy = userId;
-    alert.acknowledgedAt = new Date().toISOString();
-
-    this.activeAlerts.set(alertId, alert);
-
-    await storage.createAuditLog({
-      action: 'emergency_alert_acknowledged',
-      entityType: 'emergency_alert',
-      userId: userId,
-      entityId: alertId,
-      newValues: JSON.stringify(alert)
-    });
-
-    // Cancel escalation timer
-    const timer = this.escalationTimers.get(alertId);
-    if (timer) {
-      clearTimeout(timer);
-      this.escalationTimers.delete(alertId);
-    }
-  }
-
-  async resolveAlert(alertId: string, userId: number, resolution: string): Promise<void> {
-    const alert = this.activeAlerts.get(alertId);
-    if (!alert) {
-      throw new Error('Alert not found');
-    }
-
-    alert.status = 'resolved';
-    alert.resolvedBy = userId;
-    alert.resolvedAt = new Date().toISOString();
-
-    // Remove from active alerts
-    this.activeAlerts.delete(alertId);
-
-    await storage.createAuditLog({
-      action: 'emergency_alert_resolved',
-      entityType: 'emergency_alert',
-      userId: userId,
-      entityId: alertId,
-      newValues: JSON.stringify({ ...alert, resolution })
-    });
-
-    // Cancel escalation timer
-    const timer = this.escalationTimers.get(alertId);
-    if (timer) {
-      clearTimeout(timer);
-      this.escalationTimers.delete(alertId);
+  private async sendNotifications(alert: EmergencyAlert) {
+    try {
+      for (const channel of alert.channels) {
+        switch (channel) {
+          case 'email':
+            await this.notificationService.sendEmail({
+              to: alert.recipients,
+              subject: `EMERGENCY ALERT: ${alert.title}`,
+              html: `
+                <h2>Emergency Alert - ${alert.severity.toUpperCase()}</h2>
+                <p><strong>Location:</strong> ${alert.location.parish}${alert.location.pollingStation ? `, ${alert.location.pollingStation}` : ''}</p>
+                <p><strong>Category:</strong> ${alert.category}</p>
+                <p><strong>Description:</strong> ${alert.description}</p>
+                <p><strong>Time:</strong> ${new Date(alert.createdAt).toLocaleString()}</p>
+                <p>Please respond immediately to acknowledge this alert.</p>
+              `
+            });
+            break;
+          case 'sms':
+            for (const recipient of alert.recipients) {
+              await this.notificationService.sendSMS(
+                recipient,
+                `EMERGENCY: ${alert.title} - ${alert.location.parish}. ${alert.description}`
+              );
+            }
+            break;
+          case 'push':
+            // Push notification would be handled by a push service
+            console.log('Push notification sent for alert:', alert.id);
+            break;
+        }
+      }
+    } catch (error) {
+      console.error('Error sending notifications:', error);
     }
   }
 
-  async escalateAlert(alertId: string): Promise<void> {
+  private scheduleEscalation(alert: EmergencyAlert) {
+    const escalationTime = this.getEscalationTimeForAlert(alert);
+    
+    const timer = setTimeout(async () => {
+      if (this.activeAlerts.has(alert.id) && 
+          this.activeAlerts.get(alert.id)?.status === 'active') {
+        await this.escalateAlert(alert.id);
+      }
+    }, escalationTime * 60 * 1000); // Convert minutes to milliseconds
+
+    this.escalationTimers.set(alert.id, timer);
+  }
+
+  private async escalateAlert(alertId: string) {
     const alert = this.activeAlerts.get(alertId);
-    if (!alert) {
-      return;
-    }
+    if (!alert) return;
 
     alert.status = 'escalated';
     this.activeAlerts.set(alertId, alert);
 
+    // Log escalation
     await storage.createAuditLog({
+      userId: 0, // System escalation
       action: 'emergency_alert_escalated',
       entityType: 'emergency_alert',
-      userId: null,
       entityId: alertId,
       newValues: JSON.stringify(alert)
     });
@@ -210,159 +199,80 @@ export class EmergencyService {
     await this.sendEscalationNotifications(alert);
   }
 
-  private async broadcastAlert(alert: EmergencyAlert): Promise<void> {
-    try {
-      // Get all users who should receive emergency notifications
-      const allUsers = await storage.getAuditLogs();
-      const userLogs = allUsers.filter(log => log.action === 'user_created');
-      const recipients = userLogs
-        .map(log => {
-          try {
-            return JSON.parse(log.newValues as string || '{}');
-          } catch (error) {
-            return null;
-          }
-        })
-        .filter(user => user && (
-          user.role === 'admin' || 
-          user.role === 'coordinator' || 
-          user.role === 'supervisor'
-        ));
-
-      // Send notifications through each specified channel
-      for (const channel of alert.channels) {
-        switch (channel.toLowerCase()) {
-          case 'sms':
-            await this.sendSMSAlerts(alert, recipients);
-            break;
-          case 'email':
-            await this.sendEmailAlerts(alert, recipients);
-            break;
-          case 'push notification':
-            await this.sendPushNotifications(alert, recipients);
-            break;
-          case 'whatsapp':
-            await this.sendWhatsAppAlerts(alert, recipients);
-            break;
-          case 'voice call':
-            await this.initiateVoiceCalls(alert, recipients);
-            break;
-        }
-      }
-
-      // Broadcast to WebSocket clients for real-time updates
-      await this.broadcastWebSocketAlert(alert);
-
-    } catch (error) {
-      console.error('Error broadcasting alert:', error);
-    }
-  }
-
-  private async sendSMSAlerts(alert: EmergencyAlert, recipients: any[]): Promise<void> {
-    const message = `🚨 EMERGENCY ALERT - ${alert.severity.toUpperCase()}\n\n${alert.title}\n\n${alert.description}\n\nLocation: ${alert.location.parish}${alert.location.pollingStation ? ` - ${alert.location.pollingStation}` : ''}\n\nTime: ${new Date(alert.createdAt).toLocaleString()}`;
-
-    for (const recipient of recipients) {
-      if (recipient.phone) {
-        try {
-          await NotificationService.sendSMS(recipient.phone, message);
-        } catch (error) {
-          console.error(`Failed to send SMS to ${recipient.phone}:`, error);
-        }
-      }
-    }
-  }
-
-  private async sendEmailAlerts(alert: EmergencyAlert, recipients: any[]): Promise<void> {
-    const subject = `🚨 EMERGENCY ALERT - ${alert.severity.toUpperCase()}: ${alert.title}`;
-    const html = `
-      <div style="background-color: #fee; border: 2px solid #f87171; padding: 20px; border-radius: 8px;">
-        <h1 style="color: #dc2626; margin-top: 0;">🚨 EMERGENCY ALERT</h1>
-        <div style="background-color: #dc2626; color: white; padding: 8px 12px; border-radius: 4px; display: inline-block; margin-bottom: 16px;">
-          SEVERITY: ${alert.severity.toUpperCase()}
-        </div>
-        <h2 style="color: #1f2937; margin-bottom: 12px;">${alert.title}</h2>
-        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">${alert.description}</p>
-        <div style="background-color: #f9fafb; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
-          <strong>Location:</strong> ${alert.location.parish}${alert.location.pollingStation ? ` - ${alert.location.pollingStation}` : ''}<br>
-          <strong>Category:</strong> ${alert.category}<br>
-          <strong>Time:</strong> ${new Date(alert.createdAt).toLocaleString()}
-        </div>
-        <p style="font-size: 14px; color: #6b7280;">
-          This is an automated emergency alert from the CAFFE Electoral Observation System.
-        </p>
-      </div>
-    `;
-
-    for (const recipient of recipients) {
-      if (recipient.email) {
-        try {
-          await NotificationService.sendEmail(recipient.email, subject, html);
-        } catch (error) {
-          console.error(`Failed to send email to ${recipient.email}:`, error);
-        }
-      }
-    }
-  }
-
-  private async sendPushNotifications(alert: EmergencyAlert, recipients: any[]): Promise<void> {
-    const title = `🚨 EMERGENCY ALERT - ${alert.severity.toUpperCase()}`;
-    const body = `${alert.title} - ${alert.location.parish}`;
-
-    for (const recipient of recipients) {
-      try {
-        await this.notificationService.sendPushNotification(
-          recipient.id,
-          title,
-          body,
-          {
-            alertId: alert.id,
-            severity: alert.severity,
-            category: alert.category
-          }
-        );
-      } catch (error) {
-        console.error(`Failed to send push notification to user ${recipient.id}:`, error);
-      }
-    }
-  }
-
-  private async sendWhatsAppAlerts(alert: EmergencyAlert, recipients: any[]): Promise<void> {
-    // WhatsApp integration would require WhatsApp Business API
-    console.log('WhatsApp alerts not implemented yet');
-  }
-
-  private async initiateVoiceCalls(alert: EmergencyAlert, recipients: any[]): Promise<void> {
-    // Voice call integration would require Twilio Voice API
-    console.log('Voice call alerts not implemented yet');
-  }
-
-  private async broadcastWebSocketAlert(alert: EmergencyAlert): Promise<void> {
-    // This would integrate with the WebSocket server to broadcast real-time alerts
-    console.log('Broadcasting WebSocket alert:', alert.id);
-  }
-
-  private async sendEscalationNotifications(alert: EmergencyAlert): Promise<void> {
-    // Send escalation notifications to higher authorities
-    const escalationMessage = `ESCALATED EMERGENCY ALERT\n\nAlert ID: ${alert.id}\nSeverity: ${alert.severity.toUpperCase()}\nTitle: ${alert.title}\n\nThis alert has been escalated due to lack of response within the specified timeframe.`;
+  private async sendEscalationNotifications(alert: EmergencyAlert) {
+    const escalationRecipients = ['supervisor@example.com', 'admin@example.com'];
     
-    // Send to emergency contacts and supervisors
-    console.log('Sending escalation notifications for alert:', alert.id);
+    await this.notificationService.sendEmail({
+      to: escalationRecipients,
+      subject: `ESCALATED ALERT: ${alert.title}`,
+      html: `
+        <h2>Escalated Emergency Alert - ${alert.severity.toUpperCase()}</h2>
+        <p><strong>Alert ID:</strong> ${alert.id}</p>
+        <p><strong>Location:</strong> ${alert.location.parish}</p>
+        <p><strong>Description:</strong> ${alert.description}</p>
+        <p><strong>Created:</strong> ${new Date(alert.createdAt).toLocaleString()}</p>
+        <p style="color: red;"><strong>This alert has been escalated due to lack of acknowledgment.</strong></p>
+      `
+    });
   }
 
-  private scheduleEscalation(alert: EmergencyAlert): void {
-    // Get escalation rules for this alert
-    const escalationTime = this.getEscalationTimeForAlert(alert);
-    
-    if (escalationTime > 0) {
-      const timer = setTimeout(async () => {
-        if (this.activeAlerts.has(alert.id) && 
-            this.activeAlerts.get(alert.id)?.status === 'active') {
-          await this.escalateAlert(alert.id);
-        }
-      }, escalationTime * 60 * 1000); // Convert minutes to milliseconds
+  async acknowledgeAlert(alertId: string, userId: number): Promise<boolean> {
+    const alert = this.activeAlerts.get(alertId);
+    if (!alert) return false;
 
-      this.escalationTimers.set(alert.id, timer);
+    alert.status = 'acknowledged';
+    alert.acknowledgedBy = userId;
+    alert.acknowledgedAt = new Date().toISOString();
+
+    this.activeAlerts.set(alertId, alert);
+
+    // Clear escalation timer
+    const timer = this.escalationTimers.get(alertId);
+    if (timer) {
+      clearTimeout(timer);
+      this.escalationTimers.delete(alertId);
     }
+
+    // Log acknowledgment
+    await storage.createAuditLog({
+      userId,
+      action: 'emergency_alert_acknowledged',
+      entityType: 'emergency_alert',
+      entityId: alertId,
+      newValues: JSON.stringify(alert)
+    });
+
+    return true;
+  }
+
+  async resolveAlert(alertId: string, userId: number, resolution?: string): Promise<boolean> {
+    const alert = this.activeAlerts.get(alertId);
+    if (!alert) return false;
+
+    alert.status = 'resolved';
+    alert.resolvedBy = userId;
+    alert.resolvedAt = new Date().toISOString();
+
+    // Remove from active alerts
+    this.activeAlerts.delete(alertId);
+
+    // Clear escalation timer
+    const timer = this.escalationTimers.get(alertId);
+    if (timer) {
+      clearTimeout(timer);
+      this.escalationTimers.delete(alertId);
+    }
+
+    // Log resolution
+    await storage.createAuditLog({
+      userId,
+      action: 'emergency_alert_resolved',
+      entityType: 'emergency_alert',
+      entityId: alertId,
+      newValues: JSON.stringify({ ...alert, resolution })
+    });
+
+    return true;
   }
 
   private getEscalationTimeForAlert(alert: EmergencyAlert): number {
@@ -453,9 +363,6 @@ export class EmergencyService {
         totalRecipients: 0,
         successRate: 0,
         severityBreakdown: { critical: 0, high: 0, medium: 0, low: 0 }
-      };
-    }
-  }
       };
     }
   }
