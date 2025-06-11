@@ -18,6 +18,7 @@ import LiveChat from "@/pages/live-chat";
 import DocumentCapture from "@/pages/document-capture";
 import RouteNavigation from "@/pages/route-navigation";
 import TrainingCenter from "@/pages/training-center";
+import AdminTraining from "@/pages/admin-training";
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import CheckIn from "@/pages/check-in";
@@ -112,6 +113,11 @@ function Router() {
       <Route path="/training-center">
         <ProtectedLayout>
           <TrainingCenter />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin-training">
+        <ProtectedLayout>
+          <AdminTraining />
         </ProtectedLayout>
       </Route>
       <Route path="/analytics">
