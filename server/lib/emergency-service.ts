@@ -408,7 +408,7 @@ export class EmergencyService {
   async getEmergencyStatistics(): Promise<any> {
     try {
       const allAlerts = await this.getAllAlerts();
-      const activeAlerts = await this.getActiveAlerts();
+      const activeAlerts = await this.getActiveAlerts();iveAlerts();
 
       const now = new Date();
       const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -453,6 +453,9 @@ export class EmergencyService {
         totalRecipients: 0,
         successRate: 0,
         severityBreakdown: { critical: 0, high: 0, medium: 0, low: 0 }
+      };
+    }
+  }
       };
     }
   }
@@ -547,9 +550,10 @@ export class EmergencyService {
         description: 'This is a test of the emergency alert system. No action required.',
         severity: 'low',
         category: 'system_test',
-        parish: 'Kingston',
+        location: { parish: 'Kingston' },
         channels: ['email'],
-        createdBy: 1
+        recipients: ['test@example.com'],
+        createdBy: 1 1
       });
 
       // Immediately resolve the test alert

@@ -3236,15 +3236,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create certificate template
-  app.post("/api/certificate-templates", async (req, res) => {
+  app.post("/api/certificate-templates", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
       const templateData = req.body;
-      templateData.createdBy = session.user.id;
+      templateData.createdBy = req.user.id;
       
       const template = await storage.createCertificateTemplate(templateData);
       res.status(201).json(template);
@@ -3255,10 +3254,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update certificate template
-  app.put("/api/certificate-templates/:id", async (req, res) => {
+  app.put("/api/certificate-templates/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -3274,10 +3272,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete certificate template
-  app.delete("/api/certificate-templates/:id", async (req, res) => {
+  app.delete("/api/certificate-templates/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -3291,10 +3288,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI: Generate certificate template
-  app.post("/api/certificate-templates/generate", async (req, res) => {
+  app.post("/api/certificate-templates/generate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -3315,7 +3311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the template in database
       const templateData = {
         ...templateConfig,
-        createdBy: session.user.id
+        createdBy: req.user.id
       };
       
       const template = await storage.createCertificateTemplate(templateData);
@@ -3327,10 +3323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI: Edit certificate template
-  app.post("/api/certificate-templates/:id/edit", async (req, res) => {
+  app.post("/api/certificate-templates/:id/edit", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -3364,10 +3359,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI: Get template improvement suggestions
-  app.post("/api/certificate-templates/:id/suggestions", async (req, res) => {
+  app.post("/api/certificate-templates/:id/suggestions", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -3391,10 +3385,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI: Generate template variations
-  app.post("/api/certificate-templates/:id/variations", async (req, res) => {
+  app.post("/api/certificate-templates/:id/variations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const session = await getSession(req);
-      if (!session?.user?.isAdmin) {
+      if (req.user?.role !== "admin") {
         return res.status(403).json({ error: "Admin access required" });
       }
 
