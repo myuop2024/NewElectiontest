@@ -2849,42 +2849,200 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/training/certificate/:enrollmentId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const enrollmentId = parseInt(req.params.enrollmentId);
+      const { templateId } = req.query; // Optional template ID
       const userId = req.user!.id;
+      
       // Fetch enrollment
       const enrollments = await storage.getEnrollmentsByUser(userId);
       const enrollment = enrollments.find(e => e.id === enrollmentId);
       if (!enrollment) return res.status(404).json({ message: "Enrollment not found" });
       if (enrollment.status !== "completed") return res.status(403).json({ message: "Course not completed" });
+      
       // Fetch course
       const courses = await storage.getCourses();
       const course = courses.find(c => c.id === enrollment.courseId);
       if (!course) return res.status(404).json({ message: "Course not found" });
+      
       // Fetch user
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
-      // Generate PDF
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+      // Get certificate template
+      let template;
+      if (templateId) {
+        template = await storage.getCertificateTemplate(parseInt(templateId as string));
+      } else {
+        template = await storage.getDefaultCertificateTemplate();
+      }
+
+      // Generate PDF with template support
+      const doc = new PDFDocument({ 
+        size: 'A4', 
+        layout: template?.templateData?.layout?.orientation || 'landscape',
+        margin: 50 
+      });
+      
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=certificate-${enrollmentId}.pdf`);
       doc.pipe(res);
-      // Certificate content
-      doc.fontSize(28).text('Certificate of Completion', { align: 'center' });
-      doc.moveDown(2);
-      doc.fontSize(18).text(`This certifies that`, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(22).text(`${user.firstName} ${user.lastName}`, { align: 'center', underline: true });
-      doc.moveDown();
-      doc.fontSize(18).text(`has successfully completed the course`, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(20).text(`${course.title}`, { align: 'center', underline: true });
-      doc.moveDown(2);
-      doc.fontSize(16).text(`Completion Date: ${enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString() : ''}`, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(14).text(`Certificate ID: ${enrollment.certificateId || enrollment.id}`, { align: 'center' });
-      doc.moveDown(4);
-      doc.fontSize(12).fillOpacity(0.7).text('Powered by CAFFE Election Training Center', { align: 'center' });
+
+      if (template?.templateData) {
+        const templateData = template.templateData;
+        
+        // Apply template styling
+        if (templateData.styling?.borderColor && templateData.styling?.borderWidth) {
+          doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40)
+             .lineWidth(templateData.styling.borderWidth)
+             .stroke(templateData.styling.borderColor);
+        }
+
+        // Background color
+        if (templateData.styling?.backgroundColor && templateData.styling.backgroundColor !== '#ffffff') {
+          doc.rect(0, 0, doc.page.width, doc.page.height)
+             .fill(templateData.styling.backgroundColor);
+        }
+
+        // Header section
+        if (templateData.header) {
+          const header = templateData.header;
+          if (header.organizationName) {
+            doc.fontSize(16).fillColor(header.titleColor || '#000000')
+               .text(header.organizationName, 50, 50, { 
+                 align: 'center',
+                 width: doc.page.width - 100 
+               });
+          }
+          if (header.title) {
+            doc.fontSize(header.titleFont?.size || 28)
+               .fillColor(header.titleColor || '#000000')
+               .text(header.title, 50, 100, { 
+                 align: 'center',
+                 width: doc.page.width - 100 
+               });
+          }
+        }
+
+        // Body section
+        if (templateData.body) {
+          const body = templateData.body;
+          let yPosition = 180;
+          
+          if (body.recipientSection) {
+            doc.fontSize(18).fillColor('#000000')
+               .text(body.recipientSection.prefix || 'This certifies that', 50, yPosition, { 
+                 align: 'center',
+                 width: doc.page.width - 100 
+               });
+            yPosition += 40;
+            
+            doc.fontSize(body.recipientSection.nameFont?.size || 22)
+               .fillColor(body.recipientSection.nameColor || '#000000')
+               .text(`${user.firstName} ${user.lastName}`, 50, yPosition, { 
+                 align: 'center',
+                 width: doc.page.width - 100,
+                 underline: body.recipientSection.nameUnderline || false
+               });
+            yPosition += 60;
+          }
+          
+          if (body.courseSection) {
+            doc.fontSize(18).fillColor('#000000')
+               .text(body.courseSection.prefix || 'has successfully completed the course', 50, yPosition, { 
+                 align: 'center',
+                 width: doc.page.width - 100 
+               });
+            yPosition += 40;
+            
+            doc.fontSize(body.courseSection.courseFont?.size || 20)
+               .fillColor(body.courseSection.courseColor || '#000000')
+               .text(course.title, 50, yPosition, { 
+                 align: 'center',
+                 width: doc.page.width - 100,
+                 underline: true
+               });
+            yPosition += 60;
+          }
+          
+          if (body.detailsSection) {
+            if (body.detailsSection.completionDate?.show) {
+              doc.fontSize(16).fillColor('#000000')
+                 .text(`Completion Date: ${enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString() : ''}`, 50, yPosition, { 
+                   align: 'center',
+                   width: doc.page.width - 100 
+                 });
+              yPosition += 30;
+            }
+            
+            if (body.detailsSection.score?.show && enrollment.finalScore) {
+              doc.fontSize(14).fillColor('#000000')
+                 .text(`Final Score: ${enrollment.finalScore}%`, 50, yPosition, { 
+                   align: 'center',
+                   width: doc.page.width - 100 
+                 });
+              yPosition += 30;
+            }
+
+            if (body.detailsSection.certificateId?.show) {
+              doc.fontSize(14).fillColor('#666666')
+                 .text(`Certificate ID: ${enrollment.certificateId || enrollment.id}`, 50, yPosition, { 
+                   align: 'center',
+                   width: doc.page.width - 100 
+                 });
+            }
+          }
+        }
+
+        // Footer section
+        if (templateData.footer) {
+          const footer = templateData.footer;
+          const footerY = doc.page.height - 100;
+          
+          if (footer.signature?.show) {
+            const signatureX = footer.signature.position === 'bottom-right' ? doc.page.width - 200 : 50;
+            doc.fontSize(footer.signature.signatureFont?.size || 12)
+               .fillColor('#000000')
+               .text(footer.signature.text || 'Authorized Signature', signatureX, footerY, { 
+                 width: 150 
+               });
+          }
+          
+          if (footer.seal?.show) {
+            const sealX = footer.seal.position === 'bottom-left' ? 50 : doc.page.width - 200;
+            doc.fontSize(12).fillColor('#000000')
+               .text(footer.seal.text || 'Official Seal', sealX, footerY, { 
+                 width: 150 
+               });
+          }
+        }
+
+        // Powered by text
+        doc.fontSize(12).fillOpacity(0.7)
+           .text('Powered by CAFFE Election Training Center', 50, doc.page.height - 50, { 
+             align: 'center',
+             width: doc.page.width - 100 
+           });
+      } else {
+        // Fallback to basic certificate if no template
+        doc.fontSize(28).text('Certificate of Completion', { align: 'center' });
+        doc.moveDown(2);
+        doc.fontSize(18).text(`This certifies that`, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(22).text(`${user.firstName} ${user.lastName}`, { align: 'center', underline: true });
+        doc.moveDown();
+        doc.fontSize(18).text(`has successfully completed the course`, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(20).text(`${course.title}`, { align: 'center', underline: true });
+        doc.moveDown(2);
+        doc.fontSize(16).text(`Completion Date: ${enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString() : ''}`, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(14).text(`Certificate ID: ${enrollment.certificateId || enrollment.id}`, { align: 'center' });
+        doc.moveDown(4);
+        doc.fontSize(12).fillOpacity(0.7).text('Powered by CAFFE Election Training Center', { align: 'center' });
+      }
+
       doc.end();
     } catch (error) {
+      console.error("Error generating certificate:", error);
       res.status(500).json({ message: "Failed to generate certificate" });
     }
   });
@@ -3028,6 +3186,236 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ module: enhancedModule });
     } catch (error) {
       res.status(500).json({ message: "AI module enhancement error", error: error.message });
+    }
+  });
+
+  // ======================= CERTIFICATE TEMPLATE MANAGEMENT =======================
+
+  // Get all certificate templates
+  app.get("/api/certificate-templates", async (req, res) => {
+    try {
+      const templates = await storage.getCertificateTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching certificate templates:", error);
+      res.status(500).json({ error: "Failed to fetch certificate templates" });
+    }
+  });
+
+  // Get single certificate template
+  app.get("/api/certificate-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.getCertificateTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({ error: "Certificate template not found" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching certificate template:", error);
+      res.status(500).json({ error: "Failed to fetch certificate template" });
+    }
+  });
+
+  // Get default certificate template
+  app.get("/api/certificate-templates/default", async (req, res) => {
+    try {
+      const template = await storage.getDefaultCertificateTemplate();
+      
+      if (!template) {
+        return res.status(404).json({ error: "No default certificate template found" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching default certificate template:", error);
+      res.status(500).json({ error: "Failed to fetch default certificate template" });
+    }
+  });
+
+  // Create certificate template
+  app.post("/api/certificate-templates", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const templateData = req.body;
+      templateData.createdBy = session.user.id;
+      
+      const template = await storage.createCertificateTemplate(templateData);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating certificate template:", error);
+      res.status(500).json({ error: "Failed to create certificate template" });
+    }
+  });
+
+  // Update certificate template
+  app.put("/api/certificate-templates/:id", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const template = await storage.updateCertificateTemplate(id, updates);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating certificate template:", error);
+      res.status(500).json({ error: "Failed to update certificate template" });
+    }
+  });
+
+  // Delete certificate template
+  app.delete("/api/certificate-templates/:id", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteCertificateTemplate(id);
+      res.json({ message: "Certificate template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting certificate template:", error);
+      res.status(500).json({ error: "Failed to delete certificate template" });
+    }
+  });
+
+  // AI: Generate certificate template
+  app.post("/api/certificate-templates/generate", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { style, organization, purpose, colors, layout } = req.body;
+      
+      if (!style || !organization || !purpose) {
+        return res.status(400).json({ error: "Style, organization, and purpose are required" });
+      }
+
+      const templateConfig = await GeminiService.generateCertificateTemplate({
+        style,
+        organization,
+        purpose,
+        colors: colors || ["#2c3e50", "#34495e", "#3498db"],
+        layout: layout || "landscape"
+      }, storage);
+
+      // Create the template in database
+      const templateData = {
+        ...templateConfig,
+        createdBy: session.user.id
+      };
+      
+      const template = await storage.createCertificateTemplate(templateData);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error generating certificate template:", error);
+      res.status(500).json({ error: "Failed to generate certificate template" });
+    }
+  });
+
+  // AI: Edit certificate template
+  app.post("/api/certificate-templates/:id/edit", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const { editRequest } = req.body;
+      
+      if (!editRequest) {
+        return res.status(400).json({ error: "Edit request is required" });
+      }
+
+      const currentTemplate = await storage.getCertificateTemplate(id);
+      if (!currentTemplate) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      const updatedTemplateData = await GeminiService.editCertificateTemplate(
+        currentTemplate.templateData,
+        editRequest,
+        storage
+      );
+
+      const updatedTemplate = await storage.updateCertificateTemplate(id, {
+        templateData: updatedTemplateData
+      });
+
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error("Error editing certificate template:", error);
+      res.status(500).json({ error: "Failed to edit certificate template" });
+    }
+  });
+
+  // AI: Get template improvement suggestions
+  app.post("/api/certificate-templates/:id/suggestions", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const template = await storage.getCertificateTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      const suggestions = await GeminiService.suggestTemplateImprovements(
+        template.templateData,
+        storage
+      );
+
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error getting template suggestions:", error);
+      res.status(500).json({ error: "Failed to get template suggestions" });
+    }
+  });
+
+  // AI: Generate template variations
+  app.post("/api/certificate-templates/:id/variations", async (req, res) => {
+    try {
+      const session = await getSession(req);
+      if (!session?.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const { count = 3 } = req.body;
+      
+      const template = await storage.getCertificateTemplate(id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      const variations = await GeminiService.generateTemplateVariations(
+        template.templateData,
+        Math.min(count, 5), // Limit to 5 variations max
+        storage
+      );
+
+      res.json(variations);
+    } catch (error) {
+      console.error("Error generating template variations:", error);
+      res.status(500).json({ error: "Failed to generate template variations" });
     }
   });
 

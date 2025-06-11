@@ -459,6 +459,20 @@ export const onlineUsers = pgTable("online_users", {
   currentRoom: text("current_room"),
 });
 
+// Certificate templates
+export const certificateTemplates = pgTable("certificate_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  templateType: text("template_type").notNull().default("basic"), // basic, professional, modern, elegant, minimal
+  templateData: json("template_data").notNull(), // Template configuration and styling
+  isDefault: boolean("is_default").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignments: many(assignments),
@@ -624,41 +638,10 @@ export const insertOnlineUserSchema = createInsertSchema(onlineUsers).omit({
   lastSeen: true,
 });
 
-// Types
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Parish = typeof parishes.$inferSelect;
-export type InsertParish = z.infer<typeof insertParishSchema>;
-export type PollingStation = typeof pollingStations.$inferSelect;
-export type InsertPollingStation = z.infer<typeof insertPollingStationSchema>;
-export type Assignment = typeof assignments.$inferSelect;
-export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
-export type CheckIn = typeof checkIns.$inferSelect;
-export type InsertCheckIn = z.infer<typeof insertCheckInSchema>;
-export type Report = typeof reports.$inferSelect;
-export type InsertReport = z.infer<typeof insertReportSchema>;
-export type Document = typeof documents.$inferSelect;
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
-export type Message = typeof messages.$inferSelect;
-export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type Course = typeof courses.$inferSelect;
-export type InsertCourse = z.infer<typeof insertCourseSchema>;
-export type Enrollment = typeof enrollments.$inferSelect;
-export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
-export type FAQ = typeof faqs.$inferSelect;
-export type InsertFAQ = z.infer<typeof insertFaqSchema>;
-export type News = typeof news.$inferSelect;
-export type InsertNews = z.infer<typeof insertNewsSchema>;
-export type AuditLog = typeof auditLogs.$inferSelect;
-export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
-export type Setting = typeof settings.$inferSelect;
-export type InsertSetting = z.infer<typeof insertSettingSchema>;
-export type ChatRoom = typeof chatRooms.$inferSelect;
-export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type OnlineUser = typeof onlineUsers.$inferSelect;
-export type InsertOnlineUser = z.infer<typeof insertOnlineUserSchema>;
+// Certificate templates schema
+export const insertCertificateTemplateSchema = createInsertSchema(certificateTemplates);
+export type CertificateTemplate = typeof certificateTemplates.$inferSelect;
+export type InsertCertificateTemplate = z.infer<typeof insertCertificateTemplateSchema>;
 
 // Additional insert schemas for new tables
 export const insertDeviceSchema = createInsertSchema(devices).omit({

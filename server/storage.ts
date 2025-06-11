@@ -1,12 +1,14 @@
 import {
   users, parishes, pollingStations, assignments, checkIns, reports, documents, messages,
   courses, enrollments, faqs, news, auditLogs, settings, chatRooms, chatMessages, onlineUsers,
+  certificateTemplates,
   type User, type InsertUser, type Parish, type InsertParish, type PollingStation, type InsertPollingStation,
   type Assignment, type InsertAssignment, type CheckIn, type InsertCheckIn, type Report, type InsertReport,
   type Document, type InsertDocument, type Message, type InsertMessage, type Course, type InsertCourse,
   type Enrollment, type InsertEnrollment, type FAQ, type InsertFAQ, type News, type InsertNews,
   type AuditLog, type InsertAuditLog, type Setting, type InsertSetting, type ChatRoom, type InsertChatRoom,
-  type ChatMessage, type InsertChatMessage, type OnlineUser, type InsertOnlineUser
+  type ChatMessage, type InsertChatMessage, type OnlineUser, type InsertOnlineUser,
+  type CertificateTemplate, type InsertCertificateTemplate
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, like, count, sql, isNull } from "drizzle-orm";
@@ -119,6 +121,14 @@ export interface IStorage {
     reportsSubmitted: number;
     pendingAlerts: number;
   }>;
+  
+  // Certificate templates
+  getCertificateTemplates(): Promise<CertificateTemplate[]>;
+  getCertificateTemplate(id: number): Promise<CertificateTemplate | undefined>;
+  createCertificateTemplate(template: InsertCertificateTemplate): Promise<CertificateTemplate>;
+  updateCertificateTemplate(id: number, updates: Partial<CertificateTemplate>): Promise<CertificateTemplate>;
+  deleteCertificateTemplate(id: number): Promise<void>;
+  getDefaultCertificateTemplate(): Promise<CertificateTemplate | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -617,6 +627,42 @@ export class DatabaseStorage implements IStorage {
       reportsSubmitted: reportsCount.count,
       pendingAlerts: alertsCount.count,
     };
+  }
+
+  // Certificate Templates
+  async getCertificateTemplates(): Promise<CertificateTemplate[]> {
+    return await db.select().from(certificateTemplates).where(eq(certificateTemplates.isActive, true)).orderBy(certificateTemplates.createdAt);
+  }
+
+  async getCertificateTemplate(id: number): Promise<CertificateTemplate | undefined> {
+    const [template] = await db.select().from(certificateTemplates).where(eq(certificateTemplates.id, id));
+    return template || undefined;
+  }
+
+  async createCertificateTemplate(template: InsertCertificateTemplate): Promise<CertificateTemplate> {
+    const [newTemplate] = await db.insert(certificateTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updateCertificateTemplate(id: number, updates: Partial<CertificateTemplate>): Promise<CertificateTemplate> {
+    const [template] = await db
+      .update(certificateTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(certificateTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  async deleteCertificateTemplate(id: number): Promise<void> {
+    await db.update(certificateTemplates)
+      .set({ isActive: false })
+      .where(eq(certificateTemplates.id, id));
+  }
+
+  async getDefaultCertificateTemplate(): Promise<CertificateTemplate | undefined> {
+    const [template] = await db.select().from(certificateTemplates)
+      .where(and(eq(certificateTemplates.isDefault, true), eq(certificateTemplates.isActive, true)));
+    return template || undefined;
   }
 }
 

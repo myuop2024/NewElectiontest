@@ -555,4 +555,229 @@ Return ONLY the JSON structure, no additional text.`;
       throw new Error('Failed to enhance module. Please try again.');
     }
   }
+
+  static async generateCertificateTemplate(params: { 
+    style: string, 
+    organization: string, 
+    purpose: string, 
+    colors: string[], 
+    layout: string 
+  }, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini AI key not set');
+    
+    const prompt = `Generate a professional certificate template configuration for the following specifications:
+
+Style: ${params.style}
+Organization: ${params.organization}
+Purpose: ${params.purpose}
+Color Scheme: ${params.colors.join(', ')}
+Layout: ${params.layout}
+
+Create a comprehensive certificate template in the following JSON format:
+{
+  "name": "Template Name",
+  "description": "Template description",
+  "templateType": "${params.style}",
+  "templateData": {
+    "layout": {
+      "width": 800,
+      "height": 600,
+      "orientation": "landscape",
+      "margins": { "top": 50, "right": 50, "bottom": 50, "left": 50 }
+    },
+    "header": {
+      "organizationName": "${params.organization}",
+      "logo": { "position": "top-left", "size": "medium" },
+      "title": "Certificate of Completion",
+      "titleFont": { "family": "Arial", "size": 24, "weight": "bold" },
+      "titleColor": "${params.colors[0] || '#2c3e50'}"
+    },
+    "body": {
+      "recipientSection": {
+        "prefix": "This certifies that",
+        "nameFont": { "family": "Arial", "size": 20, "weight": "bold" },
+        "nameColor": "${params.colors[1] || '#34495e'}",
+        "nameUnderline": true
+      },
+      "courseSection": {
+        "prefix": "has successfully completed the course",
+        "courseFont": { "family": "Arial", "size": 16, "weight": "normal" },
+        "courseColor": "${params.colors[0] || '#2c3e50'}"
+      },
+      "detailsSection": {
+        "completionDate": { "show": true, "format": "MMMM DD, YYYY" },
+        "certificateId": { "show": true, "prefix": "Certificate ID: " },
+        "score": { "show": true, "prefix": "Final Score: ", "suffix": "%" }
+      }
+    },
+    "footer": {
+      "signature": {
+        "show": true,
+        "position": "bottom-right",
+        "text": "Authorized Signature",
+        "signatureFont": { "family": "Arial", "size": 12, "style": "italic" }
+      },
+      "seal": {
+        "show": true,
+        "position": "bottom-left",
+        "text": "Official Seal"
+      }
+    },
+    "styling": {
+      "backgroundColor": "#ffffff",
+      "borderColor": "${params.colors[0] || '#2c3e50'}",
+      "borderWidth": 3,
+      "borderStyle": "solid",
+      "backgroundPattern": "${params.layout.includes('pattern') ? 'watermark' : 'none'}",
+      "colors": {
+        "primary": "${params.colors[0] || '#2c3e50'}",
+        "secondary": "${params.colors[1] || '#34495e'}",
+        "accent": "${params.colors[2] || '#3498db'}"
+      }
+    },
+    "fields": [
+      { "name": "recipientName", "type": "text", "required": true, "placeholder": "Recipient Name" },
+      { "name": "courseName", "type": "text", "required": true, "placeholder": "Course Name" },
+      { "name": "completionDate", "type": "date", "required": true, "placeholder": "Completion Date" },
+      { "name": "certificateId", "type": "text", "required": true, "placeholder": "Certificate ID" },
+      { "name": "score", "type": "number", "required": false, "placeholder": "Score" }
+    ]
+  }
+}
+
+Requirements:
+- Create a professional, visually appealing certificate design
+- Use the specified color scheme effectively
+- Ensure layout is appropriate for ${params.layout} format
+- Include all necessary fields for electoral training certificates
+- Make design suitable for ${params.organization}
+- Optimize for both print and digital display
+- Follow design best practices for certificates
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to generate certificate template. Please try again.');
+    }
+  }
+
+  static async editCertificateTemplate(templateData: any, editRequest: string, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini AI key not set');
+    
+    const prompt = `Edit the following certificate template based on the request:
+
+CURRENT TEMPLATE:
+${JSON.stringify(templateData, null, 2)}
+
+EDIT REQUEST: ${editRequest}
+
+Please return the updated template configuration in the same JSON format, incorporating the requested changes while maintaining visual harmony and professional appearance. Only modify what was requested and keep the rest intact.
+
+Ensure:
+- Professional appearance is maintained
+- Color harmony is preserved
+- Layout proportions remain balanced
+- All required fields are still present
+- Typography choices remain readable
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to edit certificate template. Please try again.');
+    }
+  }
+
+  static async suggestTemplateImprovements(templateData: any, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini AI key not set');
+    
+    const prompt = `Analyze the following certificate template and suggest improvements:
+
+TEMPLATE DATA:
+${JSON.stringify(templateData, null, 2)}
+
+Provide suggestions for:
+1. Visual design improvements
+2. Typography enhancements
+3. Color scheme optimization
+4. Layout and spacing improvements
+5. Professional appearance upgrades
+6. Accessibility improvements
+
+Return suggestions as a JSON array:
+{
+  "suggestions": [
+    {
+      "category": "design|typography|colors|layout|accessibility",
+      "title": "Brief suggestion title",
+      "description": "Detailed explanation of the improvement",
+      "impact": "high|medium|low",
+      "implementation": "How to implement this suggestion"
+    }
+  ]
+}
+
+Focus on actionable, specific improvements that would enhance the certificate's professional appearance and usability.
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to generate template suggestions. Please try again.');
+    }
+  }
+
+  static async generateTemplateVariations(baseTemplate: any, count: number, storage: any) {
+    const apiKey = await this.getApiKey(storage);
+    if (!apiKey) throw new Error('Gemini AI key not set');
+    
+    const prompt = `Generate ${count} variations of the following certificate template:
+
+BASE TEMPLATE:
+${JSON.stringify(baseTemplate, null, 2)}
+
+Create ${count} different variations that:
+- Maintain the same basic structure and fields
+- Use different color schemes
+- Apply different typography combinations
+- Vary layout arrangements
+- Keep professional appearance
+- Ensure each variation has a distinct visual identity
+
+Return as a JSON array:
+{
+  "variations": [
+    {
+      "name": "Variation name",
+      "description": "Brief description of changes",
+      "templateData": { /* complete template configuration */ }
+    }
+  ]
+}
+
+Each variation should be a complete, usable template configuration.
+
+Return ONLY the JSON structure, no additional text.`;
+
+    const result = await this.callGemini(prompt, apiKey);
+    
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      throw new Error('Failed to generate template variations. Please try again.');
+    }
+  }
 }
