@@ -133,7 +133,7 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Training courses and progress
+// Enhanced training courses schema
 export const courses = pgTable("courses", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -143,7 +143,105 @@ export const courses = pgTable("courses", {
   duration: integer("duration"), // in minutes
   passingScore: integer("passing_score").notNull().default(80),
   isActive: boolean("is_active").notNull().default(true),
+  difficulty: text("difficulty").default("beginner"), // beginner, intermediate, advanced
+  prerequisites: json("prerequisites"),
+  learningObjectives: json("learning_objectives"),
+  tags: json("tags"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Course modules for detailed content structure
+export const courseModules = pgTable("course_modules", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  content: json("content"), // Rich content including text, videos, documents
+  moduleOrder: integer("module_order").notNull(),
+  duration: integer("duration"), // in minutes
+  isRequired: boolean("is_required").default(true),
+  moduleType: text("module_type").default("lesson"), // lesson, quiz, assignment, video, document
+  resources: json("resources"), // Associated media and documents
+  completionCriteria: json("completion_criteria"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Course quizzes and assessments
+export const courseQuizzes = pgTable("course_quizzes", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  moduleId: integer("module_id").references(() => courseModules.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  questions: json("questions").notNull(), // Array of question objects
+  timeLimit: integer("time_limit"), // in minutes
+  maxAttempts: integer("max_attempts").default(3),
+  passingScore: integer("passing_score").default(80),
+  isActive: boolean("is_active").default(true),
+  quizType: text("quiz_type").default("assessment"), // assessment, practice, final
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Quiz attempt tracking
+export const quizAttempts = pgTable("quiz_attempts", {
+  id: serial("id").primaryKey(),
+  quizId: integer("quiz_id").notNull().references(() => courseQuizzes.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  answers: json("answers").notNull(),
+  score: integer("score"),
+  timeSpent: integer("time_spent"), // in seconds
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+  isSubmitted: boolean("is_submitted").default(false),
+});
+
+// Course media library
+export const courseMedia = pgTable("course_media", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").references(() => courses.id, { onDelete: "cascade" }),
+  moduleId: integer("module_id").references(() => courseModules.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  mediaType: text("media_type").notNull(), // video, audio, document, image, presentation
+  duration: integer("duration"), // for video/audio in seconds
+  thumbnail: text("thumbnail"),
+  description: text("description"),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Course contests and competitions
+export const courseContests = pgTable("course_contests", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  contestType: text("contest_type").notNull(), // quiz_competition, case_study, scenario_simulation
+  rules: json("rules"),
+  prizes: json("prizes"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  maxParticipants: integer("max_participants"),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Contest participation tracking
+export const contestParticipants = pgTable("contest_participants", {
+  id: serial("id").primaryKey(),
+  contestId: integer("contest_id").notNull().references(() => courseContests.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  score: integer("score").default(0),
+  rank: integer("rank"),
+  submission: json("submission"),
+  submittedAt: timestamp("submitted_at"),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
 // User course enrollments and progress
@@ -594,6 +692,39 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 export const insertCourseSchema = createInsertSchema(courses).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCourseModuleSchema = createInsertSchema(courseModules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCourseQuizSchema = createInsertSchema(courseQuizzes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertQuizAttemptSchema = createInsertSchema(quizAttempts).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export const insertCourseMediaSchema = createInsertSchema(courseMedia).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCourseContestSchema = createInsertSchema(courseContests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertContestParticipantSchema = createInsertSchema(contestParticipants).omit({
+  id: true,
+  joinedAt: true,
+  submittedAt: true,
 });
 
 export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({
@@ -767,6 +898,18 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
+export type CourseModule = typeof courseModules.$inferSelect;
+export type InsertCourseModule = z.infer<typeof insertCourseModuleSchema>;
+export type CourseQuiz = typeof courseQuizzes.$inferSelect;
+export type InsertCourseQuiz = z.infer<typeof insertCourseQuizSchema>;
+export type QuizAttempt = typeof quizAttempts.$inferSelect;
+export type InsertQuizAttempt = z.infer<typeof insertQuizAttemptSchema>;
+export type CourseMedia = typeof courseMedia.$inferSelect;
+export type InsertCourseMedia = z.infer<typeof insertCourseMediaSchema>;
+export type CourseContest = typeof courseContests.$inferSelect;
+export type InsertCourseContest = z.infer<typeof insertCourseContestSchema>;
+export type ContestParticipant = typeof contestParticipants.$inferSelect;
+export type InsertContestParticipant = z.infer<typeof insertContestParticipantSchema>;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
 export type FAQ = typeof faqs.$inferSelect;
