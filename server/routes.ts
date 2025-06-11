@@ -3448,6 +3448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const course = await storage.createCourse(courseData);
+      console.log("Created course:", course);
       res.status(201).json(course);
     } catch (error) {
       console.error("Error creating training program:", error);

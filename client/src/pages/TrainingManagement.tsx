@@ -172,25 +172,44 @@ export default function TrainingManagement() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(programData)
       });
-      if (!response.ok) throw new Error('Failed to create program');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create program');
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Program created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ['/api/training/programs'] });
       setShowCreateDialog(false);
       setNewProgram({ title: '', description: '', targetRole: 'Observer', passingScore: 80 });
       toast({ title: "Training program created successfully" });
+    },
+    onError: (error: Error) => {
+      console.error("Program creation error:", error);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   });
 
   // Initialize predefined programs
   const initializePredefinedPrograms = async () => {
     try {
+      let successCount = 0;
       for (const program of PREDEFINED_PROGRAMS) {
-        await createProgramMutation.mutateAsync(program);
+        try {
+          await createProgramMutation.mutateAsync(program);
+          successCount++;
+        } catch (error) {
+          console.error("Failed to create program:", program.title, error);
+        }
       }
-      toast({ title: "Predefined training programs initialized" });
+      if (successCount > 0) {
+        toast({ title: `Successfully initialized ${successCount} training programs` });
+      } else {
+        toast({ title: "No new programs created", description: "Programs may already exist", variant: "default" });
+      }
     } catch (error) {
+      console.error("Initialization error:", error);
       toast({ title: "Error", description: "Failed to initialize programs", variant: "destructive" });
     }
   };
