@@ -32,7 +32,7 @@ import {
   Trophy,
   Calendar,
   Timer,
-  QuestionMark
+  HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -434,7 +434,7 @@ export default function EnhancedTrainingManagement() {
               Modules
             </TabsTrigger>
             <TabsTrigger value="quizzes" disabled={!selectedProgram}>
-              <QuestionMark className="h-4 w-4 mr-1" />
+              <HelpCircle className="h-4 w-4 mr-1" />
               Quizzes
             </TabsTrigger>
             <TabsTrigger value="contests" disabled={!selectedProgram}>
