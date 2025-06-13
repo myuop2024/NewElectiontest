@@ -55,6 +55,8 @@ export class AdminSettingsService {
       { key: 'didit_aml_sensitivity', value: 'medium' },
       { key: 'didit_age_estimation_enabled', value: 'false' },
       { key: 'didit_proof_of_address_enabled', value: 'false' },
+      { key: 'didit_client_id', value: '' },
+      { key: 'didit_client_secret', value: '' },
       { key: 'didit_webhook_url', value: '' },
       { key: 'didit_manual_override', value: 'false' },
       { key: 'min_security_level', value: '3' },
