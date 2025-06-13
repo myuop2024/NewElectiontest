@@ -2418,7 +2418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           newValues: JSON.stringify({
             classification,
             patterns,
-            model: model || 'gemini-pro'
+            model: model || 'gemini-1.5-flash'
           })
         });
       }
@@ -2429,7 +2429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: `cls_${Date.now()}`,
           reportId: reportId || null,
           timestamp: new Date().toISOString(),
-          aiModel: model || 'gemini-pro'
+          aiModel: model || 'gemini-1.5-flash'
         },
         patterns,
         recommendations
@@ -2474,7 +2474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               entityId: result.incidentId.toString(),
               newValues: JSON.stringify({
                 classification: result.classification,
-                model: model || 'gemini-pro',
+                model: model || 'gemini-1.5-flash',
                 batchId: Date.now()
               })
             });
@@ -2517,7 +2517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             reportId: parseInt(log.entityId || '0'),
             ...data.classification,
             timestamp: log.createdAt.toISOString(),
-            aiModel: data.model || 'gemini-pro'
+            aiModel: data.model || 'gemini-1.5-flash'
           };
         } catch (error) {
           return null;
