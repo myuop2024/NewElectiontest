@@ -5,9 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { FileText, Plus, Search, Filter, AlertTriangle, Calendar, CheckCircle, Download, Eye } from "lucide-react";
+import { FileText, Plus, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
 
 export default function Reports() {
@@ -23,10 +22,12 @@ export default function Reports() {
     enabled: !!user?.id
   });
 
+  const canViewAll = user?.role === 'admin' || user?.role === 'roving_observer';
+
   // Fetch all reports (for admins/roving observers)
   const { data: allReports, isLoading: allReportsLoading } = useQuery({
     queryKey: ["/api/reports"],
-    enabled: user?.role === 'admin' || user?.role === 'roving_observer'
+    enabled: canViewAll
   });
 
   const myFilteredReports = Array.isArray(userReports) ? userReports.filter((report: any) => {
@@ -81,7 +82,7 @@ export default function Reports() {
           <h2 className="text-2xl font-bold text-foreground">Reports</h2>
           <p className="text-muted-foreground">Manage and track electoral observation reports</p>
         </div>
-        <Button className="btn-caffe-primary">
+        <Button className="btn-caffe-primary" onClick={() => setLocation('/incident-reporting')}>
           <Plus className="h-4 w-4 mr-2" />
           New Report
         </Button>

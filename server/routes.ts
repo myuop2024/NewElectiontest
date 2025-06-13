@@ -1909,10 +1909,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: req.ip || ''
       });
 
-      res.json({ id: templateId, ...template });
+    res.json({ id: templateId, ...template });
+  } catch (error) {
+    console.error("Error updating form template:", error);
+    res.status(500).json({ error: "Failed to update form template" });
+  }
+  });
+
+  app.delete("/api/forms/templates/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const templateId = req.params.id;
+
+      await storage.deleteSetting(`form_template_${templateId}`);
+
+      await storage.createAuditLog({
+        action: "form_template_deleted",
+        entityType: "form_template",
+        userId: req.user!.id,
+        entityId: templateId,
+        ipAddress: req.ip || ''
+      });
+
+      res.json({ success: true });
     } catch (error) {
-      console.error("Error updating form template:", error);
-      res.status(500).json({ error: "Failed to update form template" });
+      console.error("Error deleting form template:", error);
+      res.status(500).json({ error: "Failed to delete form template" });
     }
   });
 

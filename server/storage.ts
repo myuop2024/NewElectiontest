@@ -102,6 +102,7 @@ export interface IStorage {
   getSettingByKey(key: string): Promise<Setting | undefined>;
   createSetting(setting: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string, updatedBy?: number): Promise<Setting>;
+  deleteSetting(key: string): Promise<void>;
   
   // Chat functionality
   getChatRooms(): Promise<ChatRoom[]>;
@@ -492,6 +493,10 @@ export class DatabaseStorage implements IStorage {
     }
     
     return setting;
+  }
+
+  async deleteSetting(key: string): Promise<void> {
+    await db.delete(settings).where(eq(settings.key, key));
   }
 
   // Chat functionality implementations
