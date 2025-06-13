@@ -121,6 +121,19 @@ export default function FormBuilder() {
     }
   });
 
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/forms/templates/${id}`),
+    onSuccess: () => {
+      toast({ title: 'Template Deleted', description: 'Form template has been removed' });
+      queryClient.invalidateQueries({ queryKey: ['/api/forms/templates'] });
+      setSelectedTemplate(null);
+      setNewTemplate({ name: '', description: '', category: 'incident', fields: [], isActive: false });
+    },
+    onError: () => {
+      toast({ title: 'Delete Failed', description: 'Failed to delete form template', variant: 'destructive' });
+    }
+  });
+
   const addField = () => {
     const newField: FormField = {
       id: `field_${Date.now()}`,
@@ -272,6 +285,16 @@ export default function FormBuilder() {
               <Save className="h-4 w-4 mr-2" />
               Save Template
             </Button>
+            {selectedTemplate && (
+              <Button
+                variant="destructive"
+                onClick={() => deleteTemplateMutation.mutate(selectedTemplate.id)}
+                disabled={deleteTemplateMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            )}
           </div>
         </div>
 
