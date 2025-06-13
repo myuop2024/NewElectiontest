@@ -17,7 +17,7 @@ import {
   settings // Assuming settings schema is in shared/schema
 } from "../../shared/schema";
 import { authenticateToken, AuthenticatedRequest } from "../lib/auth";
-import { and, eq, not, isNull } from "drizzle-orm";
+import { and, eq, not, isNull, sql } from "drizzle-orm"; // Added sql import
 import { getCompletionCertificate } from "../lib/certificate-service";
 import { GeminiService } from '../lib/gemini-service.ts'; // Using GeminiService
 import { TrainingService } from "../lib/training-service";
@@ -228,12 +228,12 @@ router.post("/ai/recommendations", authenticateToken, async (req: AuthenticatedR
 
 router.post("/ai/quiz", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { courseId } = req.body; // Assuming courseId implies the module for quiz
+        const { courseId } = req.body;
         if (!courseId) {
             return res.status(400).json({ error: "courseId is required." });
         }
         const module = { id: courseId };
-        const userHistory: any[] = []; // Placeholder for user history
+        const userHistory: any[] = [];
         const quiz = await GeminiService.generateQuiz(module, userHistory, aiStorage);
         res.json(quiz);
     } catch (error) {
@@ -342,7 +342,7 @@ router.post("/ai/graphics-prompt", authenticateToken, async (req: AuthenticatedR
             context: 'electoral training'
         };
         const prompt = await GeminiService.generateGraphicsPrompt(params, aiStorage);
-        res.json(prompt); // Assuming GeminiService returns { prompt: "..." } or similar
+        res.json(prompt);
     } catch (error) {
         console.error("AI graphics prompt generation error:", error);
         if (error instanceof Error && error.message.includes("API key not found")) {
@@ -358,7 +358,7 @@ router.post("/ai/enhance-module", authenticateToken, async (req: AuthenticatedRe
         if (!moduleContent) {
             return res.status(400).json({ error: "moduleContent is required." });
         }
-        const enhancementType = 'clarity and engagement'; // Default
+        const enhancementType = 'clarity and engagement';
         const enhancedContent = await GeminiService.enhanceModule(moduleContent, enhancementType, aiStorage);
         res.json(enhancedContent);
     } catch (error) {
@@ -382,7 +382,7 @@ router.get("/programs", authenticateToken, async (req: AuthenticatedRequest, res
 
 router.post("/programs", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     const { modules, ...programData } = req.body;
-    const modulesData = modules as any[]; // Type assertion
+    const modulesData = modules as any[];
 
     try {
         const createdProgram = await db.transaction(async (tx) => {
@@ -391,22 +391,19 @@ router.post("/programs", authenticateToken, async (req: AuthenticatedRequest, re
             if (newProgram && modulesData && Array.isArray(modulesData) && modulesData.length > 0) {
                 for (let i = 0; i < modulesData.length; i++) {
                     const moduleObject = modulesData[i];
-                    // Ensure all required fields for trainingModules are present
                     if (!moduleObject.title || typeof moduleObject.duration !== 'number') {
-                        // If basic validation fails, throw an error to rollback the transaction
                         throw new Error(`Module at index ${i} is missing required fields (title, duration) or has invalid format.`);
                     }
                     await tx.insert(trainingModules).values({
-                        courseId: newProgram.id, // Link to the newly created program
+                        courseId: newProgram.id,
                         title: moduleObject.title,
-                        description: moduleObject.description || '', // Default if not provided
-                        content: moduleObject.content || '', // Default if not provided
+                        description: moduleObject.description || '',
+                        content: moduleObject.content || '',
                         duration: moduleObject.duration,
                         moduleOrder: i,
                         isRequired: moduleObject.isRequired === undefined ? true : !!moduleObject.isRequired,
-                        // Ensure other fields like 'type', 'status' have defaults or are handled
-                        type: moduleObject.type || 'standard', // Example: default type
-                        status: moduleObject.status || 'draft' // Example: default status
+                        type: moduleObject.type || 'standard',
+                        status: moduleObject.status || 'draft'
                     });
                 }
             }
@@ -497,37 +494,131 @@ router.get("/courses/:courseId/modules", authenticateToken, async (req: Authenti
         res.status(500).json({ error: "Failed to fetch modules" });
     }
 });
+
 router.post("/courses/:courseId/modules", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const courseId = parseInt(req.params.courseId);
-        // Add all required fields for trainingModules, potentially with defaults
-        const moduleData = {
-            ...req.body,
+        if (isNaN(courseId)) {
+            return res.status(400).json({ error: "Invalid course ID." });
+        }
+
+        const {
+            title,
+            description,
+            content,
+            duration,
+            moduleType: reqModuleType,
+            moduleOrder: reqModuleOrder,
+            isRequired: reqIsRequired,
+            status: reqStatus
+        } = req.body;
+
+        const moduleType = reqModuleType || 'lesson';
+
+        if (moduleType === 'lesson') {
+            if (typeof content !== 'object' || content === null || !Array.isArray(content.blocks)) {
+                return res.status(400).json({ error: "Invalid rich content structure for module type 'lesson'. Expected { blocks: [] }." });
+            }
+        }
+
+        let newModuleOrder = reqModuleOrder;
+        if (typeof newModuleOrder !== 'number') {
+            const existingModulesCountResult = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(trainingModules)
+                .where(eq(trainingModules.courseId, courseId));
+            newModuleOrder = existingModulesCountResult[0].count;
+        }
+
+        const moduleDataToInsert = {
             courseId,
-            type: req.body.type || 'standard',
-            status: req.body.status || 'draft',
-            moduleOrder: req.body.moduleOrder === undefined ? 0 : req.body.moduleOrder, // Default order if not provided
-            isRequired: req.body.isRequired === undefined ? true : !!req.body.isRequired,
+            title,
+            description: description || '',
+            content: content || {},
+            duration: typeof duration === 'number' ? duration : 0,
+            type: moduleType,
+            status: reqStatus || 'draft',
+            moduleOrder: newModuleOrder,
+            isRequired: reqIsRequired === undefined ? true : !!reqIsRequired,
         };
-        const newModule = await db.insert(trainingModules).values(moduleData).returning();
-        res.status(201).json(newModule[0]);
+
+        const [newModule] = await db.insert(trainingModules).values(moduleDataToInsert).returning();
+        res.status(201).json(newModule);
     } catch (error) {
         console.error("Failed to create module:", error);
+        if (error instanceof Error && 'code' in error && error.code === '23503') {
+             return res.status(404).json({ error: `Course with ID ${req.params.courseId} not found or other FK violation.` });
+        }
         res.status(500).json({ error: "Failed to create module" });
     }
 });
+
 router.put("/modules/:moduleId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    const moduleIdParam = req.params.moduleId;
+    const moduleId = parseInt(moduleIdParam);
+
+    if (isNaN(moduleId)) {
+        return res.status(400).json({ error: "Invalid module ID." });
+    }
+
+    const { title, description, content, duration, moduleType, moduleOrder, isRequired, status: reqStatus } = req.body;
+
     try {
-        const moduleId = parseInt(req.params.moduleId);
-        const updatedModule = await db.update(trainingModules).set(req.body).where(eq(trainingModules.id, moduleId)).returning();
-        res.json(updatedModule[0]);
+        let effectiveModuleType = moduleType;
+        if (content !== undefined && moduleType === undefined) {
+            const [existingModule] = await db.select({ type: trainingModules.type })
+                                             .from(trainingModules)
+                                             .where(eq(trainingModules.id, moduleId))
+                                             .limit(1);
+            if (!existingModule) {
+                return res.status(404).json({ error: "Module not found." });
+            }
+            effectiveModuleType = existingModule.type;
+        }
+
+        if (content !== undefined && effectiveModuleType === 'lesson') {
+            if (typeof content !== 'object' || content === null || !Array.isArray(content.blocks)) {
+                return res.status(400).json({ error: "Invalid rich content structure for module type 'lesson'. Expected { blocks: [] }." });
+            }
+        }
+
+        const updateData: { [key: string]: any } = {};
+
+        if (title !== undefined) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        if (content !== undefined) updateData.content = content;
+        if (duration !== undefined) updateData.duration = duration;
+        if (moduleType !== undefined) updateData.type = moduleType;
+        if (moduleOrder !== undefined) updateData.moduleOrder = moduleOrder;
+        if (isRequired !== undefined) updateData.isRequired = isRequired;
+        if (reqStatus !== undefined) updateData.status = reqStatus;
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ error: "No update fields provided." });
+        }
+
+        const [updatedModule] = await db.update(trainingModules)
+                                        .set(updateData)
+                                        .where(eq(trainingModules.id, moduleId))
+                                        .returning();
+
+        if (!updatedModule) {
+            return res.status(404).json({ error: "Module not found or update failed." });
+        }
+
+        res.status(200).json(updatedModule);
     } catch (error) {
+        console.error(`Failed to update module ${moduleId}:`, error);
         res.status(500).json({ error: "Failed to update module" });
     }
 });
+
 router.delete("/modules/:moduleId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const moduleId = parseInt(req.params.moduleId);
+        if (isNaN(moduleId)) {
+            return res.status(400).json({ error: "Invalid module ID." });
+        }
         await db.delete(trainingModules).where(eq(trainingModules.id, moduleId));
         res.status(204).send();
     } catch (error) {
@@ -535,38 +626,231 @@ router.delete("/modules/:moduleId", authenticateToken, async (req: Authenticated
     }
 });
 
-// Quizzes
+// GET quizzes for a specific module
+router.get("/modules/:moduleId/quizzes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    const moduleIdParam = req.params.moduleId;
+    const moduleId = parseInt(moduleIdParam);
+
+    if (isNaN(moduleId)) {
+        return res.status(400).json({ error: "Invalid module ID." });
+    }
+
+    try {
+        const [parentModule] = await db.select({ id: trainingModules.id })
+                                       .from(trainingModules)
+                                       .where(eq(trainingModules.id, moduleId))
+                                       .limit(1);
+
+        if (!parentModule) {
+            return res.status(404).json({ error: "Parent module not found." });
+        }
+
+        const quizzesForModule = await db.select()
+                                        .from(trainingQuizzes)
+                                        .where(eq(trainingQuizzes.moduleId, moduleId));
+
+        res.status(200).json(quizzesForModule);
+    } catch (error) {
+        console.error(`Failed to fetch quizzes for module ${moduleId}:`, error);
+        res.status(500).json({ error: "Failed to fetch quizzes for module" });
+    }
+});
+
+// POST a new quiz for a specific module
+router.post("/modules/:moduleId/quizzes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    const moduleIdParam = req.params.moduleId;
+    const moduleId = parseInt(moduleIdParam);
+
+    if (isNaN(moduleId)) {
+        return res.status(400).json({ error: "Invalid module ID." });
+    }
+
+    try {
+        const [parentModule] = await db.select({ id: trainingModules.id, courseId: trainingModules.courseId, type: trainingModules.type })
+                                     .from(trainingModules)
+                                     .where(eq(trainingModules.id, moduleId))
+                                     .limit(1);
+
+        if (!parentModule) {
+            return res.status(404).json({ error: "Parent module not found." });
+        }
+
+        const {
+            title,
+            description,
+            passingScore,
+            timeLimit,
+            maxAttempts,
+            quizType,
+            isActive,
+            questions
+        } = req.body;
+
+        if (!title) {
+            return res.status(400).json({ error: "Quiz title is required." });
+        }
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ error: "Quiz questions are required and must be a non-empty array." });
+        }
+
+        for (const q of questions) {
+            if (!q.questionText || !q.type || typeof q.points !== 'number') {
+                return res.status(400).json({ error: `Question '${q.questionText || 'index ' + questions.indexOf(q)}' must have questionText, type, and points.` });
+            }
+            if ((q.type === 'multiple-choice' || q.type === 'multiple-select')) {
+                if(!Array.isArray(q.options) || q.options.length === 0) {
+                    return res.status(400).json({ error: `Question '${q.questionText}' of type '${q.type}' must have options.`});
+                }
+                for(const opt of q.options){
+                    if(opt.text === undefined || typeof opt.isCorrect !== 'boolean'){
+                         return res.status(400).json({ error: `Option '${opt.text || JSON.stringify(opt)}' for question '${q.questionText}' is not structured correctly (requires text and isCorrect).`});
+                    }
+                }
+                if(q.type === 'multiple-choice' && q.options.filter((opt:any) => opt.isCorrect).length !== 1){
+                    return res.status(400).json({ error: `Question '${q.questionText}' of type 'multiple-choice' must have exactly one correct option.`});
+                }
+            } else if (q.type === 'true-false' && typeof q.correctAnswer !== 'boolean') {
+                 return res.status(400).json({ error: `Question '${q.questionText}' of type 'true-false' must have a boolean correctAnswer.`});
+            }
+        }
+
+        const quizDataToInsert = {
+            moduleId,
+            courseId: parentModule.courseId,
+            title,
+            description: description || '',
+            questions,
+            passingScore: passingScore === undefined ? 70 : passingScore,
+            timeLimit: timeLimit === undefined ? 60 : timeLimit,
+            maxAttempts: maxAttempts === undefined ? null : maxAttempts,
+            quizType: quizType || 'standard',
+            isActive: isActive === undefined ? true : isActive,
+            status: 'draft',
+        };
+
+        const newQuiz = await db.transaction(async (tx) => {
+            const [insertedQuiz] = await tx.insert(trainingQuizzes).values(quizDataToInsert).returning();
+
+            if (parentModule.type !== 'quiz') {
+                await tx.update(trainingModules)
+                          .set({ type: 'quiz' })
+                          .where(eq(trainingModules.id, moduleId));
+            }
+            return insertedQuiz;
+        });
+
+        res.status(201).json(newQuiz);
+
+    } catch (error) {
+        console.error(`Failed to create quiz for module ${moduleId}:`, error);
+        if (error instanceof Error && (error.message.includes("must have") || error.message.includes("is not structured correctly") || error.message.includes("is required"))) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(500).json({ error: "Failed to create quiz" });
+    }
+});
+
+
+// Quizzes (general routes)
 router.get("/courses/:courseId/quizzes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const courseId = parseInt(req.params.courseId);
+        if (isNaN(courseId)) { return res.status(400).json({ error: "Invalid course ID."}); }
         const quizzes = await db.select().from(trainingQuizzes).where(eq(trainingQuizzes.courseId, courseId));
         res.json(quizzes);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch quizzes" });
     }
 });
+
+// This route might be for quizzes not directly tied to a specific module (e.g. course-wide final exam)
+// or could be deprecated if all quizzes must be under a module.
 router.post("/courses/:courseId/quizzes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const courseId = parseInt(req.params.courseId);
+        if (isNaN(courseId)) { return res.status(400).json({ error: "Invalid course ID."}); }
+        // Ensure course exists
+        const [parentCourse] = await db.select({id: trainingCourses.id}).from(trainingCourses).where(eq(trainingCourses.id, courseId)).limit(1);
+        if(!parentCourse) { return res.status(404).json({ error: "Parent course not found."}); }
+
+        // Similar validation as /modules/:moduleId/quizzes should be here
+        const { title, questions } = req.body;
+        if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ error: "Quiz title and non-empty questions array are required." });
+        }
+        // Add question validation loop here if this route is to be fully supported
+
         const newQuiz = await db.insert(trainingQuizzes).values({ ...req.body, courseId }).returning();
         res.status(201).json(newQuiz[0]);
     } catch (error) {
-        res.status(500).json({ error: "Failed to create quiz" });
+        res.status(500).json({ error: "Failed to create quiz for course" });
     }
 });
+
+router.get("/quizzes/:quizId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    const quizIdParam = req.params.quizId;
+    const quizId = parseInt(quizIdParam);
+
+    if (isNaN(quizId)) {
+        return res.status(400).json({ error: "Invalid quiz ID." });
+    }
+
+    try {
+        const [quiz] = await db.select()
+                               .from(trainingQuizzes)
+                               .where(eq(trainingQuizzes.id, quizId))
+                               .limit(1);
+
+        if (!quiz) {
+            return res.status(404).json({ error: "Quiz not found." });
+        }
+        res.status(200).json(quiz);
+    } catch (error) {
+        console.error(`Failed to fetch quiz ${quizId}:`, error);
+        res.status(500).json({ error: "Failed to fetch quiz" });
+    }
+});
+
 router.put("/quizzes/:quizId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const quizId = parseInt(req.params.quizId);
-        const updatedQuiz = await db.update(trainingQuizzes).set(req.body).where(eq(trainingQuizzes.id, quizId)).returning();
-        res.json(updatedQuiz[0]);
+        if (isNaN(quizId)) { return res.status(400).json({ error: "Invalid quiz ID."}); }
+
+        // Add similar question validation as in POST /modules/:moduleId/quizzes if req.body.questions is present
+        const { questions, title } = req.body;
+        if (title !== undefined && !title) { // if title is provided, it cannot be empty
+             return res.status(400).json({ error: "Quiz title cannot be empty." });
+        }
+        if (questions && (!Array.isArray(questions) || questions.length === 0)) {
+            return res.status(400).json({ error: "Quiz questions must be a non-empty array." });
+        }
+        if (questions) {
+            for (const q of questions) {
+                 if (!q.questionText || !q.type || typeof q.points !== 'number') {
+                    return res.status(400).json({ error: `Question '${q.questionText || 'index ' + questions.indexOf(q)}' must have questionText, type, and points.` });
+                }
+                // Add more type-specific validation
+            }
+        }
+
+        const [updatedQuiz] = await db.update(trainingQuizzes).set(req.body).where(eq(trainingQuizzes.id, quizId)).returning();
+        if (!updatedQuiz) {
+            return res.status(404).json({ error: "Quiz not found or no changes made." });
+        }
+        res.json(updatedQuiz);
     } catch (error) {
         res.status(500).json({ error: "Failed to update quiz" });
     }
 });
+
 router.delete("/quizzes/:quizId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const quizId = parseInt(req.params.quizId);
-        await db.delete(trainingQuizzes).where(eq(trainingQuizzes.id, quizId));
+        if (isNaN(quizId)) { return res.status(400).json({ error: "Invalid quiz ID."}); }
+        const result = await db.delete(trainingQuizzes).where(eq(trainingQuizzes.id, quizId)).returning({ id: trainingQuizzes.id });
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Quiz not found." });
+        }
         res.status(204).send();
     } catch (error) {
         res.status(500).json({ error: "Failed to delete quiz" });
@@ -574,6 +858,7 @@ router.delete("/quizzes/:quizId", authenticateToken, async (req: AuthenticatedRe
 });
 
 // Contests
+// ... (rest of the file remains the same)
 router.get("/courses/:courseId/contests", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const courseId = parseInt(req.params.courseId);
