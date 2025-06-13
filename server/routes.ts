@@ -1015,9 +1015,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
     try {
       const { storage } = await import('./storage.js');
-      const { id, status, reference_id: nationalId } = req.body;
+      const webhookPayload = req.body; // Full payload
+      const { id, status, reference_id: nationalId } = webhookPayload;
 
-      console.log(`Received DidIT KYC webhook for verification ID: ${id}, Status: ${status}`);
+      console.log(`Received DidIT KYC webhook for verification ID: ${id}, Status: ${status}, Full Payload: ${JSON.stringify(webhookPayload)}`);
 
       if (!nationalId) {
         console.warn('DidIT webhook missing national ID (reference_id).');
@@ -1027,13 +1028,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUserByNationalId(nationalId);
 
       if (user) {
-        const newKycStatus = status === 'completed' || status === 'approved' ? 'approved' : 'rejected';
+        // Consolidated kycStatus logic
+        let newKycStatus: 'pending' | 'approved' | 'rejected' | 'review' = 'pending'; // Default to pending
+
+        // Extract detailed statuses from the webhook payload
+        // These paths depend on Didit's actual webhook structure. Example:
+        const overallStatus = webhookPayload.status; // e.g., 'completed', 'failed', 'in_progress'
+        const documentVerification = webhookPayload.document_verification?.status; // e.g., 'passed', 'failed'
+        const faceVerification = webhookPayload.face_verification?.status; // e.g., 'passed', 'failed'
+        const livenessCheck = webhookPayload.liveness_check?.status; // e.g., 'passed', 'failed'
+        const amlCheck = webhookPayload.aml_check?.status; // e.g., 'clear', 'hit', 'pending'
+
+        // Determine newKycStatus based on detailed checks
+        if (overallStatus === 'completed' || overallStatus === 'verified' || overallStatus === 'approved') {
+          // If overall status is success, check individual components
+          if (
+            documentVerification === 'passed' &&
+            faceVerification === 'passed' &&
+            livenessCheck === 'passed' &&
+            (amlCheck === 'clear' || amlCheck === undefined || amlCheck === null) // AML clear or not present/applicable
+          ) {
+            newKycStatus = 'approved';
+          } else if (amlCheck === 'hit') {
+            newKycStatus = 'rejected'; // Or 'review' depending on policy
+          } else if (
+            documentVerification === 'failed' ||
+            faceVerification === 'failed' ||
+            livenessCheck === 'failed'
+          ) {
+            newKycStatus = 'rejected';
+          } else {
+            // Some checks might be pending or require review
+            newKycStatus = 'pending'; // Or 'review'
+          }
+        } else if (overallStatus === 'failed' || overallStatus === 'rejected') {
+          newKycStatus = 'rejected';
+        } else {
+          newKycStatus = 'pending'; // Default for 'in_progress' or unknown statuses
+        }
         
         await storage.updateUser(user.id, { 
-          kycStatus: newKycStatus
+          kycStatus: newKycStatus,
+          kycData: webhookPayload // Store the full webhook response
         });
 
-        console.log(`Updated user ${user.username} KYC status to ${newKycStatus}`);
+        console.log(`Updated user ${user.username} KYC status to ${newKycStatus} and stored kycData.`);
         
         // Broadcast update via WebSocket to the specific user
         const clients = (req.app as any).clients as Map<number, WebSocket>;
@@ -1045,10 +1084,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             payload: {
               userId: user.id,
               kycStatus: newKycStatus,
-              verificationId: id
+              verificationId: id,
+              details: { // Enhanced details for the client
+                documentVerified: documentVerification === 'passed',
+                faceMatch: faceVerification === 'passed',
+                livenessCheck: livenessCheck === 'passed',
+                amlStatus: amlCheck,
+                // Add other relevant fields from webhookPayload as needed by the frontend
+                overallDiditStatus: overallStatus
+              }
             }
           }));
-          console.log(`Sent KYC_UPDATE WebSocket message to user ${user.id}`);
+          console.log(`Sent KYC_UPDATE WebSocket message to user ${user.id} with enhanced details.`);
         }
         
       } else {

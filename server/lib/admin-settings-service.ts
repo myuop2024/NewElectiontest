@@ -49,7 +49,12 @@ export class AdminSettingsService {
       { key: 'didit_kyc_enabled', value: 'false' },
       { key: 'didit_api_endpoint', value: 'https://apx.didit.me/v2/' },
       { key: 'didit_api_key', value: '' },
-      { key: 'didit_liveness_level', value: 'standard' },
+      { key: 'didit_liveness_level', value: 'standard' }, // Existing setting, ensuring it's here
+      { key: 'didit_liveness_mode', value: 'console_default' },
+      { key: 'didit_aml_check_enabled', value: 'false' },
+      { key: 'didit_aml_sensitivity', value: 'medium' },
+      { key: 'didit_age_estimation_enabled', value: 'false' },
+      { key: 'didit_proof_of_address_enabled', value: 'false' },
       { key: 'didit_webhook_url', value: '' },
       { key: 'didit_manual_override', value: 'false' },
       { key: 'min_security_level', value: '3' },
@@ -102,7 +107,7 @@ export class AdminSettingsService {
           await storage.createSetting({
           key: setting.key,
           value: setting.value,
-          category: 'system',
+          category: setting.key.startsWith('didit_') ? 'didit_settings' : 'system',
           description: `Configuration for ${setting.key}`,
           isPublic: false
         });
@@ -128,6 +133,36 @@ export class AdminSettingsService {
         key: 'didit_kyc_enabled',
         category: 'Security',
         description: 'DidIT integration for identity verification'
+      },
+      {
+        name: 'Didit Liveness Mode',
+        key: 'didit_liveness_mode',
+        category: 'Didit Configuration',
+        description: 'Configure liveness detection mode (e.g., passive, 3d_flash)'
+      },
+      {
+        name: 'Didit AML Check',
+        key: 'didit_aml_check_enabled',
+        category: 'Didit Configuration',
+        description: 'Enable Anti-Money Laundering checks via Didit'
+      },
+      {
+        name: 'Didit AML Sensitivity',
+        key: 'didit_aml_sensitivity',
+        category: 'Didit Configuration',
+        description: 'Configure AML check sensitivity (e.g., low, medium, high)'
+      },
+      {
+        name: 'Didit Age Estimation',
+        key: 'didit_age_estimation_enabled',
+        category: 'Didit Configuration',
+        description: 'Enable age estimation feature via Didit'
+      },
+      {
+        name: 'Didit Proof of Address',
+        key: 'didit_proof_of_address_enabled',
+        category: 'Didit Configuration',
+        description: 'Enable Proof of Address verification via Didit'
       },
       {
         name: 'Manual KYC Override',
@@ -405,7 +440,14 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           if (!endpoint?.value) return { valid: false, message: 'API endpoint required' };
-          return { valid: true, message: 'Configuration valid' };
+
+          let message = 'Configuration valid';
+          const amlEnabled = await storage.getSettingByKey('didit_aml_check_enabled');
+          if (amlEnabled?.value === 'true') {
+            message += '. AML Check is enabled. Ensure this feature is active in your Didit Console.';
+          }
+          // Add similar checks for other new features if needed.
+          return { valid: true, message };
         }
         return { valid: true, message: 'Service disabled' };
       },
@@ -419,7 +461,21 @@ export class AdminSettingsService {
         if (enabled?.value === 'true') {
           if (!apiKey?.value) return { valid: false, message: 'API key required' };
           if (!endpoint?.value) return { valid: false, message: 'API endpoint required' };
-          return { valid: true, message: 'Configuration valid' };
+
+          let message = 'Configuration valid';
+          const amlEnabled = await storage.getSettingByKey('didit_aml_check_enabled');
+          if (amlEnabled?.value === 'true') {
+            message += '. AML Check is enabled. Ensure this feature is active in your Didit Console.';
+          }
+          const ageEstimationEnabled = await storage.getSettingByKey('didit_age_estimation_enabled');
+          if (ageEstimationEnabled?.value === 'true') {
+            message += '. Age Estimation is enabled. Ensure this feature is active in your Didit Console.';
+          }
+          const proofOfAddressEnabled = await storage.getSettingByKey('didit_proof_of_address_enabled');
+          if (proofOfAddressEnabled?.value === 'true') {
+            message += '. Proof of Address is enabled. Ensure this feature is active in your Didit Console.';
+          }
+          return { valid: true, message };
         }
         return { valid: true, message: 'Service disabled' };
       },

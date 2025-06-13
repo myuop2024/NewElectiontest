@@ -444,11 +444,120 @@ export default function AdminSettings() {
                   <Label>Allow Manual Verification Override</Label>
                 </div>
               </div>
+
+              {/* Advanced Didit Configuration */}
+              <div className="space-y-3 border-t pt-6">
+                <Label className="text-base font-medium">Advanced Didit Configuration</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Liveness Mode */}
+                  <div>
+                    <Label htmlFor="didit_liveness_mode">Liveness Mode</Label>
+                    <Select
+                      value={getSettingValue('didit_liveness_mode')}
+                      onValueChange={(value) => handleUpdateSetting('didit_liveness_mode', value)}
+                    >
+                      <SelectTrigger id="didit_liveness_mode">
+                        <SelectValue placeholder="Select liveness mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="console_default">Console Default</SelectItem>
+                        <SelectItem value="passive">Passive</SelectItem>
+                        <SelectItem value="3d_flash">3D Flash</SelectItem>
+                        <SelectItem value="3d_action_flash">3D Action & Flash</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground pt-1">
+                      Determines the type of liveness check performed. 'None' disables liveness.
+                    </p>
+                  </div>
+
+                  {/* Liveness Level */}
+                  <div>
+                    <Label htmlFor="didit_liveness_level">Liveness Level</Label>
+                    <Select
+                      value={getSettingValue('didit_liveness_level')}
+                      onValueChange={(value) => handleUpdateSetting('didit_liveness_level', value)}
+                    >
+                      <SelectTrigger id="didit_liveness_level">
+                        <SelectValue placeholder="Select liveness level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        {/* Add other levels like 'strong', 'extreme' if supported and defined */}
+                      </SelectContent>
+                    </Select>
+                     <p className="text-sm text-muted-foreground pt-1">
+                      Adjust the strictness of the liveness detection.
+                    </p>
+                  </div>
+              </div>
+
+                {/* AML Check */}
+                <div className="flex items-center space-x-2 pt-4">
+                  <Switch
+                    id="didit_aml_check_enabled"
+                    checked={getSettingValue('didit_aml_check_enabled') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('didit_aml_check_enabled', checked.toString())}
+                  />
+                  <Label htmlFor="didit_aml_check_enabled">Enable AML Check</Label>
+                </div>
+
+                {/* AML Sensitivity (conditional) */}
+                {getSettingValue('didit_aml_check_enabled') === 'true' && (
+                  <div className="pl-6 pt-2">
+                    <Label htmlFor="didit_aml_sensitivity">AML Sensitivity</Label>
+                    <Select
+                      value={getSettingValue('didit_aml_sensitivity')}
+                      onValueChange={(value) => handleUpdateSetting('didit_aml_sensitivity', value)}
+                    >
+                      <SelectTrigger id="didit_aml_sensitivity">
+                        <SelectValue placeholder="Select AML sensitivity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground pt-1">
+                      Configure the sensitivity for Anti-Money Laundering checks.
+                    </p>
+                  </div>
+                )}
+
+                {/* Age Estimation */}
+                <div className="flex items-center space-x-2 pt-4">
+                  <Switch
+                    id="didit_age_estimation_enabled"
+                    checked={getSettingValue('didit_age_estimation_enabled') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('didit_age_estimation_enabled', checked.toString())}
+                  />
+                  <Label htmlFor="didit_age_estimation_enabled">Enable Age Estimation</Label>
+                </div>
+                 <p className="text-sm text-muted-foreground pl-8">
+                  Estimate user's age based on provided identity documents. Requires Didit support.
+                </p>
+
+                {/* Proof of Address */}
+                <div className="flex items-center space-x-2 pt-4">
+                  <Switch
+                    id="didit_proof_of_address_enabled"
+                    checked={getSettingValue('didit_proof_of_address_enabled') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('didit_proof_of_address_enabled', checked.toString())}
+                  />
+                  <Label htmlFor="didit_proof_of_address_enabled">Enable Proof of Address (PoA)</Label>
+                </div>
+                <p className="text-sm text-muted-foreground pl-8">
+                  Enable verification of user's address. Requires Didit support and potentially specific document types.
+                </p>
+              </div>
               
               <div className="flex justify-end pt-4">
                  <Button>
-                  <Heart className="mr-2 h-4 w-4" />
-                  Test DidIT Connection
+                  <Webhook className="mr-2 h-4 w-4" /> {/* Changed Icon for variety */}
+                  Test DidIT Configuration
                 </Button>
               </div>
 
