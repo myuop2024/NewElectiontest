@@ -608,8 +608,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   chatMessages: many(chatMessages),
   enrollments: many(enrollments),
   auditLogs: many(auditLogs),
-  quizAttempts: many(quizAttempts),
-  assignmentSubmissions: many(assignmentSubmissions), // Added
+  quizAttempts: many(quizAttempts)
 }));
 
 export const parishesRelations = relations(parishes, ({ many }) => ({
@@ -666,8 +665,7 @@ export const coursesRelations = relations(courses, ({ many }) => ({
   modules: many(courseModules),
   quizzes: many(courseQuizzes),
   media: many(courseMedia),
-  contests: many(courseContests),
-  assignments: many(courseAssignments), // Added
+  contests: many(courseContests)
 }));
 
 export const courseModulesRelations = relations(courseModules, ({ one, many }) => ({
@@ -676,8 +674,7 @@ export const courseModulesRelations = relations(courseModules, ({ one, many }) =
     references: [courses.id],
   }),
   quizzes: many(courseQuizzes),
-  media: many(courseMedia),
-  assignments: many(courseAssignments), // Added
+  media: many(courseMedia)
 }));
 
 export const courseQuizzesRelations = relations(courseQuizzes, ({ one, many }) => ({
@@ -708,42 +705,12 @@ export const contestParticipantsRelations = relations(contestParticipants, ({ on
     user: one(users, { fields: [contestParticipants.userId], references: [users.id] }),
 }));
 
-export const enrollmentsRelations = relations(enrollments, ({ one, many }) => ({ // Added 'many' for progress
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
   user: one(users, { fields: [enrollments.userId], references: [users.id] }),
-  course: one(courses, { fields: [enrollments.courseId], references: [courses.id] }),
-  progressEntries: many(trainingProgress), // Added
+  course: one(courses, { fields: [enrollments.courseId], references: [courses.id] })
 }));
 
-export const trainingProgressRelations = relations(trainingProgress, ({ one }) => ({ // Added
-    user: one(users, { fields: [trainingProgress.userId], references: [users.id] }),
-    course: one(courses, { fields: [trainingProgress.courseId], references: [courses.id] }),
-    module: one(courseModules, { fields: [trainingProgress.moduleId], references: [courseModules.id] }),
-    enrollment: one(enrollments, { fields: [trainingProgress.enrollmentId], references: [enrollments.id] }),
-}));
-
-// NEW Relations for Assignments
-export const courseAssignmentsRelations = relations(courseAssignments, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [courseAssignments.courseId],
-    references: [courses.id],
-  }),
-  module: one(courseModules, {
-    fields: [courseAssignments.moduleId],
-    references: [courseModules.id],
-  }),
-  submissions: many(assignmentSubmissions),
-}));
-
-export const assignmentSubmissionsRelations = relations(assignmentSubmissions, ({ one }) => ({
-  assignment: one(courseAssignments, {
-    fields: [assignmentSubmissions.assignmentId],
-    references: [courseAssignments.id],
-  }),
-  user: one(users, {
-    fields: [assignmentSubmissions.userId],
-    references: [users.id],
-  }),
-}));
+// Relations removed for undefined tables
 
 
 // Insert schemas
