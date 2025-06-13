@@ -3512,7 +3512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const courseData = {
         title,
         description,
-        role: req.body.role || 'Observer',
+        target_audience: req.body.role || req.body.target_audience || 'Observer',
         duration: modules?.reduce((total: number, module: any) => total + (module.duration || 30), 0) || 60,
         passingScore: passingScore || 80,
         content: { modules: modules || [] },
