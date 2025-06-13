@@ -138,7 +138,7 @@ export const courses = pgTable("courses", { // Referred to as trainingPrograms i
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  targetAudience: text("target_audience"), // Changed from role to match typical naming
+  target_audience: text("target_audience"), // Changed from role to match typical naming
   content: json("content"), // General course content (overview, etc.)
   duration: integer("duration"), // in minutes (total estimated for the course)
   passingScore: integer("passing_score").notNull().default(80),

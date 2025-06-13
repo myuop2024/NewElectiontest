@@ -319,7 +319,7 @@ export default function AdminTraining() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="text-muted-foreground">{course.description}</div>
-              <div>Role: {course.role}</div>
+              <div>Target Audience: {course.target_audience}</div>
               <div>Duration: {course.duration} min</div>
               <div>Passing Score: {course.passingScore}%</div>
               <div className="font-medium mt-2">Modules:</div>
