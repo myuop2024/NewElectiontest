@@ -26,9 +26,9 @@ export class AIClassificationService {
     this.genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
   }
 
-  async classifyIncident(text: string, model: string = 'gemini-pro'): Promise<ClassificationResult> {
+  async classifyIncident(text: string, model: string = 'gemini-1.5-flash'): Promise<ClassificationResult> {
     try {
-      const aiModel = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const aiModel = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const prompt = `
 You are an advanced AI system specialized in analyzing electoral incidents and security threats. 
@@ -210,7 +210,7 @@ Respond only with valid JSON.
     return [...new Set(recommendations)]; // Remove duplicates
   }
 
-  async batchClassifyIncidents(incidents: any[], model: string = 'gemini-pro'): Promise<any[]> {
+  async batchClassifyIncidents(incidents: any[], model: string = 'gemini-1.5-flash'): Promise<any[]> {
     const results = [];
 
     for (const incident of incidents) {

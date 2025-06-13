@@ -2351,7 +2351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const models = [
         {
-          id: "gemini-pro",
+          id: "gemini-1.5-flash",
           name: "Gemini Pro",
           description: "Advanced language model for detailed analysis",
           accuracy: 92,
