@@ -41,11 +41,11 @@ export default function AdminSettings() {
     twilio_sid: false,
     twilio_token: false,
     openai_key: false,
-    didit_client_id: false,
-    didit_client_secret: false,
+    // didit_client_id: false, // Assuming these were for Didit, removed if not used elsewhere here
+    // didit_client_secret: false, // Assuming these were for Didit, removed if not used elsewhere here
     whatsapp_token: false,
     email_pass: false,
-    didit_api_key: false
+    // didit_api_key: false, // Removed as the input field is being removed
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -352,215 +352,26 @@ export default function AdminSettings() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <UserCheck className="h-5 w-5" />
-                <span>DidIT KYC Verification</span>
+                <span>DidIT KYC Overview</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Configure the DidIT integration for robust Know Your Customer (KYC) verification.
-                  <a href="https://docs.didit.me/" target="_blank" className="ml-2 text-blue-500 hover:underline">
-                    Read Docs <ExternalLink className="inline h-4 w-4" />
-                  </a>
-                </p>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={getSettingValue('didit_kyc_enabled') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('didit_kyc_enabled', checked.toString())}
-                  />
-                  <Label>Enable DidIT KYC</Label>
-                </div>
-              </div>
-
-              {/* API Credentials */}
-              <div className="space-y-3 border-t pt-6">
-                <Label className="text-base font-medium">API Credentials</Label>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label>API Endpoint</Label>
-                    <Input
-                      placeholder="https://apx.didit.me/v2/"
-                      defaultValue={getSettingValue('didit_api_endpoint')}
-                      onBlur={(e) => handleUpdateSetting('didit_api_endpoint', e.target.value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>API Key</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          placeholder="your-didit-api-key"
-                          type={showSecrets['didit_api_key'] ? 'text' : 'password'}
-                          defaultValue={getSettingValue('didit_api_key')}
-                          onBlur={(e) => handleUpdateSetting('didit_api_key', e.target.value)}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleShowSecret('didit_api_key')}
-                        >
-                          {showSecrets['didit_api_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Verification Flow */}
-              <div className="space-y-3 border-t pt-6">
-                <Label className="text-base font-medium">Verification Flow</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Liveness Check Level</Label>
-                    <Select
-                      defaultValue={getSettingValue('didit_liveness_level') || 'standard'}
-                      onValueChange={(value) => handleUpdateSetting('didit_liveness_level', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Webhook URL</Label>
-                    <Input
-                      placeholder="e.g., https://yourapp.com/api/kyc/webhook"
-                      defaultValue={getSettingValue('didit_webhook_url')}
-                      onBlur={(e) => handleUpdateSetting('didit_webhook_url', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={getSettingValue('didit_manual_override') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('didit_manual_override', checked.toString())}
-                  />
-                  <Label>Allow Manual Verification Override</Label>
-                </div>
-              </div>
-
-              {/* Advanced Didit Configuration */}
-              <div className="space-y-3 border-t pt-6">
-                <Label className="text-base font-medium">Advanced Didit Configuration</Label>
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Liveness Mode */}
-                  <div>
-                    <Label htmlFor="didit_liveness_mode">Liveness Mode</Label>
-                    <Select
-                      value={getSettingValue('didit_liveness_mode')}
-                      onValueChange={(value) => handleUpdateSetting('didit_liveness_mode', value)}
-                    >
-                      <SelectTrigger id="didit_liveness_mode">
-                        <SelectValue placeholder="Select liveness mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="console_default">Console Default</SelectItem>
-                        <SelectItem value="passive">Passive</SelectItem>
-                        <SelectItem value="3d_flash">3D Flash</SelectItem>
-                        <SelectItem value="3d_action_flash">3D Action & Flash</SelectItem>
-                        <SelectItem value="none">None</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground pt-1">
-                      Determines the type of liveness check performed. 'None' disables liveness.
-                    </p>
-                  </div>
-
-                  {/* Liveness Level */}
-                  <div>
-                    <Label htmlFor="didit_liveness_level">Liveness Level</Label>
-                    <Select
-                      value={getSettingValue('didit_liveness_level')}
-                      onValueChange={(value) => handleUpdateSetting('didit_liveness_level', value)}
-                    >
-                      <SelectTrigger id="didit_liveness_level">
-                        <SelectValue placeholder="Select liveness level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        {/* Add other levels like 'strong', 'extreme' if supported and defined */}
-                      </SelectContent>
-                    </Select>
-                     <p className="text-sm text-muted-foreground pt-1">
-                      Adjust the strictness of the liveness detection.
-                    </p>
-                  </div>
-              </div>
-
-                {/* AML Check */}
-                <div className="flex items-center space-x-2 pt-4">
-                  <Switch
-                    id="didit_aml_check_enabled"
-                    checked={getSettingValue('didit_aml_check_enabled') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('didit_aml_check_enabled', checked.toString())}
-                  />
-                  <Label htmlFor="didit_aml_check_enabled">Enable AML Check</Label>
-                </div>
-
-                {/* AML Sensitivity (conditional) */}
-                {getSettingValue('didit_aml_check_enabled') === 'true' && (
-                  <div className="pl-6 pt-2">
-                    <Label htmlFor="didit_aml_sensitivity">AML Sensitivity</Label>
-                    <Select
-                      value={getSettingValue('didit_aml_sensitivity')}
-                      onValueChange={(value) => handleUpdateSetting('didit_aml_sensitivity', value)}
-                    >
-                      <SelectTrigger id="didit_aml_sensitivity">
-                        <SelectValue placeholder="Select AML sensitivity" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground pt-1">
-                      Configure the sensitivity for Anti-Money Laundering checks.
-                    </p>
-                  </div>
-                )}
-
-                {/* Age Estimation */}
-                <div className="flex items-center space-x-2 pt-4">
-                  <Switch
-                    id="didit_age_estimation_enabled"
-                    checked={getSettingValue('didit_age_estimation_enabled') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('didit_age_estimation_enabled', checked.toString())}
-                  />
-                  <Label htmlFor="didit_age_estimation_enabled">Enable Age Estimation</Label>
-                </div>
-                 <p className="text-sm text-muted-foreground pl-8">
-                  Estimate user's age based on provided identity documents. Requires Didit support.
-                </p>
-
-                {/* Proof of Address */}
-                <div className="flex items-center space-x-2 pt-4">
-                  <Switch
-                    id="didit_proof_of_address_enabled"
-                    checked={getSettingValue('didit_proof_of_address_enabled') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('didit_proof_of_address_enabled', checked.toString())}
-                  />
-                  <Label htmlFor="didit_proof_of_address_enabled">Enable Proof of Address (PoA)</Label>
-                </div>
-                <p className="text-sm text-muted-foreground pl-8">
-                  Enable verification of user's address. Requires Didit support and potentially specific document types.
-                </p>
-              </div>
-              
-              <div className="flex justify-end pt-4">
-                 <Button>
-                  <Webhook className="mr-2 h-4 w-4" /> {/* Changed Icon for variety */}
-                  Test DidIT Configuration
+              <p className="text-sm text-gray-600">
+                DidIT KYC specific configurations have been moved to a dedicated page.
+              </p>
+              <p className="text-sm text-gray-600">
+                You can manage all DidIT settings, including API credentials, liveness checks, AML features, and more,
+                by navigating to the "Didit Settings" page from the sidebar.
+              </p>
+              <Link href="/admin/didit-settings" className="mt-4">
+                <Button variant="outline">
+                  Go to Didit Settings <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>
-              </div>
-
+              </Link>
+              {/* Any other non-configuration KYC related info could remain or be added here in the future,
+                  e.g., a summary of KYC statuses, link to verification logs, etc.
+                  For now, it just acts as a placeholder and pointer to the new page.
+              */}
             </CardContent>
           </Card>
         </TabsContent>

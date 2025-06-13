@@ -28,6 +28,7 @@ import Settings from "@/pages/settings";
 import UnifiedAdmin from "@/pages/unified-admin";
 import AdminPanel from "@/pages/admin-panel";
 import AdminSettings from "@/pages/AdminSettings";
+import AdminDiditSettings from "@/pages/AdminDiditSettings"; // Import new page
 import IncidentReporting from "@/pages/incident-reporting";
 import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
@@ -169,6 +170,12 @@ function Router() {
       <Route path="/admin-settings">
         <ProtectedLayout>
           <AdminSettings />
+        </ProtectedLayout>
+      </Route>
+      {/* New Route for Didit Settings */}
+      <Route path="/admin/didit-settings">
+        <ProtectedLayout>
+          <AdminDiditSettings />
         </ProtectedLayout>
       </Route>
       <Route path="/training-management">
