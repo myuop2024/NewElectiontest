@@ -27,7 +27,7 @@ export default function AdminDiditSettings() {
   const [settingsData, setSettingsData] = useState<Record<string, string>>({});
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({
     didit_api_key: false,
-    // Add other secret keys if any are moved here, e.g. didit_client_secret
+    didit_client_secret: false, // Added didit_client_secret
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -168,7 +168,45 @@ export default function AdminDiditSettings() {
                     </Button>
                   </div>
                 </div>
-                 {/* Client ID and Secret can be added here if they become part of this page */}
+                {/* New row for Client ID and Client Secret */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                  <div>
+                    <Label htmlFor="didit_client_id">Didit Client ID</Label>
+                    <Input
+                      id="didit_client_id"
+                      placeholder="your-didit-client-id"
+                      value={getSettingValue('didit_client_id')}
+                      onChange={(e) => setSettingsData(prev => ({ ...prev, didit_client_id: e.target.value }))}
+                      onBlur={(e) => handleUpdateSetting('didit_client_id', e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground pt-1">
+                      Optional. Used for OAuth flows if applicable.
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="didit_client_secret">Didit Client Secret</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="didit_client_secret"
+                        placeholder="your-didit-client-secret"
+                        type={showSecrets['didit_client_secret'] ? 'text' : 'password'}
+                        value={getSettingValue('didit_client_secret')}
+                        onChange={(e) => setSettingsData(prev => ({ ...prev, didit_client_secret: e.target.value }))}
+                        onBlur={(e) => handleUpdateSetting('didit_client_secret', e.target.value)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleShowSecret('didit_client_secret')}
+                      >
+                        {showSecrets['didit_client_secret'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                     <p className="text-sm text-muted-foreground pt-1">
+                      Optional. Used for OAuth flows if applicable. Keep this secret.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
