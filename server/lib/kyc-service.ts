@@ -21,6 +21,11 @@ export interface DidITVerificationResponse {
     livenessCheck: boolean;
     documentType: string;
     extractedData: any;
+    // New fields for additional checks
+    amlStatus?: 'clear' | 'pending' | 'hit' | null;
+    amlDetails?: any;
+    ageEstimation?: { age: number; confidence: number } | null;
+    proofOfAddressStatus?: 'verified' | 'pending' | 'rejected' | null;
   };
 }
 
@@ -34,12 +39,26 @@ export class KYCService {
     const endpoint = await storage.getSettingByKey('didit_api_endpoint');
     const clientId = await storage.getSettingByKey('didit_client_id');
     const clientSecret = await storage.getSettingByKey('didit_client_secret');
+    // New settings
+    const livenessModeSetting = await storage.getSettingByKey('didit_liveness_mode');
+    const livenessLevelSetting = await storage.getSettingByKey('didit_liveness_level');
+    const amlCheckEnabledSetting = await storage.getSettingByKey('didit_aml_check_enabled');
+    const amlSensitivitySetting = await storage.getSettingByKey('didit_aml_sensitivity');
+    const ageEstimationEnabledSetting = await storage.getSettingByKey('didit_age_estimation_enabled');
+    const proofOfAddressEnabledSetting = await storage.getSettingByKey('didit_proof_of_address_enabled');
     
     return {
-      apiUrl: endpoint?.value || process.env.DIDIT_API_ENDPOINT || 'https://apx.didit.me/v2/',
-      clientId: clientId?.value || process.env.DIDIT_CLIENT_ID,
-      clientSecret: clientSecret?.value || process.env.DIDIT_CLIENT_SECRET,
-      apiKey: process.env.DIDIT_API_KEY
+      // Prioritize environment variables for core connection details
+      apiUrl: process.env.DIDIT_API_ENDPOINT || endpoint?.value || 'https://apx.didit.me/v2/',
+      clientId: process.env.DIDIT_CLIENT_ID || clientId?.value,
+      clientSecret: process.env.DIDIT_CLIENT_SECRET || clientSecret?.value,
+      apiKey: process.env.DIDIT_API_KEY, // This was already env-first or env-only
+      livenessMode: livenessModeSetting?.value || 'console_default',
+      livenessLevel: livenessLevelSetting?.value || 'standard',
+      amlCheckEnabled: amlCheckEnabledSetting?.value || 'false',
+      amlSensitivity: amlSensitivitySetting?.value || 'medium',
+      ageEstimationEnabled: ageEstimationEnabledSetting?.value || 'false',
+      proofOfAddressEnabled: proofOfAddressEnabledSetting?.value || 'false',
     };
   }
 
@@ -56,7 +75,7 @@ export class KYCService {
 
   // Automatic KYC verification using DidIT API
   static async verifyWithDidIT(request: DidITVerificationRequest): Promise<DidITVerificationResponse> {
-    const config = await this.getConfiguration();
+    const config = await this.getConfiguration(); // Now includes new settings
     const apiKey = await this.getApiKey();
 
     // Test API connectivity first
@@ -94,8 +113,37 @@ export class KYCService {
           }],
           biometric: {
             selfie_image: request.selfieImage,
-            liveness_required: true
+            // Dynamically set liveness_required based on livenessMode
+            liveness_required: config.livenessMode !== 'none',
+            // Add liveness_mode if not console_default and not none. Assuming 'mode' and 'level' are API params for Didit.
+            ...(config.livenessMode !== 'console_default' && config.livenessMode !== 'none' && { mode: config.livenessMode }),
+            ...(config.livenessLevel && { level: config.livenessLevel })
           },
+          // Conditionally add AML check object
+          ...(config.amlCheckEnabled === 'true' && {
+            aml: {
+              required: true,
+              sensitivity: config.amlSensitivity || "medium"
+              // Assuming 'sensitivity' is a supported parameter.
+            }
+          }),
+          // Conditionally add Age Estimation object
+          ...(config.ageEstimationEnabled === 'true' && {
+            age_estimation: { // Assuming this is how Didit expects age estimation to be enabled
+              required: true
+            }
+          }),
+          // Conditionally add Proof of Address (document verification for address)
+          // This might require changes to the `documents` array or a separate section.
+          // For now, assuming a top-level flag or object.
+          // If Didit requires specific document types for PoA, this would need more complex logic.
+          ...(config.proofOfAddressEnabled === 'true' && {
+            proof_of_address: { // Assuming this is how Didit expects PoA to be enabled
+              required: true
+              // This might also involve sending an additional document of type 'utility_bill' or similar.
+              // For this iteration, we'll assume enabling it is a flag and it uses existing documents or prompts user.
+            }
+          }),
           webhook_url: `${process.env.BASE_URL || 'http://localhost:5000'}/api/kyc/webhook`,
           metadata: {
             source: 'electoral_observer_app',
@@ -124,7 +172,12 @@ export class KYCService {
           faceMatch: data.face_verification?.status === 'passed' || false,
           livenessCheck: data.liveness_check?.status === 'passed' || false,
           documentType: data.document_type || request.documentType,
-          extractedData: data.extracted_fields || {}
+          extractedData: data.extracted_fields || {},
+          // Parsing new fields from Didit response
+          amlStatus: data.aml_check?.status || null,
+          amlDetails: data.aml_check?.details || null,
+          ageEstimation: data.age_estimation_result || null, // Assuming 'age_estimation_result' is the key
+          proofOfAddressStatus: data.proof_of_address?.status || null // Assuming 'proof_of_address' is the key
         }
       };
     } catch (error) {
@@ -179,7 +232,12 @@ export class KYCService {
           faceMatch: data.biometric?.face_match_result === 'match' || false,
           livenessCheck: data.biometric?.liveness_result === 'real' || false,
           documentType: data.documents?.[0]?.type || 'unknown',
-          extractedData: data.documents?.[0]?.extracted_data || data.extracted_fields || {}
+          extractedData: data.documents?.[0]?.extracted_data || data.extracted_fields || {},
+          // Parsing new fields from Didit response for status check
+          amlStatus: data.aml_check?.status || null, // Assuming similar structure in status check response
+          amlDetails: data.aml_check?.details || null,
+          ageEstimation: data.age_estimation_result || null,
+          proofOfAddressStatus: data.proof_of_address?.status || null
         }
       };
     } catch (error) {

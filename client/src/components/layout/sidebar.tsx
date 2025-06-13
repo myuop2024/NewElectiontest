@@ -49,6 +49,7 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'Admin Panel', href: '/admin', icon: Shield },
+  { name: 'Didit Settings', href: '/admin/didit-settings', icon: Settings }, // New Item
   { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
   { name: 'AI Classifier', href: '/ai-classifier', icon: Brain },
   { name: 'Emergency Management', href: '/emergency-management', icon: AlertTriangle },
