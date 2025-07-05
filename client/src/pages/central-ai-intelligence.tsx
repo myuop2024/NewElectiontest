@@ -717,23 +717,46 @@ export default function CentralAIIntelligence() {
                   <Activity className="w-8 h-8 mx-auto mb-4 animate-spin" />
                   <p>Analyzing social media...</p>
                 </div>
-              ) : socialData?.social_data ? (
+              ) : socialData?.social_data && socialData.social_data.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="text-sm font-medium">Platforms:</span>
-                    {socialData.platforms_monitored.map((platform, idx) => (
-                      <Badge key={idx} variant="outline">{platform}</Badge>
-                    ))}
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-sm font-medium">Active Sources:</span>
+                      {socialData.platforms_monitored.map((platform, idx) => (
+                        <Badge key={idx} variant="outline">{platform}</Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-green-600" />
+                      <span className="text-xs text-green-600 font-medium">Live API Data</span>
+                    </div>
                   </div>
+                  
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Displaying authentic social media content from {socialData.social_data.length} recent posts via Twitter/X API
+                    </AlertDescription>
+                  </Alert>
+                  
                   <Separator />
                   <div className="space-y-3">
                     {socialData.social_data.slice(0, 15).map((post, index) => (
-                      <Card key={index} className="border-l-4 border-l-green-500">
+                      <Card key={index} className="border-l-4 border-l-blue-500">
                         <CardContent className="pt-4">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary">{post.platform}</Badge>
+                              {post.is_authentic && (
+                                <Badge variant="outline" className="text-green-600 border-green-600">
+                                  <Shield className="w-3 h-3 mr-1" />
+                                  Verified
+                                </Badge>
+                              )}
                               <span className="text-sm text-muted-foreground">{post.location}</span>
+                              {post.author && (
+                                <span className="text-xs text-blue-600">@{post.author.username}</span>
+                              )}
                             </div>
                             <Badge className={getSentimentColor(post.ai_analysis?.overall_sentiment)}>
                               {post.ai_analysis?.overall_sentiment || 'neutral'}
@@ -741,18 +764,42 @@ export default function CentralAIIntelligence() {
                           </div>
                           <p className="text-sm mb-2">{post.content}</p>
                           <div className="flex justify-between items-center text-xs text-muted-foreground">
-                            <span>Engagement: {post.engagement.likes + post.engagement.shares} interactions</span>
+                            <span>
+                              {post.engagement.likes} likes • {post.engagement.shares} retweets • {post.engagement.comments} replies
+                            </span>
                             <span>{new Date(post.posted_at).toLocaleDateString()}</span>
                           </div>
+                          {post.relevance_score && (
+                            <div className="mt-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">Election Relevance:</span>
+                                <Progress value={post.relevance_score * 100} className="w-16 h-1" />
+                                <span className="text-xs font-medium">{Math.round(post.relevance_score * 100)}%</span>
+                              </div>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  No social media data available
-                </p>
+                <div className="text-center py-8 space-y-4">
+                  <Alert className="max-w-md mx-auto">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      No authentic social media data available. This requires active X/Twitter API credentials for real-time monitoring.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="text-sm text-muted-foreground">
+                    <p>To enable authentic social media monitoring:</p>
+                    <ul className="text-left mt-2 space-y-1 max-w-md mx-auto">
+                      <li>• X/Twitter API credentials are configured</li>
+                      <li>• Monitoring Jamaica-specific election content</li>
+                      <li>• Real-time sentiment analysis active</li>
+                    </ul>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

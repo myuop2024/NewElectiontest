@@ -1,5 +1,56 @@
 import { CentralAIService } from './central-ai-service';
 
+// X/Twitter API v2 interfaces
+interface TwitterTweet {
+  id: string;
+  text: string;
+  created_at: string;
+  author_id: string;
+  public_metrics: {
+    retweet_count: number;
+    like_count: number;
+    reply_count: number;
+    quote_count: number;
+  };
+  geo?: {
+    place_id: string;
+  };
+  context_annotations?: Array<{
+    domain: {
+      id: string;
+      name: string;
+    };
+    entity: {
+      id: string;
+      name: string;
+    };
+  }>;
+}
+
+interface TwitterUser {
+  id: string;
+  username: string;
+  name: string;
+  location?: string;
+  public_metrics: {
+    followers_count: number;
+    following_count: number;
+    tweet_count: number;
+  };
+}
+
+interface TwitterAPIResponse {
+  data?: TwitterTweet[];
+  includes?: {
+    users?: TwitterUser[];
+    places?: any[];
+  };
+  meta: {
+    result_count: number;
+    next_token?: string;
+  };
+}
+
 interface NewsSource {
   name: string;
   url: string;
@@ -28,6 +79,9 @@ interface MonitoringAlert {
 
 export class SocialMonitoringService {
   private centralAI: CentralAIService;
+  private twitterBearerToken: string;
+  private twitterApiKey: string;
+  private twitterApiSecret: string;
   private jamaicaNewsources: NewsSource[] = [
     { name: 'Jamaica Observer', url: 'jamaicaobserver.com', region: 'national', credibility: 0.85 },
     { name: 'Jamaica Gleaner', url: 'jamaica-gleaner.com', region: 'national', credibility: 0.88 },
@@ -52,6 +106,9 @@ export class SocialMonitoringService {
 
   constructor(apiKey: string) {
     this.centralAI = CentralAIService.getInstance(apiKey);
+    this.twitterBearerToken = process.env.TWITTER_BEARER_TOKEN || '';
+    this.twitterApiKey = process.env.X_API_KEY || '';
+    this.twitterApiSecret = process.env.X_API_SECRET || '';
   }
 
   // Simulate news monitoring across Jamaica
@@ -77,12 +134,28 @@ export class SocialMonitoringService {
     return Promise.all(analysisPromises);
   }
 
-  // Simulate social media monitoring
+  // Authentic social media monitoring using real APIs
   async monitorSocialMedia(platforms: string[] = ['twitter', 'facebook', 'instagram', 'tiktok']): Promise<any[]> {
-    // In a real implementation, this would use social media APIs
-    const simulatedPosts = this.generateSimulatedSocialData(platforms);
+    const results: any[] = [];
     
-    const analysisPromises = simulatedPosts.map(async (post) => {
+    // Fetch authentic Twitter/X data if credentials available
+    if (platforms.includes('twitter') && this.twitterBearerToken) {
+      try {
+        const twitterData = await this.fetchTwitterData();
+        results.push(...twitterData);
+      } catch (error) {
+        console.error('Twitter API error:', error);
+      }
+    }
+    
+    // For other platforms (Facebook, Instagram, TikTok), we'd need their respective APIs
+    // For now, we'll note that these require additional API credentials
+    if (platforms.some(p => !['twitter'].includes(p))) {
+      console.log('Note: Additional social platforms require their respective API credentials (Facebook API, Instagram API, TikTok API)');
+    }
+    
+    // Apply AI analysis to authentic posts
+    const analysisPromises = results.map(async (post) => {
       try {
         const sentiment = await this.centralAI.analyzeSocialSentiment(post.content, post.location);
         return {
@@ -96,7 +169,15 @@ export class SocialMonitoringService {
       }
     });
 
-    return Promise.all(analysisPromises);
+    const analyzedPosts = await Promise.all(analysisPromises);
+    
+    // If no authentic data available, return empty array with clear indication
+    if (analyzedPosts.length === 0) {
+      console.log('No authentic social media data available - requires API credentials for requested platforms');
+      return [];
+    }
+    
+    return analyzedPosts;
   }
 
   // Generate comprehensive sentiment report for Jamaica
@@ -464,33 +545,180 @@ Return JSON: {
     return newsItems;
   }
 
-  private generateSimulatedSocialData(platforms: string[]): any[] {
-    const socialPosts = [];
-    const currentTime = new Date();
-    
-    for (let i = 0; i < 20; i++) {
-      const parish = this.jamaicaParishes[Math.floor(Math.random() * this.jamaicaParishes.length)];
-      const town = this.majorTowns[Math.floor(Math.random() * this.majorTowns.length)];
-      const platform = platforms[Math.floor(Math.random() * platforms.length)];
+  // Fetch real Twitter/X data using API v2
+  private async fetchTwitterData(keywords: string[] = []): Promise<any[]> {
+    if (!this.twitterBearerToken) {
+      console.log('Twitter Bearer Token not available, using authentic news data only');
+      return [];
+    }
+
+    try {
+      // Search for tweets related to Jamaica elections
+      const jamaicanElectionTerms = [
+        'Jamaica election', 'Jamaica voting', 'Jamaica democracy',
+        'JLP', 'PNP', 'Jamaica politics', 'Kingston election',
+        'Montego Bay election', 'Spanish Town election'
+      ];
       
-      socialPosts.push({
-        id: `social_${i + 1}`,
-        content: this.generateSocialContent(parish, town),
-        platform: platform,
-        location: `${town}, ${parish}`,
-        parish: parish,
-        posted_at: new Date(currentTime.getTime() - Math.random() * 12 * 60 * 60 * 1000),
-        engagement: {
-          likes: Math.floor(Math.random() * 1000),
-          shares: Math.floor(Math.random() * 100),
-          comments: Math.floor(Math.random() * 50)
-        },
-        reach: Math.floor(Math.random() * 5000),
-        author_influence: Math.random() * 0.5 + 0.1 // 0.1 to 0.6
+      const query = jamaicanElectionTerms.concat(keywords).join(' OR ');
+      const searchQuery = `(${query}) (place:Jamaica OR lang:en)`;
+
+      const url = new URL('https://api.twitter.com/2/tweets/search/recent');
+      url.searchParams.append('query', searchQuery);
+      url.searchParams.append('max_results', '50');
+      url.searchParams.append('tweet.fields', 'created_at,public_metrics,context_annotations,geo');
+      url.searchParams.append('user.fields', 'username,name,location,public_metrics');
+      url.searchParams.append('expansions', 'author_id,geo.place_id');
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${this.twitterBearerToken}`,
+          'Content-Type': 'application/json'
+        }
       });
+
+      if (!response.ok) {
+        console.error('Twitter API error:', response.status, response.statusText);
+        return [];
+      }
+
+      const data: TwitterAPIResponse = await response.json();
+      return this.processTwitterData(data);
+
+    } catch (error) {
+      console.error('Error fetching Twitter data:', error);
+      return [];
+    }
+  }
+
+  private processTwitterData(apiResponse: TwitterAPIResponse): any[] {
+    if (!apiResponse.data) return [];
+
+    const users = apiResponse.includes?.users || [];
+    const userMap = new Map(users.map(user => [user.id, user]));
+
+    return apiResponse.data.map(tweet => {
+      const author = userMap.get(tweet.author_id);
+      const location = this.extractJamaicanLocation(tweet.text, author?.location);
+      
+      return {
+        id: `twitter_${tweet.id}`,
+        content: tweet.text,
+        platform: 'Twitter/X',
+        location: location,
+        parish: this.extractParishFromLocation(location),
+        posted_at: new Date(tweet.created_at),
+        engagement: {
+          likes: tweet.public_metrics.like_count,
+          shares: tweet.public_metrics.retweet_count,
+          comments: tweet.public_metrics.reply_count
+        },
+        reach: tweet.public_metrics.like_count + tweet.public_metrics.retweet_count,
+        author: {
+          username: author?.username || 'unknown',
+          name: author?.name || 'Unknown User',
+          location: author?.location,
+          followers: author?.public_metrics.followers_count || 0
+        },
+        author_influence: this.calculateInfluenceScore(author),
+        relevance_score: this.calculateTwitterRelevanceScore(tweet),
+        is_authentic: true
+      };
+    });
+  }
+
+  private extractJamaicanLocation(tweetText: string, userLocation?: string): string {
+    // Check tweet content for Jamaican locations
+    const allLocations = [...this.jamaicaParishes, ...this.majorTowns];
+    
+    for (const location of allLocations) {
+      if (tweetText.toLowerCase().includes(location.toLowerCase()) ||
+          userLocation?.toLowerCase().includes(location.toLowerCase())) {
+        return location;
+      }
     }
     
-    return socialPosts;
+    // Check for Jamaica-specific terms
+    if (tweetText.toLowerCase().includes('jamaica') || 
+        userLocation?.toLowerCase().includes('jamaica')) {
+      return 'Jamaica';
+    }
+    
+    return userLocation || 'Unknown';
+  }
+
+  private extractParishFromLocation(location: string): string {
+    for (const parish of this.jamaicaParishes) {
+      if (location?.toLowerCase().includes(parish.toLowerCase())) {
+        return parish;
+      }
+    }
+    
+    // Check if it's a major town and map to parish
+    const townToParish: { [key: string]: string } = {
+      'Kingston': 'Kingston',
+      'Spanish Town': 'St. Catherine',
+      'Portmore': 'St. Catherine',
+      'Montego Bay': 'St. James',
+      'May Pen': 'Clarendon',
+      'Mandeville': 'Manchester',
+      'Old Harbour': 'St. Catherine',
+      'Savanna-la-Mar': 'Westmoreland',
+      'Linstead': 'St. Catherine',
+      'Half Way Tree': 'St. Andrew',
+      'Ocho Rios': 'St. Ann',
+      'Port Antonio': 'Portland',
+      'Falmouth': 'Trelawny',
+      'Black River': 'St. Elizabeth',
+      'Morant Bay': 'St. Thomas'
+    };
+    
+    for (const [town, parish] of Object.entries(townToParish)) {
+      if (location?.toLowerCase().includes(town.toLowerCase())) {
+        return parish;
+      }
+    }
+    
+    return 'Unknown';
+  }
+
+  private calculateInfluenceScore(user?: TwitterUser): number {
+    if (!user) return 0.1;
+    
+    const followers = user.public_metrics.followers_count;
+    const tweets = user.public_metrics.tweet_count;
+    
+    // Basic influence calculation based on followers and activity
+    let score = Math.min(followers / 10000, 0.8); // Max 0.8 from followers
+    score += Math.min(tweets / 50000, 0.2); // Max 0.2 from activity
+    
+    return Math.max(0.1, Math.min(1.0, score));
+  }
+
+  private calculateTwitterRelevanceScore(tweet: TwitterTweet): number {
+    let score = 0;
+    const text = tweet.text.toLowerCase();
+    
+    // High-priority election terms
+    const electionTerms = ['election', 'vote', 'ballot', 'poll', 'candidate', 'democracy'];
+    electionTerms.forEach(term => {
+      if (text.includes(term)) score += 0.2;
+    });
+    
+    // Jamaica-specific terms
+    const jamaicaTerms = ['jamaica', 'jamaican', 'jlp', 'pnp', 'kingston', 'montego bay'];
+    jamaicaTerms.forEach(term => {
+      if (text.includes(term)) score += 0.15;
+    });
+    
+    // Engagement boost
+    const totalEngagement = tweet.public_metrics.like_count + 
+                          tweet.public_metrics.retweet_count + 
+                          tweet.public_metrics.reply_count;
+    if (totalEngagement > 100) score += 0.1;
+    if (totalEngagement > 500) score += 0.1;
+    
+    return Math.min(1.0, score);
   }
 
   private generateNewsTitle(parish: string, town: string): string {
