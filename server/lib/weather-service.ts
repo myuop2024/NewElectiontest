@@ -294,7 +294,7 @@ export class WeatherService {
   async getAllParishesWeather() {
     const parishNames = Object.keys(JAMAICA_PARISH_COORDINATES);
     const weatherPromises = parishNames.map(parish => 
-      this.getParishWeather(parish).catch(error => ({
+      this.getElectoralWeatherSummary(parish).catch(error => ({
         parish,
         error: error.message,
         lastUpdated: new Date().toISOString()
