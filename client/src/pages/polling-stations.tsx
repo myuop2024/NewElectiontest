@@ -10,6 +10,7 @@ import { MapPin, Search, Filter, Download, Map, List, Navigation, Eye } from "lu
 import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
+import StationWeatherStatus from "@/components/weather/station-weather-status";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -193,10 +194,13 @@ export default function PollingStations() {
                     </div>
                   )}
 
-                  {/* Traffic Status - only show if station has GPS coordinates */}
+                  {/* Traffic & Weather Status - only show if station has GPS coordinates */}
                   {station.latitude && station.longitude && (
-                    <div className="border-t pt-3">
+                    <div className="border-t pt-3 space-y-2">
                       <StationTrafficStatus stationId={station.id} compact={true} />
+                      {station.parish && (
+                        <StationWeatherStatus parish={station.parish} compact={true} />
+                      )}
                     </div>
                   )}
 
@@ -314,11 +318,19 @@ export default function PollingStations() {
                 </div>
               </div>
 
-              {/* Traffic Information - only show if station has GPS coordinates */}
+              {/* Traffic & Weather Information - only show if station has GPS coordinates */}
               {selectedStation.latitude && selectedStation.longitude && (
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-3">Current Traffic Conditions</h4>
-                  <StationTrafficStatus stationId={selectedStation.id} compact={false} />
+                <div className="border-t pt-4 space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3">Current Traffic Conditions</h4>
+                    <StationTrafficStatus stationId={selectedStation.id} compact={false} />
+                  </div>
+                  {selectedStation.parish && (
+                    <div>
+                      <h4 className="font-semibold mb-3">Current Weather Conditions</h4>
+                      <StationWeatherStatus parish={selectedStation.parish} compact={false} />
+                    </div>
+                  )}
                 </div>
               )}
 

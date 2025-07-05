@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Users, Calendar, Clock, CheckCircle, AlertCircle, Plus } from "lucide-react";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
+import StationWeatherStatus from "@/components/weather/station-weather-status";
 
 const ASSIGNMENT_STATUS = [
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
@@ -415,10 +416,13 @@ export default function ObserverAssignments() {
                       </div>
                     )}
 
-                    {/* Traffic Information - only show if polling station has GPS coordinates */}
+                    {/* Traffic & Weather Information - only show if polling station has GPS coordinates */}
                     {assignment.pollingStation?.latitude && assignment.pollingStation?.longitude && (
-                      <div className="border-t pt-3 mt-3">
+                      <div className="border-t pt-3 mt-3 space-y-2">
                         <StationTrafficStatus stationId={assignment.pollingStation.id} compact={true} />
+                        {assignment.pollingStation?.parish && (
+                          <StationWeatherStatus parish={assignment.pollingStation.parish} compact={true} />
+                        )}
                       </div>
                     )}
                   </div>
