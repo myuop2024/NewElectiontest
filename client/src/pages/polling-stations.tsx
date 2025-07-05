@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Filter, Download, Map, List, Navigation, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
+import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -192,6 +193,13 @@ export default function PollingStations() {
                     </div>
                   )}
 
+                  {/* Traffic Status - only show if station has GPS coordinates */}
+                  {station.latitude && station.longitude && (
+                    <div className="border-t pt-3">
+                      <StationTrafficStatus stationId={station.id} compact={true} />
+                    </div>
+                  )}
+
                   <div className="flex space-x-2 pt-4">
                     <Button 
                       size="sm" 
@@ -305,6 +313,14 @@ export default function PollingStations() {
                   </div>
                 </div>
               </div>
+
+              {/* Traffic Information - only show if station has GPS coordinates */}
+              {selectedStation.latitude && selectedStation.longitude && (
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-3">Current Traffic Conditions</h4>
+                  <StationTrafficStatus stationId={selectedStation.id} compact={false} />
+                </div>
+              )}
 
               <div className="flex space-x-3 pt-4 border-t">
                 <Button 

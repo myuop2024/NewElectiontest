@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Users, Calendar, Clock, CheckCircle, AlertCircle, Plus } from "lucide-react";
+import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 
 const ASSIGNMENT_STATUS = [
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
@@ -411,6 +412,13 @@ export default function ObserverAssignments() {
                     {assignment.notes && (
                       <div className="text-sm text-muted-foreground bg-gray-50 p-2 rounded">
                         <strong>Notes:</strong> {assignment.notes}
+                      </div>
+                    )}
+
+                    {/* Traffic Information - only show if polling station has GPS coordinates */}
+                    {assignment.pollingStation?.latitude && assignment.pollingStation?.longitude && (
+                      <div className="border-t pt-3 mt-3">
+                        <StationTrafficStatus stationId={assignment.pollingStation.id} compact={true} />
                       </div>
                     )}
                   </div>
