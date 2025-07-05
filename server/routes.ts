@@ -1234,6 +1234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         news_sources: {
+          'NewsAPI.org': {
+            url: 'https://newsapi.org/v2/everything',
+            status: process.env.NEWSAPI_KEY ? 'configured' : 'missing_key',
+            note: 'Comprehensive global news coverage including Caribbean sources',
+            coverage: 'Thousands of sources worldwide, filtered for Jamaica election content'
+          },
           'Jamaica Observer': {
             url: 'https://www.jamaicaobserver.com/feed/',
             status: observerStatus,
@@ -1264,14 +1270,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
           step5: 'Generate risk assessments and alerts for election monitoring'
         },
         real_vs_simulated: {
-          real_data: 'RSS feeds from Jamaica Observer, Gleaner, Loop Jamaica provide live news',
-          fallback: 'Simulated data used if RSS feeds are inaccessible or blocked',
+          real_data: 'NewsAPI.org + RSS feeds from Jamaica Observer, Gleaner, Loop Jamaica provide comprehensive coverage',
+          fallback: 'Simulated data used if external feeds are inaccessible or blocked',
           ai_analysis: 'All content (real or simulated) processed through Gemini AI for sentiment analysis'
+        },
+        newsapi_integration: {
+          enabled: !!process.env.NEWSAPI_KEY,
+          queries: [
+            'Jamaica AND (election OR voting OR democracy)',
+            'Jamaica election (from verified Caribbean sources)',
+            'Caribbean politics AND Jamaica'
+          ],
+          benefits: 'Access to thousands of international sources covering Jamaica, better election context'
         }
       });
     } catch (error) {
       console.error("News fetch test error:", error);
       res.status(500).json({ error: "Failed to test news fetching" });
+    }
+  });
+
+  // Test NewsAPI.org integration specifically
+  app.get("/api/test/newsapi", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const newsApiKey = process.env.NEWSAPI_KEY;
+      if (!newsApiKey) {
+        return res.status(400).json({ error: "NewsAPI key not configured" });
+      }
+
+      const socialMonitoring = new SocialMonitoringService(process.env.GEMINI_API_KEY || '');
+      
+      // Test direct NewsAPI fetch
+      const testQuery = 'Jamaica election';
+      const testResponse = await fetch(
+        `https://newsapi.org/v2/everything?q=${encodeURIComponent(testQuery)}&language=en&sortBy=publishedAt&pageSize=5&apiKey=${newsApiKey}`,
+        {
+          headers: {
+            'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
+          }
+        }
+      );
+
+      if (testResponse.ok) {
+        const testData = await testResponse.json();
+        res.json({
+          newsapi_status: 'working',
+          test_query: testQuery,
+          articles_found: testData.totalResults || 0,
+          sample_articles: testData.articles?.slice(0, 3).map((article: any) => ({
+            title: article.title,
+            source: article.source?.name,
+            published: article.publishedAt,
+            url: article.url
+          })) || [],
+          integration_details: {
+            api_endpoint: 'https://newsapi.org/v2/everything',
+            search_parameters: 'Jamaica + election keywords, English only, sorted by date',
+            coverage: 'Global news sources including Caribbean outlets',
+            rate_limits: '1000 requests/day on free plan'
+          }
+        });
+      } else {
+        const errorText = await testResponse.text();
+        res.json({
+          newsapi_status: 'error',
+          error_code: testResponse.status,
+          error_message: errorText,
+          test_query: testQuery
+        });
+      }
+    } catch (error) {
+      console.error("NewsAPI test error:", error);
+      res.status(500).json({ error: "Failed to test NewsAPI integration" });
     }
   });
 

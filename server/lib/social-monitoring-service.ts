@@ -186,11 +186,15 @@ Return JSON: {
   }
 
   private async fetchRealNewsData(keywords: string[]): Promise<any[]> {
-    // Fetch real news from Jamaican outlets using RSS feeds and web scraping
+    // Fetch real news from multiple sources: RSS feeds and NewsAPI
     const newsItems = [];
     const searchTerms = keywords.concat(['election', 'voting', 'democracy', 'Jamaica', 'parish']);
     
     try {
+      // Fetch from NewsAPI.org for comprehensive coverage
+      const newsApiData = await this.fetchFromNewsAPI(searchTerms);
+      newsItems.push(...newsApiData);
+      
       // Fetch from Jamaica Observer RSS
       const observerNews = await this.fetchFromObserver(searchTerms);
       newsItems.push(...observerNews);
@@ -209,6 +213,104 @@ Return JSON: {
     }
     
     return newsItems.length > 0 ? newsItems : this.generateSimulatedNewsData(keywords);
+  }
+
+  private async fetchFromNewsAPI(searchTerms: string[]): Promise<any[]> {
+    const newsApiKey = process.env.NEWSAPI_KEY;
+    if (!newsApiKey) {
+      console.log("NewsAPI key not configured, skipping NewsAPI fetch");
+      return [];
+    }
+
+    try {
+      const items = [];
+      
+      // Search for Jamaica-specific election news
+      const jamaicaQuery = `Jamaica AND (${searchTerms.slice(0, 5).join(' OR ')})`;
+      const jamaicaResponse = await fetch(
+        `https://newsapi.org/v2/everything?q=${encodeURIComponent(jamaicaQuery)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${newsApiKey}`,
+        {
+          headers: {
+            'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
+          }
+        }
+      );
+
+      if (jamaicaResponse.ok) {
+        const jamaicaData = await jamaicaResponse.json();
+        if (jamaicaData.articles) {
+          items.push(...this.processNewsAPIArticles(jamaicaData.articles, 'NewsAPI Global'));
+        }
+      }
+
+      // Search Caribbean news sources for Jamaica election coverage
+      const caribbeanResponse = await fetch(
+        `https://newsapi.org/v2/everything?q=Jamaica election&domains=jamaica-gleaner.com,jamaicaobserver.com,loopjamaica.com&language=en&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`,
+        {
+          headers: {
+            'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
+          }
+        }
+      );
+
+      if (caribbeanResponse.ok) {
+        const caribbeanData = await caribbeanResponse.json();
+        if (caribbeanData.articles) {
+          items.push(...this.processNewsAPIArticles(caribbeanData.articles, 'NewsAPI Caribbean'));
+        }
+      }
+
+      return items;
+    } catch (error) {
+      console.log("NewsAPI fetch error:", error);
+      return [];
+    }
+  }
+
+  private processNewsAPIArticles(articles: any[], source: string): any[] {
+    return articles
+      .filter(article => article.title && article.description)
+      .map((article, index) => {
+        const content = `${article.title} ${article.description || ''} ${article.content || ''}`;
+        const detectedParish = this.jamaicaParishes.find(parish => 
+          content.toLowerCase().includes(parish.toLowerCase())
+        ) || 'Jamaica (general)';
+
+        return {
+          id: `newsapi_${source.toLowerCase().replace(/\s+/g, '_')}_${index}`,
+          title: article.title,
+          content: article.description || article.title,
+          full_content: article.content,
+          source: `${article.source?.name || source}`,
+          url: article.url,
+          published_at: new Date(article.publishedAt),
+          location: detectedParish,
+          parish: detectedParish,
+          author: article.author,
+          image_url: article.urlToImage,
+          relevance_score: this.calculateRelevanceScore(content, ['election', 'voting', 'democracy', 'Jamaica']),
+          credibility: this.getNewsAPISourceCredibility(article.source?.name || ''),
+          api_source: 'NewsAPI.org'
+        };
+      })
+      .filter(item => item.relevance_score > 0.2); // Only include reasonably relevant articles
+  }
+
+  private getNewsAPISourceCredibility(sourceName: string): number {
+    const credibilityMap: { [key: string]: number } = {
+      'Jamaica Observer': 0.85,
+      'Jamaica Gleaner': 0.88,
+      'Loop Jamaica': 0.75,
+      'Reuters': 0.95,
+      'BBC News': 0.92,
+      'Associated Press': 0.94,
+      'CNN': 0.78,
+      'The Guardian': 0.87,
+      'The New York Times': 0.89,
+      'The Washington Post': 0.86
+    };
+    
+    return credibilityMap[sourceName] || 0.70; // Default credibility for unknown sources
   }
 
   private async fetchFromObserver(searchTerms: string[]): Promise<any[]> {

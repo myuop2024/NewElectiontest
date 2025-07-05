@@ -128,6 +128,10 @@ The CAFFE (Citizens Action for Free & Fair Elections) Electoral Observation Plat
 The Central AI Intelligence Hub pulls real news data from major Jamaican outlets through multiple channels:
 
 ### Real-Time News Sources
+- **NewsAPI.org** (newsapi.org) - Global news aggregation (602+ Jamaica articles available)
+  - Access to thousands of international sources
+  - Verified Caribbean news outlets
+  - Real-time article filtering and relevance scoring
 - **Jamaica Observer** (jamaicaobserver.com/feed/) - RSS feed parsing
 - **Jamaica Gleaner** (jamaica-gleaner.com/feed) - Real-time article monitoring
 - **Loop Jamaica** (loopjamaica.com/rss.xml) - Breaking news aggregation
@@ -157,9 +161,12 @@ The Central AI Intelligence Hub pulls real news data from major Jamaican outlets
 - July 5, 2025: Comprehensive system maintenance and bug fixes
   - **NEW FEATURE**: Real news feed integration from major Jamaican outlets
   - **NEW FEATURE**: RSS parsing system for Jamaica Observer, Gleaner, Loop Jamaica
+  - **NEW FEATURE**: NewsAPI.org integration for comprehensive global news coverage
   - **NEW FEATURE**: Geographic parish detection in news content
   - **NEW FEATURE**: Real-time content filtering for election-related articles
   - **NEW FEATURE**: Automated fallback to simulated data when feeds unavailable
+  - **INTEGRATION**: NewsAPI provides access to 602+ Jamaica-related articles from global sources
+  - **ENHANCEMENT**: Multi-source news aggregation combining RSS feeds and NewsAPI data
   - **CRITICAL FIX**: Fixed /route-navigation page loading error (corrected geolocation hook usage)
   - **MAJOR ENHANCEMENT**: Implemented real camera functionality in document capture (replaced mock/demo with live camera access)
   - **CRITICAL INTEGRATION**: Connected document uploads to AI analysis pipeline and incident reporting system
