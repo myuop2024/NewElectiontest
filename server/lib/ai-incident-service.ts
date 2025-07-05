@@ -56,8 +56,17 @@ export class AIIncidentService {
       const response = result.response;
       const analysisText = response.text();
       
-      // Parse the JSON response
-      const analysis = JSON.parse(analysisText);
+      // Clean and parse the JSON response
+      let cleanText = analysisText.trim();
+      
+      // Remove markdown code blocks if present
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+      }
+      
+      const analysis = JSON.parse(cleanText);
       return this.validateAndNormalizeAnalysis(analysis);
     } catch (error) {
       console.error("AI analysis error:", error);

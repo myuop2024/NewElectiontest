@@ -63,10 +63,21 @@ export default function IncidentReporting() {
     enabled: !!user?.id
   });
 
+  // Load incident form template
+  const { data: formTemplate } = useQuery<any>({
+    queryKey: ["/api/forms/templates", "incident"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/forms/templates");
+      const templates = await response.json();
+      return templates.find((t: any) => t.type === "incident" && t.isActive) || null;
+    }
+  });
+
   const createIncidentMutation = useMutation({
     mutationFn: async (incident: any) => {
       const response = await apiRequest("POST", "/api/reports", {
         ...incident,
+        stationId: incident.pollingStationId || 1, // Map pollingStationId to stationId and provide default
         latitude: position?.coords?.latitude || null,
         longitude: position?.coords?.longitude || null,
         submittedBy: user?.id,

@@ -129,6 +129,10 @@ The CAFFE (Citizens Action for Free & Fair Elections) Electoral Observation Plat
   - Resolved Gemini AI model compatibility issues (updated all references from deprecated `gemini-pro` to `gemini-1.5-flash`)
   - Improved form validation and error handling for reports endpoint with proper field validation
   - Optimized toast notification system (reduced auto-dismiss delay from 1000000ms to 5000ms)
+  - **CRITICAL FIX**: Resolved incident reporting form field mapping issue (pollingStationId → stationId)
+  - **CRITICAL FIX**: Fixed AI incident analysis JSON parsing errors with markdown code block handling
+  - **NEW FEATURE**: Created editable incident form template system through Form Builder
+  - **NEW FEATURE**: Dynamic incident forms can now be customized via admin Form Templates
   - Verified and tested all critical system components: authentication, emergency notifications, AI services, WebSocket connectivity
   - All core functionality confirmed working: incident reporting, training management, analytics, emergency alerts
 - June 13, 2025. Initial setup
