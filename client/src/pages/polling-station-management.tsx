@@ -17,7 +17,7 @@ export default function PollingStationManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { position } = useGeolocation({ enableHighAccuracy: true });
+  const { location } = useGeolocation({ enableHighAccuracy: true });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStation, setSelectedStation] = useState<any>(null);
@@ -134,6 +134,15 @@ export default function PollingStationManagement() {
     setIsEditDialogOpen(true);
   };
 
+  const handleViewStation = (station: any) => {
+    setSelectedStation(station);
+    // Create a view-only dialog or redirect to detailed view
+    toast({
+      title: "Station Details",
+      description: `Viewing details for ${station.name} (${station.code})`
+    });
+  };
+
   const handleUpdateStation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStation) return;
@@ -141,11 +150,11 @@ export default function PollingStationManagement() {
   };
 
   const useCurrentLocation = () => {
-    if (position) {
+    if (location) {
       setStationForm(prev => ({
         ...prev,
-        latitude: position.coords.latitude.toString(),
-        longitude: position.coords.longitude.toString()
+        latitude: location.latitude.toString(),
+        longitude: location.longitude.toString()
       }));
     }
   };
@@ -303,7 +312,7 @@ export default function PollingStationManagement() {
                         onChange={(e) => setStationForm(prev => ({ ...prev, longitude: e.target.value }))}
                       />
                     </div>
-                    {position && (
+                    {location && (
                       <Button type="button" variant="outline" size="sm" onClick={useCurrentLocation}>
                         <MapPin className="h-3 w-3 mr-1" />
                         Use Current Location
@@ -439,6 +448,7 @@ export default function PollingStationManagement() {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => handleViewStation(station)}
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             View

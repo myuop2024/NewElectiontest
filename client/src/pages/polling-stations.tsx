@@ -22,14 +22,17 @@ export default function PollingStations() {
     queryKey: ["/api/polling-stations"],
   });
 
-  const filteredStations = (stations as any[])?.filter((station: any) =>
+  // Type guard to ensure stations is an array
+  const stationsArray = Array.isArray(stations) ? stations : [];
+
+  const filteredStations = stationsArray.filter((station: any) =>
     station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     station.stationCode.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   // Export stations data as CSV
   const handleExportData = () => {
-    if (!stations || stations.length === 0) {
+    if (!stationsArray || stationsArray.length === 0) {
       toast({
         title: "No Data",
         description: "No polling stations data to export",
@@ -41,7 +44,7 @@ export default function PollingStations() {
     const headers = ['Station Code', 'Name', 'Address', 'Parish', 'Latitude', 'Longitude', 'Capacity', 'Status'];
     const csvContent = [
       headers.join(','),
-      ...stations.map((station: any) => [
+      ...stationsArray.map((station: any) => [
         station.stationCode || '',
         `"${station.name || ''}"`,
         `"${station.address || ''}"`,
@@ -65,7 +68,7 @@ export default function PollingStations() {
 
     toast({
       title: "Export Successful",
-      description: `Exported ${stations.length} polling stations to CSV`
+      description: `Exported ${stationsArray.length} polling stations to CSV`
     });
   };
 
