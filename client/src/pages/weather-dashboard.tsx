@@ -69,7 +69,7 @@ export default function WeatherDashboard() {
 
   // Get weather data for selected parish
   const { data: parishWeather, isLoading: parishLoading, error: parishError } = useQuery<WeatherData>({
-    queryKey: ["/api/weather/parish", selectedParish, "summary", refreshKey],
+    queryKey: [`/api/weather/parish/${selectedParish}/summary`, refreshKey],
     enabled: !!selectedParish
   });
 
