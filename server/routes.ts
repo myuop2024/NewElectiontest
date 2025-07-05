@@ -31,6 +31,7 @@ import { CentralAIService } from "./lib/central-ai-service.js";
 import { SocialMonitoringService } from "./lib/social-monitoring-service.js";
 import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator.js";
 import { getWeatherService } from "./lib/weather-service.js";
+import { parishAnalyticsService } from "./lib/parish-analytics-service.js";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service.js";
 
@@ -879,6 +880,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching live updates:", error);
       res.status(500).json({ error: "Failed to fetch live updates" });
+    }
+  });
+
+  // Parish Analytics Routes
+  app.get("/api/analytics/parish-stats", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const parishStats = await parishAnalyticsService.getParishStatistics();
+      res.json(parishStats);
+    } catch (error) {
+      console.error("Error fetching parish statistics:", error);
+      res.status(500).json({ error: "Failed to fetch parish statistics" });
+    }
+  });
+
+  app.get("/api/analytics/parish-comparison", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const comparison = await parishAnalyticsService.getParishComparison();
+      res.json(comparison);
+    } catch (error) {
+      console.error("Error fetching parish comparison:", error);
+      res.status(500).json({ error: "Failed to fetch parish comparison" });
+    }
+  });
+
+  app.get("/api/analytics/parish-totals", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const totals = await parishAnalyticsService.getTotalStatistics();
+      res.json(totals);
+    } catch (error) {
+      console.error("Error fetching parish totals:", error);
+      res.status(500).json({ error: "Failed to fetch parish totals" });
     }
   });
 

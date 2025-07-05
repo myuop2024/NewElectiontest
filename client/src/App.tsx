@@ -43,6 +43,7 @@ import PollingStationManagement from "@/pages/polling-station-management";
 import CentralAIIntelligence from "@/pages/central-ai-intelligence";
 import WeatherDashboard from "@/pages/weather-dashboard";
 import TrafficMonitoring from "@/pages/traffic-monitoring";
+import ParishHeatMapPage from "@/pages/parish-heat-map";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -249,6 +250,11 @@ function Router() {
       <Route path="/traffic-monitoring">
         <ProtectedLayout>
           <TrafficMonitoring />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/parish-heat-map">
+        <ProtectedLayout>
+          <ParishHeatMapPage />
         </ProtectedLayout>
       </Route>
       <Route path="/emergency-management">

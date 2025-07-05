@@ -26,7 +26,8 @@ import {
   Edit3,
   FileSpreadsheet,
   Navigation,
-  Cloud
+  Cloud,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
@@ -65,6 +66,7 @@ const adminNavigationGroups = [
     title: "Analytics & Intelligence",
     items: [
       { name: 'Analytics Hub', href: '/analytics', icon: BarChart3 },
+      { name: 'Parish Heat Map', href: '/parish-heat-map', icon: Layers },
       { name: 'AI Intelligence', href: '/ai-analytics', icon: Brain },
       { name: 'Central AI Hub', href: '/central-ai-intelligence', icon: Brain },
     ]
