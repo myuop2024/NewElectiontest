@@ -2768,6 +2768,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Traffic Monitoring API endpoints
+  app.get("/api/traffic/station/:stationId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { stationId } = req.params;
+      const { getTrafficService } = await import("./lib/traffic-service");
+      
+      const trafficService = getTrafficService();
+      const trafficData = await trafficService.getPollingStationTraffic(parseInt(stationId));
+      
+      res.json(trafficData);
+    } catch (error) {
+      console.error(`Error getting traffic data for station ${req.params.stationId}:`, error);
+      res.status(500).json({ 
+        error: "Failed to get traffic data",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/traffic/all-stations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { getTrafficService } = await import("./lib/traffic-service");
+      
+      const trafficService = getTrafficService();
+      const allTrafficData = await trafficService.getAllPollingStationsTraffic();
+      
+      res.json({
+        stations: allTrafficData,
+        totalStations: allTrafficData.length,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error getting traffic data for all stations:", error);
+      res.status(500).json({ 
+        error: "Failed to get traffic data for all stations",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/traffic/conditions/:latitude/:longitude", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { latitude, longitude } = req.params;
+      const radiusKm = req.query.radius ? parseInt(req.query.radius as string) : 2;
+      
+      const { getTrafficService } = await import("./lib/traffic-service");
+      const trafficService = getTrafficService();
+      
+      const conditions = await trafficService.getTrafficConditions(
+        parseFloat(latitude), 
+        parseFloat(longitude), 
+        radiusKm
+      );
+      
+      res.json(conditions);
+    } catch (error) {
+      console.error(`Error getting traffic conditions for ${req.params.latitude},${req.params.longitude}:`, error);
+      res.status(500).json({ 
+        error: "Failed to get traffic conditions",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/traffic/route", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { originLat, originLng, destLat, destLng } = req.query;
+      
+      if (!originLat || !originLng || !destLat || !destLng) {
+        return res.status(400).json({ 
+          error: "Missing required parameters: originLat, originLng, destLat, destLng" 
+        });
+      }
+      
+      const { getTrafficService } = await import("./lib/traffic-service");
+      const trafficService = getTrafficService();
+      
+      const routeTraffic = await trafficService.getRouteTraffic(
+        { latitude: parseFloat(originLat as string), longitude: parseFloat(originLng as string) },
+        { latitude: parseFloat(destLat as string), longitude: parseFloat(destLng as string) }
+      );
+      
+      res.json(routeTraffic);
+    } catch (error) {
+      console.error("Error getting route traffic:", error);
+      res.status(500).json({ 
+        error: "Failed to get route traffic data",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/traffic/alerts/:latitude/:longitude", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { latitude, longitude } = req.params;
+      const radiusKm = req.query.radius ? parseInt(req.query.radius as string) : 5;
+      
+      const { getTrafficService } = await import("./lib/traffic-service");
+      const trafficService = getTrafficService();
+      
+      const alerts = await trafficService.getTrafficAlerts(
+        parseFloat(latitude), 
+        parseFloat(longitude), 
+        radiusKm
+      );
+      
+      res.json({ alerts, location: { latitude, longitude }, radius: radiusKm });
+    } catch (error) {
+      console.error(`Error getting traffic alerts for ${req.params.latitude},${req.params.longitude}:`, error);
+      res.status(500).json({ 
+        error: "Failed to get traffic alerts",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Location Tracking API endpoints
   app.post("/api/location/start-tracking", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

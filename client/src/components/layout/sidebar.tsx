@@ -10,6 +10,7 @@ import {
   MessageCircle, 
   Camera, 
   Route, 
+  Car,
   GraduationCap, 
   BarChart3, 
   QrCode, 
@@ -82,6 +83,7 @@ const adminNavigationGroups = [
     items: [
       { name: 'Field Navigation', href: '/route-navigation', icon: Route },
       { name: 'Document Capture', href: '/document-capture', icon: Camera },
+      { name: 'Traffic Monitoring', href: '/traffic-monitoring', icon: Car },
     ]
   }
 ];
