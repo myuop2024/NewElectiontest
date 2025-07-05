@@ -131,10 +131,14 @@ The CAFFE (Citizens Action for Free & Fair Elections) Electoral Observation Plat
   - Optimized toast notification system (reduced auto-dismiss delay from 1000000ms to 5000ms)
   - **CRITICAL FIX**: Resolved incident reporting form field mapping issue (pollingStationId → stationId)
   - **CRITICAL FIX**: Fixed AI incident analysis JSON parsing errors with markdown code block handling
+  - **CRITICAL FIX**: Fixed form template saving API call format issues (corrected apiRequest parameter order)
   - **NEW FEATURE**: Created editable incident form template system through Form Builder
   - **NEW FEATURE**: Dynamic incident forms can now be customized via admin Form Templates
+  - **UI IMPROVEMENT**: Streamlined navigation menu - removed duplicates, reorganized items logically
+  - **UI IMPROVEMENT**: Renamed menu items for clarity (e.g., "Report Incident", "My Reports", "Form Templates")
+  - **UI IMPROVEMENT**: Grouped admin functions logically (Analytics, Management, System tools)
   - Verified and tested all critical system components: authentication, emergency notifications, AI services, WebSocket connectivity
-  - All core functionality confirmed working: incident reporting, training management, analytics, emergency alerts
+  - All core functionality confirmed working: incident reporting, training management, analytics, emergency alerts, form templates
 - June 13, 2025. Initial setup
 
 ## User Preferences

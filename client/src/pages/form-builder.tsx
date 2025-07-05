@@ -93,10 +93,12 @@ export default function FormBuilder() {
 
   // Save template mutation
   const saveTemplateMutation = useMutation({
-    mutationFn: (template: FormTemplate) => 
-      template.id 
-        ? apiRequest(`/api/forms/templates/${template.id}`, "PUT", template)
-        : apiRequest("/api/forms/templates", "POST", template),
+    mutationFn: async (template: FormTemplate) => {
+      const response = template.id 
+        ? await apiRequest("PUT", `/api/forms/templates/${template.id}`, template)
+        : await apiRequest("POST", "/api/forms/templates", template);
+      return response.json();
+    },
     onSuccess: () => {
       toast({
         title: "Template Saved",
@@ -122,7 +124,10 @@ export default function FormBuilder() {
   });
 
   const deleteTemplateMutation = useMutation({
-    mutationFn: (id: string) => apiRequest('DELETE', `/api/forms/templates/${id}`),
+    mutationFn: async (id: string) => {
+      const response = await apiRequest('DELETE', `/api/forms/templates/${id}`);
+      return response.json();
+    },
     onSuccess: () => {
       toast({ title: 'Template Deleted', description: 'Form template has been removed' });
       queryClient.invalidateQueries({ queryKey: ['/api/forms/templates'] });

@@ -31,32 +31,32 @@ import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.p
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Report Incident', href: '/incident-reporting', icon: AlertTriangle },
+  { name: 'My Reports', href: '/reports', icon: FileText },
   { name: 'Polling Stations', href: '/polling-stations', icon: MapPin },
-  { name: 'Incident Reporting', href: '/incident-reporting', icon: AlertTriangle },
-  { name: 'Observer Assignments', href: '/observer-assignments', icon: Users },
-  { name: 'Real-Time Analytics', href: '/real-time-analytics', icon: Activity },
-  { name: 'AI Analytics', href: '/ai-analytics', icon: Brain },
-  { name: 'Reports', href: '/reports', icon: FileText },
+  { name: 'Training Center', href: '/training-center', icon: GraduationCap },
   { name: 'Live Chat', href: '/live-chat', icon: MessageCircle },
   { name: 'Document Capture', href: '/document-capture', icon: Camera },
-  { name: 'Route Navigation', href: '/route-navigation', icon: Route },
-  { name: 'Location Tracking', href: '/location-tracking', icon: Navigation },
-  { name: 'Training Center', href: '/training-center', icon: GraduationCap },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'QR Scanner', href: '/qr-scanner', icon: QrCode },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 const adminNavigation = [
-  { name: 'Admin Panel', href: '/admin', icon: Shield },
-  { name: 'Didit Settings', href: '/admin/didit-settings', icon: Settings }, // New Item
-  { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
+  { name: 'Admin Dashboard', href: '/admin', icon: Shield },
+  { name: 'System Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Real-Time Analytics', href: '/real-time-analytics', icon: Activity },
+  { name: 'AI Analytics', href: '/ai-analytics', icon: Brain },
   { name: 'AI Classifier', href: '/ai-incident-classifier', icon: Brain },
-  { name: 'Emergency Management', href: '/emergency-management', icon: AlertTriangle },
-  { name: 'Training Management', href: '/admin-training', icon: BookOpen },
-  { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
-  { name: 'Sheets Integration', href: '/sheets-integration', icon: FileSpreadsheet },
+  { name: 'Observer Management', href: '/observer-assignments', icon: Users },
   { name: 'Station Management', href: '/polling-station-management', icon: MapPin },
+  { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
+  { name: 'Emergency System', href: '/emergency-management', icon: AlertTriangle },
+  { name: 'Training Management', href: '/admin-training', icon: BookOpen },
+  { name: 'Form Templates', href: '/form-builder', icon: Edit3 },
+  { name: 'Route Navigation', href: '/route-navigation', icon: Route },
+  { name: 'Location Tracking', href: '/location-tracking', icon: Navigation },
+  { name: 'System Settings', href: '/admin/didit-settings', icon: Settings },
+  { name: 'Data Integration', href: '/sheets-integration', icon: FileSpreadsheet },
 ];
 
 export default function Sidebar() {
