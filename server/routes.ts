@@ -56,7 +56,7 @@ interface AuthenticatedRequest extends Request {
 const upload = multer({
   dest: 'uploads/',
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 1 * 1024 * 1024 * 1024, // 1GB limit
   },
   fileFilter: (req, file, cb) => {
     // Allow images and PDFs

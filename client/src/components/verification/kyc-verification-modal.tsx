@@ -69,10 +69,10 @@ export default function KYCVerificationModal({ user, isOpen, onOpenChange }: KYC
   });
 
   const handleFileUpload = (file: File, type: 'document' | 'selfie') => {
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    if (file.size > 1 * 1024 * 1024 * 1024) { // 1GB limit
       toast({
         title: "File Too Large",
-        description: "Please select a file smaller than 10MB.",
+        description: "Please select a file smaller than 1GB.",
         variant: "destructive"
       });
       return;
