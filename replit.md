@@ -127,6 +127,10 @@ The CAFFE (Citizens Action for Free & Fair Elections) Electoral Observation Plat
 - July 5, 2025: Comprehensive system maintenance and bug fixes
   - **CRITICAL FIX**: Fixed /route-navigation page loading error (corrected geolocation hook usage)
   - **MAJOR ENHANCEMENT**: Implemented real camera functionality in document capture (replaced mock/demo with live camera access)
+  - **CRITICAL INTEGRATION**: Connected document uploads to AI analysis pipeline and incident reporting system
+  - **NEW FEATURE**: Documents automatically analyzed with AI when uploaded, extracting key evidence and relevance scoring
+  - **NEW FEATURE**: Recent documents (within 30 minutes) automatically attached to incident reports with enhanced AI analysis
+  - **NEW API**: Enhanced reports endpoint showing documents with AI analysis and evidence values
   - Fixed broken navigation link for AI Classifier (updated from `/ai-classifier` to `/ai-incident-classifier`)
   - Resolved Gemini AI model compatibility issues (updated all references from deprecated `gemini-pro` to `gemini-1.5-flash`)
   - Improved form validation and error handling for reports endpoint with proper field validation

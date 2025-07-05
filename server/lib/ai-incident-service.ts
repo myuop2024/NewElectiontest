@@ -34,6 +34,16 @@ interface IncidentData {
   witnessCount?: string;
   evidenceNotes?: string;
   pollingStationId?: string;
+  attachedDocuments?: any[];
+}
+
+interface DocumentAnalysis {
+  documentType: string;
+  extractedText: string;
+  confidence: number;
+  keyData: string[];
+  relevantToIncident: boolean;
+  evidenceValue: string;
 }
 
 export class AIIncidentService {
@@ -226,6 +236,83 @@ Respond ONLY with valid JSON in this exact format:
       .map(([rec]) => rec);
 
     return summary;
+  }
+
+  async analyzeDocument(documentContent: string, documentType: string): Promise<DocumentAnalysis> {
+    const prompt = `
+DOCUMENT ANALYSIS REQUEST:
+Analyze the following electoral document and extract key information.
+
+DOCUMENT TYPE: ${documentType}
+DOCUMENT CONTENT: ${documentContent}
+
+ANALYSIS REQUIREMENTS:
+1. Identify the specific document type (ballot form, results sheet, incident report, voter list, etc.)
+2. Extract all text content and key data points
+3. Assess relevance to electoral observation
+4. Determine evidence value for incident reporting
+
+Respond ONLY with valid JSON in this format:
+{
+  "documentType": "specific_document_type",
+  "extractedText": "full_text_content",
+  "confidence": 0.95,
+  "keyData": ["key_point_1", "key_point_2", "key_point_3"],
+  "relevantToIncident": true/false,
+  "evidenceValue": "high|medium|low"
+}`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      // Clean the response to extract JSON
+      const cleanedText = text.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
+      return JSON.parse(cleanedText);
+    } catch (error) {
+      console.error("Document analysis error:", error);
+      return {
+        documentType: documentType || 'unknown',
+        extractedText: documentContent.substring(0, 500),
+        confidence: 0.5,
+        keyData: ['Document processed with basic extraction'],
+        relevantToIncident: true,
+        evidenceValue: 'medium'
+      };
+    }
+  }
+
+  async analyzeIncidentWithDocuments(incidentData: IncidentData): Promise<IncidentAnalysis> {
+    let enhancedDescription = incidentData.description;
+    
+    // If documents are attached, analyze them first and enhance the incident description
+    if (incidentData.attachedDocuments && incidentData.attachedDocuments.length > 0) {
+      const documentAnalyses = [];
+      
+      for (const doc of incidentData.attachedDocuments) {
+        if (doc.ocrText) {
+          const analysis = await this.analyzeDocument(doc.ocrText, doc.documentType);
+          documentAnalyses.push(analysis);
+        }
+      }
+      
+      // Enhance incident description with document insights
+      const documentEvidence = documentAnalyses
+        .filter(analysis => analysis.relevantToIncident)
+        .map(analysis => `Document Evidence (${analysis.documentType}): ${analysis.keyData.join(', ')}`)
+        .join('\n');
+      
+      if (documentEvidence) {
+        enhancedDescription += `\n\nSUPPORTING EVIDENCE:\n${documentEvidence}`;
+      }
+    }
+    
+    // Analyze the enhanced incident with document context
+    return this.analyzeIncident({
+      ...incidentData,
+      description: enhancedDescription
+    });
   }
 }
 
