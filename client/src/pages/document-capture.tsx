@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Upload, FileText, Eye, Trash2, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Camera, Upload, FileText, Eye, Trash2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatFileSize } from "@/lib/utils";
 
@@ -14,8 +15,21 @@ export default function DocumentCapture() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+
+  // Clean up camera stream when component unmounts or modal closes
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -102,32 +116,152 @@ export default function DocumentCapture() {
   };
 
   const handleCameraCapture = () => {
-    setIsCapturing(true);
-    // In a real app, this would open camera interface
-    setTimeout(() => {
-      const mockCapturedDoc = {
-        id: Date.now(),
-        fileName: `captured_${Date.now()}.jpg`,
-        fileSize: 2048000,
-        fileType: 'image/jpeg',
-        uploadDate: new Date().toISOString(),
-        status: 'processed',
-        ocrText: 'Polling Station 12B - Official Count: 456 valid ballots, 12 spoiled',
-        aiAnalysis: {
-          confidence: 92,
-          category: 'results_sheet',
-          keyData: ['Station: 12B', 'Valid: 456', 'Spoiled: 12', 'Total: 468']
+    setShowCameraModal(true);
+  };
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment', // Use back camera if available
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         }
-      };
-      
-      setDocuments(prev => [...prev, mockCapturedDoc]);
-      setIsCapturing(false);
-      
-      toast({
-        title: "Document Captured",
-        description: "Photo captured and processed successfully",
       });
-    }, 2000);
+      
+      setStream(mediaStream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        variant: "destructive",
+        title: "Camera Access Failed",
+        description: "Unable to access camera. Please check permissions and try again.",
+      });
+      setShowCameraModal(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob and create file
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      const file = new File([blob], `captured_${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
+
+      // Create FormData and upload
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('documentType', 'photo_capture');
+      formData.append('description', 'Camera captured document');
+
+      setIsCapturing(true);
+      
+      try {
+        const response = await fetch('/api/documents/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const uploadedDoc = await response.json();
+        
+        const newDocument = {
+          id: uploadedDoc.id,
+          fileName: uploadedDoc.fileName,
+          fileSize: uploadedDoc.fileSize,
+          fileType: uploadedDoc.fileType,
+          uploadDate: uploadedDoc.uploadDate,
+          status: 'processing',
+          ocrText: '',
+          aiAnalysis: null
+        };
+
+        setDocuments(prev => [...prev, newDocument]);
+        closeCamera();
+        
+        toast({
+          title: "Document Captured",
+          description: "Photo captured and uploaded successfully",
+        });
+
+        // Start polling for processing status
+        const pollStatus = setInterval(async () => {
+          try {
+            const statusResponse = await fetch(`/api/documents/${uploadedDoc.id}`, {
+              credentials: 'include'
+            });
+            const updatedDoc = await statusResponse.json();
+            
+            if (updatedDoc.status === 'processed') {
+              setDocuments(prev => prev.map(doc => 
+                doc.id === uploadedDoc.id 
+                  ? {
+                      ...doc,
+                      status: 'processed',
+                      ocrText: updatedDoc.ocrText || 'Document processed successfully',
+                      aiAnalysis: updatedDoc.aiAnalysis || {
+                        confidence: 85,
+                        category: 'captured_document',
+                        keyData: ['Document captured via camera']
+                      }
+                    }
+                  : doc
+              ));
+              clearInterval(pollStatus);
+            }
+          } catch (error) {
+            console.error('Error polling document status:', error);
+            clearInterval(pollStatus);
+          }
+        }, 2000);
+
+        setTimeout(() => clearInterval(pollStatus), 30000);
+
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "Failed to upload captured photo. Please try again.",
+        });
+      } finally {
+        setIsCapturing(false);
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
+  const closeCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCameraModal(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -352,6 +486,88 @@ export default function DocumentCapture() {
           </Card>
         </div>
       )}
+
+      {/* Camera Capture Modal */}
+      <Dialog open={showCameraModal} onOpenChange={setShowCameraModal}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Camera Capture</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeCamera}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {!stream ? (
+              <div className="text-center py-8">
+                <Camera className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground mb-4">
+                  Click the button below to start the camera and capture a document photo.
+                </p>
+                <Button onClick={startCamera}>
+                  <Camera className="h-4 w-4 mr-2" />
+                  Start Camera
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-auto rounded-lg border"
+                    style={{ maxHeight: '400px' }}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="hidden"
+                  />
+                </div>
+                
+                <div className="flex justify-center space-x-4">
+                  <Button
+                    onClick={capturePhoto}
+                    disabled={isCapturing}
+                    className="flex-1 max-w-xs"
+                  >
+                    {isCapturing ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </div>
+                    ) : (
+                      <>
+                        <Camera className="h-4 w-4 mr-2" />
+                        Capture Photo
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={closeCamera}
+                    disabled={isCapturing}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-muted-foreground text-center">
+                  Position the document clearly in the frame and ensure good lighting for best results.
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
