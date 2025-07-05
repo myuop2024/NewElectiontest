@@ -8,6 +8,7 @@ import ActivityFeed from "@/components/dashboard/activity-feed";
 import StationsTable from "@/components/dashboard/stations-table";
 import AIAnalytics from "@/components/dashboard/ai-analytics";
 import CommunicationCenter from "@/components/dashboard/communication-center";
+import ObserverWeatherWidget from "@/components/weather/observer-weather-widget";
 import KYCVerificationModal from "@/components/verification/kyc-verification-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -212,6 +213,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Live Activity Feed */}
         <ActivityFeed />
+        
+        {/* Weather Conditions for Observer's Area */}
+        <ObserverWeatherWidget />
       </div>
 
       {/* Polling Stations Status Table */}

@@ -14,6 +14,7 @@ import { AlertTriangle, MapPin, Clock, Send, FileText, Camera } from "lucide-rea
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useLocation } from "wouter";
 import { AIIncidentAnalysis } from "@/components/analytics/ai-incident-analysis";
+import WeatherMiniWidget from "@/components/weather/weather-mini-widget";
 
 const INCIDENT_TYPES = [
   { value: "voter_intimidation", label: "Voter Intimidation", priority: "high" },
@@ -167,9 +168,16 @@ export default function IncidentReporting() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-primary">Incident Reporting</h1>
-          <p className="text-muted-foreground">Report electoral irregularities and incidents in real-time</p>
+        <div className="space-y-4">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-primary">Incident Reporting</h1>
+            <p className="text-muted-foreground">Report electoral irregularities and incidents in real-time</p>
+          </div>
+          
+          {/* Weather Widget for Field Conditions */}
+          <div className="max-w-md mx-auto">
+            <WeatherMiniWidget />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

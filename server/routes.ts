@@ -415,6 +415,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/assignments/my", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const assignments = await storage.getAssignmentsByUser(req.user!.id);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching my assignments:", error);
+      res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+
   app.post("/api/assignments", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const assignment = await storage.createAssignment({

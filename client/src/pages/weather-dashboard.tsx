@@ -90,7 +90,11 @@ export default function WeatherDashboard() {
     setRefreshKey(prev => prev + 1);
   };
 
-  const getWeatherIcon = (condition: string) => {
+  const getWeatherIcon = (condition: string | undefined) => {
+    if (!condition) {
+      return <Sun className="h-8 w-8 text-gray-400" />;
+    }
+    
     const conditionLower = condition.toLowerCase();
     if (conditionLower.includes('rain') || conditionLower.includes('shower')) {
       return <CloudRain className="h-8 w-8 text-blue-500" />;
