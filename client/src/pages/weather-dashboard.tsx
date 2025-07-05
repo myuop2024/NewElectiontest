@@ -273,7 +273,7 @@ export default function WeatherDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    {getSeverityIcon(parishWeather.electoralImpact.severity)}
+                    {getSeverityIcon(parishWeather.electoralImpact?.severity || 'low')}
                     <span>Electoral Impact</span>
                   </CardTitle>
                   <CardDescription>
@@ -281,14 +281,14 @@ export default function WeatherDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Badge className={getSeverityColor(parishWeather.electoralImpact.severity)}>
-                    {parishWeather.electoralImpact.severity.toUpperCase()} IMPACT
+                  <Badge className={getSeverityColor(parishWeather.electoralImpact?.severity || 'low')}>
+                    {(parishWeather.electoralImpact?.severity || 'low').toUpperCase()} IMPACT
                   </Badge>
 
                   <div>
                     <h4 className="font-semibold mb-2">Potential Impacts</h4>
                     <ul className="space-y-1">
-                      {parishWeather.electoralImpact.impacts.map((impact, index) => (
+                      {(parishWeather.electoralImpact?.impacts || []).map((impact, index) => (
                         <li key={index} className="text-sm text-gray-600 flex items-start">
                           <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                           {impact}
@@ -302,7 +302,7 @@ export default function WeatherDashboard() {
                   <div>
                     <h4 className="font-semibold mb-2">Recommendations</h4>
                     <ul className="space-y-1">
-                      {parishWeather.electoralImpact.recommendations.map((recommendation, index) => (
+                      {(parishWeather.electoralImpact?.recommendations || []).map((recommendation, index) => (
                         <li key={index} className="text-sm text-gray-600 flex items-start">
                           <span className="w-1 h-1 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                           {recommendation}
@@ -368,8 +368,8 @@ export default function WeatherDashboard() {
                               <p className="text-xs text-gray-600">{parish.current.condition}</p>
                             </div>
                           </div>
-                          <Badge className={getSeverityColor(parish.electoralImpact.severity)} variant="outline">
-                            {parish.electoralImpact.severity}
+                          <Badge className={getSeverityColor(parish.electoralImpact?.severity || 'low')} variant="outline">
+                            {parish.electoralImpact?.severity || 'low'}
                           </Badge>
                         </div>
                         <div className="mt-2 text-xs text-gray-600">
