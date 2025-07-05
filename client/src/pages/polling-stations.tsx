@@ -249,9 +249,11 @@ export default function PollingStations() {
                     lat: parseFloat(station.latitude),
                     lng: parseFloat(station.longitude),
                     title: station.name,
-                    info: `${station.stationCode} - ${station.address}<br/>Capacity: ${station.capacity || 'Not set'} voters`
+                    info: `${station.stationCode} - ${station.address}<br/>Capacity: ${station.capacity || 'Not set'} voters`,
+                    stationId: station.id
                   }))}
                 interactive={true}
+                showTrafficOverlay={true}
               />
             </CardContent>
           </Card>

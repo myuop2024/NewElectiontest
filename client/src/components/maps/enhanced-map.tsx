@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Plus, Minus, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { MapPin, Navigation, Plus, Minus, RotateCcw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Car, Layers } from "lucide-react";
 
 interface EnhancedMapProps {
   center?: { lat: number; lng: number };
@@ -12,9 +14,11 @@ interface EnhancedMapProps {
     lng: number;
     title?: string;
     info?: string;
+    stationId?: number;
   }>;
   onLocationSelect?: (lat: number, lng: number) => void;
   interactive?: boolean;
+  showTrafficOverlay?: boolean;
 }
 
 export default function EnhancedMap({
@@ -24,16 +28,25 @@ export default function EnhancedMap({
   height = "400px",
   markers = [],
   onLocationSelect,
-  interactive = true
+  interactive = true,
+  showTrafficOverlay = false
 }: EnhancedMapProps) {
   const [currentCenter, setCurrentCenter] = useState(center);
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
   const [showAllStations, setShowAllStations] = useState(false);
   const [showStationPanel, setShowStationPanel] = useState(true);
+  const [showTrafficLayer, setShowTrafficLayer] = useState(showTrafficOverlay);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch traffic data for all stations if traffic overlay is enabled
+  const { data: trafficData } = useQuery({
+    queryKey: ["/api/traffic/all-stations"],
+    enabled: showTrafficLayer,
+    refetchInterval: 60000, // Refresh every minute
+  });
 
   // Web Mercator projection utilities
   const deg2rad = (deg: number) => deg * (Math.PI / 180);
@@ -79,6 +92,69 @@ export default function EnhancedMap({
     const lat = rad2deg(Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))));
     
     return { lat, lng };
+  };
+
+  // Function to get traffic severity color
+  const getTrafficColor = (severity: string, opacity = 0.6) => {
+    switch (severity) {
+      case 'light': return `rgba(34, 197, 94, ${opacity})`; // Green
+      case 'moderate': return `rgba(251, 191, 36, ${opacity})`; // Yellow
+      case 'heavy': return `rgba(249, 115, 22, ${opacity})`; // Orange
+      case 'severe': return `rgba(239, 68, 68, ${opacity})`; // Red
+      default: return `rgba(156, 163, 175, ${opacity})`; // Gray
+    }
+  };
+
+  // Function to render traffic heat map circles around stations
+  const renderTrafficOverlay = () => {
+    if (!showTrafficLayer || !trafficData || !(trafficData as any)?.stations) return null;
+
+    const mapWidth = mapContainerRef.current?.offsetWidth || 800;
+    const mapHeight = mapContainerRef.current?.offsetHeight || 600;
+
+    return (trafficData as any).stations.map((station: any, index: number) => {
+      if (!station.location?.latitude || !station.location?.longitude) return null;
+
+      const position = latLngToPixel(
+        station.location.latitude,
+        station.location.longitude,
+        mapWidth,
+        mapHeight
+      );
+
+      // Skip if position is outside visible area
+      if (position.x < -50 || position.x > mapWidth + 50 || 
+          position.y < -50 || position.y > mapHeight + 50) return null;
+
+      const severity = station.nearbyTraffic?.severity || 'light';
+      const radius = Math.max(20, Math.min(80, currentZoom * 8)); // Scale radius with zoom
+
+      return (
+        <div
+          key={`traffic-${station.stationId}-${index}`}
+          className="absolute pointer-events-none"
+          style={{
+            left: position.x - radius,
+            top: position.y - radius,
+            width: radius * 2,
+            height: radius * 2,
+            borderRadius: '50%',
+            backgroundColor: getTrafficColor(severity, 0.3),
+            border: `2px solid ${getTrafficColor(severity, 0.8)}`,
+            transition: 'all 0.3s ease',
+          }}
+        >
+          {/* Traffic severity indicator */}
+          <div
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-xs font-bold pointer-events-auto cursor-pointer"
+            onClick={() => setSelectedMarker(index)}
+            title={`Traffic: ${severity} - ${station.nearbyTraffic?.delayMinutes || 0} min delay`}
+          >
+            <Car className="h-3 w-3" />
+          </div>
+        </div>
+      );
+    });
   };
 
   const getTileGrid = () => {
@@ -287,6 +363,9 @@ export default function EnhancedMap({
           />
         ))}
 
+        {/* Traffic Heat Map Overlay */}
+        {renderTrafficOverlay()}
+
         {/* Enhanced Polling Station Markers */}
         {markers.map((marker, index) => {
           const rect = mapContainerRef.current?.getBoundingClientRect();
@@ -399,6 +478,16 @@ export default function EnhancedMap({
               >
                 {showStationPanel ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
               </Button>
+              <Button 
+                size="sm" 
+                variant={showTrafficLayer ? "default" : "outline"}
+                className="bg-white/95 backdrop-blur-sm shadow-lg" 
+                onClick={() => setShowTrafficLayer(!showTrafficLayer)}
+                title="Toggle traffic heat map"
+              >
+                <Car className="h-3 w-3 mr-1" />
+                Traffic
+              </Button>
             </div>
           )}
         </>
@@ -429,6 +518,46 @@ export default function EnhancedMap({
                 <p className="text-xs text-blue-600 mt-1">
                   Coordinates: {markers[selectedMarker].lat.toFixed(5)}, {markers[selectedMarker].lng.toFixed(5)}
                 </p>
+              </div>
+            )}
+
+            {/* Traffic Legend */}
+            {showTrafficLayer && (
+              <div className="border-t pt-3 mb-3">
+                <h4 className="font-semibold text-sm text-gray-900 mb-2 flex items-center gap-1">
+                  <Car className="h-4 w-4" />
+                  Traffic Heat Map
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full border"
+                      style={{ backgroundColor: getTrafficColor('light', 0.6) }}
+                    ></div>
+                    <span>Light Traffic</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full border"
+                      style={{ backgroundColor: getTrafficColor('moderate', 0.6) }}
+                    ></div>
+                    <span>Moderate</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full border"
+                      style={{ backgroundColor: getTrafficColor('heavy', 0.6) }}
+                    ></div>
+                    <span>Heavy Traffic</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full border"
+                      style={{ backgroundColor: getTrafficColor('severe', 0.6) }}
+                    ></div>
+                    <span>Severe</span>
+                  </div>
+                </div>
               </div>
             )}
             
