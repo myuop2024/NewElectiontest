@@ -15,7 +15,7 @@ export default function RouteNavigation() {
   const [currentRoute, setCurrentRoute] = useState<any>(null);
   const [routeHistory, setRouteHistory] = useState<any[]>([]);
   const [selectedDestination, setSelectedDestination] = useState<string>("");
-  const { position, getCurrentPosition, isLoading, error } = useGeolocation({ watch: true });
+  const { location, isLoading, error } = useGeolocation();
 
   const { data: pollingStations = [] } = useQuery({
     queryKey: ["/api/polling-stations"],
@@ -45,30 +45,26 @@ export default function RouteNavigation() {
       longitude: -76.9569,
       status: "pending",
       estimatedTime: "25 min",
-      priority: "normal"
+      priority: "medium"
     },
     {
       id: 3,
       stationCode: "ST-003",
-      name: "Portmore High School",
-      address: "78 Ocean Drive, Portmore",
-      latitude: 17.9442,
-      longitude: -76.8827,
+      name: "Mandeville High School",
+      address: "67 School Lane, Mandeville",
+      latitude: 18.0333,
+      longitude: -77.5000,
       status: "completed",
-      estimatedTime: "35 min",
+      estimatedTime: "45 min",
       priority: "low"
     }
   ];
-
-  useEffect(() => {
-    getCurrentPosition();
-  }, []);
 
   const startNavigation = (station: any) => {
     setCurrentRoute({
       destination: station,
       startTime: new Date().toISOString(),
-      startPosition: position
+      startPosition: location
     });
     setIsNavigating(true);
   };
@@ -78,13 +74,13 @@ export default function RouteNavigation() {
       const completedRoute = {
         ...currentRoute,
         endTime: new Date().toISOString(),
-        endPosition: position,
-        distance: position && currentRoute.startPosition 
+        endPosition: location,
+        distance: location && currentRoute.startPosition 
           ? calculateDistance(
               currentRoute.startPosition.latitude,
               currentRoute.startPosition.longitude,
-              position.latitude,
-              position.longitude
+              location.latitude,
+              location.longitude
             ).toFixed(2)
           : 0
       };
@@ -98,424 +94,296 @@ export default function RouteNavigation() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'status-active';
-      case 'in_progress': return 'status-warning';
-      case 'pending': return 'status-neutral';
-      default: return 'status-neutral';
+      case "high": return "destructive";
+      case "medium": return "default"; 
+      case "low": return "secondary";
+      default: return "outline";
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'normal': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const openExternalNavigation = (station: any) => {
+    if (location) {
+      const url = `https://www.google.com/maps/dir/${location.latitude},${location.longitude}/${station.latitude},${station.longitude}`;
+      window.open(url, '_blank');
     }
   };
 
   return (
-    <div className="p-6 space-y-6 fade-in">
-      {/* Page Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Route Navigation</h2>
-        <p className="text-muted-foreground">GPS navigation for roving observers</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Field Navigation</h1>
+          <p className="text-muted-foreground">Route planning and GPS navigation for polling station visits</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Current Location & Navigation */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Current Location */}
-          <Card className="government-card">
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Current Location Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Navigation className="h-5 w-5" />
+              <span>Current Location</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading && (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <span className="text-sm">Getting your location...</span>
+              </div>
+            )}
+            
+            {error && (
+              <div className="text-destructive text-sm">
+                <p>Location Error: {error}</p>
+              </div>
+            )}
+            
+            {location && (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-mono">
+                    {formatCoordinates(location.latitude, location.longitude)}
+                  </span>
+                </div>
+                {location.accuracy && (
+                  <p className="text-xs text-muted-foreground">
+                    Accuracy: ±{location.accuracy.toFixed(0)}m
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Active Navigation */}
+        {isNavigating && currentRoute && (
+          <Card className="border-primary">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Navigation className="h-5 w-5 mr-2" />
-                Current Location
+              <CardTitle className="flex items-center space-x-2">
+                <Route className="h-5 w-5 text-primary" />
+                <span>Active Navigation</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {isLoading && (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm">Getting location...</span>
-                </div>
-              )}
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold">{currentRoute.destination.name}</h3>
+                <p className="text-sm text-muted-foreground">{currentRoute.destination.address}</p>
+              </div>
               
-              {error && (
-                <div className="text-destructive text-sm">
-                  <p>Location Error: {error}</p>
-                </div>
-              )}
-              
-              {position && (
+              {location && (
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-mono">
-                      {formatCoordinates(position.latitude, position.longitude)}
-                    </span>
-                  </div>
-                  {position.accuracy && (
-                    <p className="text-xs text-muted-foreground">
-                      Accuracy: ±{position.accuracy.toFixed(0)}m
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Last updated: {new Date(position.timestamp).toLocaleTimeString()}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Navigation */}
-          {isNavigating && currentRoute && (
-            <Card className="government-card border-primary">
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center">
-                    <Route className="h-5 w-5 mr-2 text-primary" />
-                    Active Navigation
-                  </span>
-                  <Badge className="status-indicator status-warning">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1 pulse-slow"></div>
-                    In Progress
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold">{currentRoute.destination.name}</h4>
-                  <p className="text-sm text-muted-foreground">{currentRoute.destination.address}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <Clock className="h-6 w-6 text-blue-600 mx-auto mb-1" />
-                    <p className="text-sm font-medium">Est. Time</p>
-                    <p className="text-lg font-bold text-blue-600">
-                      {currentRoute.destination.estimatedTime}
-                    </p>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <Car className="h-6 w-6 text-green-600 mx-auto mb-1" />
-                    <p className="text-sm font-medium">Distance</p>
-                    <p className="text-lg font-bold text-green-600">
-                      {position ? calculateDistance(
-                        position.latitude,
-                        position.longitude,
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Distance:</span>
+                    <span className="font-mono text-sm">
+                      {calculateDistance(
+                        location.latitude,
+                        location.longitude,
                         currentRoute.destination.latitude,
                         currentRoute.destination.longitude
-                      ).toFixed(1) : '--'} km
-                    </p>
+                      ).toFixed(1)} km
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Started:</span>
+                    <span className="text-sm">
+                      {new Date(currentRoute.startTime).toLocaleTimeString()}
+                    </span>
                   </div>
                 </div>
-
-                <div className="flex space-x-2">
-                  <Button className="flex-1 btn-caffe-primary">
-                    Open in Google Maps
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={stopNavigation}
-                  >
-                    <Square className="h-4 w-4 mr-2" />
-                    Stop Navigation
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Destination Selector */}
-          <Card className="government-card">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Navigation className="h-5 w-5 mr-2" />
-                Select Destination
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Choose Polling Station</label>
-                  <Select value={selectedDestination} onValueChange={setSelectedDestination}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a polling station to navigate to" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stations.map((station: any) => (
-                        <SelectItem key={station.id} value={station.id.toString()}>
-                          {station.name} - {station.stationCode}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
+              )}
+              
+              <div className="flex space-x-2">
                 <Button 
-                  onClick={() => setIsNavigating(!isNavigating)}
-                  disabled={!selectedDestination}
-                  className="w-full"
+                  onClick={() => openExternalNavigation(currentRoute.destination)}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
                 >
-                  {isNavigating ? (
-                    <>
-                      <Square className="h-4 w-4 mr-2" />
-                      Stop Navigation
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Navigation
-                    </>
-                  )}
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Maps
                 </Button>
-
-                {selectedDestination && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
-                      <div className="text-sm">
-                        {(() => {
-                          const selectedStation = stations.find((s: any) => s.id.toString() === selectedDestination);
-                          if (!selectedStation) return null;
-                          
-                          return (
-                            <>
-                              <div className="font-medium text-blue-900">
-                                {selectedStation.name || 'Unknown Station'}
-                              </div>
-                              <div className="text-blue-700">
-                                {selectedStation.address || 'Address not available'}
-                              </div>
-                              <div className="text-blue-600 text-xs mt-1">
-                                Code: {selectedStation.stationCode || 'N/A'}
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <Button 
+                  onClick={stopNavigation}
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Square className="h-4 w-4 mr-2" />
+                  Stop
+                </Button>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          {/* Route Information Display */}
-          {selectedDestination && stations.length > 0 && (
-            (() => {
-              const selectedStation = stations.find((s: any) => s.id.toString() === selectedDestination);
-              if (!selectedStation) return null;
-              
-              const fromLat = position?.latitude || 18.1096;
-              const fromLng = position?.longitude || -77.2975;
-              const toLat = parseFloat(selectedStation.latitude || "18.1096");
-              const toLng = parseFloat(selectedStation.longitude || "-77.2975");
-              
-              // Calculate straight-line distance
-              const R = 6371; // Earth's radius in km
-              const dLat = (toLat - fromLat) * Math.PI / 180;
-              const dLon = (toLng - fromLng) * Math.PI / 180;
-              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                        Math.cos(fromLat * Math.PI / 180) * Math.cos(toLat * Math.PI / 180) *
-                        Math.sin(dLon/2) * Math.sin(dLon/2);
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-              const distance = R * c;
-              const estimatedTime = Math.round(distance * 60); // Estimate 1 minute per km
-              
-              return (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Route className="h-5 w-5" />
-                      Route Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-blue-600" />
-                          <div>
-                            <div className="font-medium">{Math.floor(estimatedTime / 60)}h {estimatedTime % 60}m</div>
-                            <div className="text-xs text-muted-foreground">Estimated time</div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Navigation className="h-4 w-4 text-green-600" />
-                          <div>
-                            <div className="font-medium">{distance.toFixed(1)} km</div>
-                            <div className="text-xs text-muted-foreground">Distance</div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Car className="h-4 w-4 text-orange-600" />
-                          <div>
-                            <div className="font-medium">Car</div>
-                            <div className="text-xs text-muted-foreground">Transport mode</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium">From:</span>
-                          <span className="text-sm">{position ? "Your Current Location" : "Jamaica Center"}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-red-600" />
-                          <span className="text-sm font-medium">To:</span>
-                          <span className="text-sm">{selectedStation.name}</span>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* External Navigation */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium">Open in External Apps</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const from = `${fromLat},${fromLng}`;
-                              const to = `${toLat},${toLng}`;
-                              window.open(`https://www.google.com/maps/dir/${from}/${to}`, '_blank');
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            Google Maps
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const from = `${fromLat},${fromLng}`;
-                              const to = `${toLat},${toLng}`;
-                              window.open(`http://maps.apple.com/?saddr=${from}&daddr=${to}&dirflg=d`, '_blank');
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <Smartphone className="h-3 w-3" />
-                            Apple Maps
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const from = `${fromLat},${fromLng}`;
-                              const to = `${toLat},${toLng}`;
-                              window.open(`https://waze.com/ul?ll=${to}&navigate=yes&from=${from}`, '_blank');
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <Navigation className="h-3 w-3" />
-                            Waze
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })()
-          )}
-        </div>
-
-        {/* Station List & Route History */}
-        <div className="space-y-6">
-          {/* Assigned Stations */}
-          <Card className="government-card">
+        {/* Quick Actions */}
+        {!isNavigating && (
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Assigned Stations</CardTitle>
+              <CardTitle className="flex items-center space-x-2">
+                <Car className="h-5 w-5" />
+                <span>Quick Actions</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {assignedStations.map((station) => (
-                <div key={station.id} className="border rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm">{station.stationCode}</h4>
-                      <p className="text-xs text-muted-foreground">{station.name}</p>
-                    </div>
-                    <div className="flex flex-col items-end space-y-1">
-                      <Badge className={`status-indicator ${getStatusColor(station.status)}`}>
-                        {station.status}
-                      </Badge>
-                      <Badge className={`text-xs ${getPriorityColor(station.priority)}`}>
+            <CardContent className="space-y-3">
+              <Select value={selectedDestination} onValueChange={setSelectedDestination}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select destination" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignedStations.map((station) => (
+                    <SelectItem key={station.id} value={station.id.toString()}>
+                      {station.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedDestination && (
+                <Button 
+                  onClick={() => {
+                    const station = assignedStations.find(s => s.id === parseInt(selectedDestination));
+                    if (station) startNavigation(station);
+                  }}
+                  className="w-full"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Navigation
+                </Button>
+              )}
+              
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => window.open('https://www.google.com/maps', '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Google Maps
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Assigned Stations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assigned Polling Stations</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Your scheduled station visits with priorities and estimated travel times
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {assignedStations.map((station) => (
+              <div 
+                key={station.id}
+                className="border rounded-lg p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-semibold">{station.name}</h3>
+                      <Badge variant={getStatusColor(station.priority)}>
                         {station.priority}
                       </Badge>
+                      <Badge variant={station.status === "completed" ? "default" : "outline"}>
+                        {station.status}
+                      </Badge>
                     </div>
+                    <p className="text-sm text-muted-foreground">{station.address}</p>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {station.stationCode} • {formatCoordinates(station.latitude, station.longitude)}
+                    </p>
                   </div>
-
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">
+                  
+                  <div className="text-right space-y-1">
+                    <span className="text-sm text-muted-foreground flex items-center">
                       <Clock className="h-3 w-3 inline mr-1" />
                       {station.estimatedTime}
                     </span>
-                    {position && (
+                    {location && (
                       <span className="text-muted-foreground">
                         {calculateDistance(
-                          position.latitude,
-                          position.longitude,
+                          location.latitude,
+                          location.longitude,
                           station.latitude,
                           station.longitude
                         ).toFixed(1)} km
                       </span>
                     )}
                   </div>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={() => startNavigation(station)}
+                    disabled={isNavigating || station.status === "completed"}
+                    size="sm"
+                    variant="default"
+                    className="flex-1"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Navigate
+                  </Button>
+                  <Button 
+                    onClick={() => openExternalNavigation(station)}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    External Map
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-                  {station.status !== 'completed' && !isNavigating && (
-                    <Button 
-                      size="sm" 
-                      className="w-full btn-caffe-primary"
-                      onClick={() => startNavigation(station)}
-                    >
-                      <Play className="h-3 w-3 mr-1" />
-                      Start Navigation
-                    </Button>
-                  )}
+      {/* Route History */}
+      {routeHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Routes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {routeHistory.map((route, index) => (
+                <div key={index} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{route.destination.name}</h4>
+                      <p className="text-xs text-muted-foreground">{route.destination.address}</p>
+                    </div>
+                    <Badge variant="outline">{route.distance} km</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(route.startTime).toLocaleString()} - {new Date(route.endTime).toLocaleString()}
+                  </div>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Route History */}
-          <Card className="government-card">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Route History</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {routeHistory.length === 0 ? (
-                <div className="text-center py-4">
-                  <Route className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No routes completed yet</p>
-                </div>
-              ) : (
-                routeHistory.map((route, index) => (
-                  <div key={index} className="border rounded-lg p-3 space-y-2">
-                    <h4 className="font-medium text-sm">{route.destination.name}</h4>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>Distance: {route.distance} km</p>
-                      <p>Started: {new Date(route.startTime).toLocaleTimeString()}</p>
-                      <p>Completed: {new Date(route.endTime).toLocaleTimeString()}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Map View */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Map View</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-96 bg-muted rounded-lg flex items-center justify-center">
+            <p className="text-muted-foreground">Interactive map would be displayed here</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -37,7 +37,7 @@ export default function IncidentReporting() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { position, getCurrentPosition } = useGeolocation({ enableHighAccuracy: true });
+  const { location, isLoading: locationLoading, error: locationError } = useGeolocation();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -78,8 +78,8 @@ export default function IncidentReporting() {
       const response = await apiRequest("POST", "/api/reports", {
         ...incident,
         stationId: incident.pollingStationId || 1, // Map pollingStationId to stationId and provide default
-        latitude: position?.coords?.latitude || null,
-        longitude: position?.coords?.longitude || null,
+        latitude: location?.latitude || null,
+        longitude: location?.longitude || null,
         submittedBy: user?.id,
         status: "pending"
       });
@@ -147,15 +147,15 @@ export default function IncidentReporting() {
   };
 
   const handleLocationTracker = () => {
-    if (position) {
-      const locationString = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+    if (location) {
+      const locationString = `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`;
       setIncidentForm(prev => ({ ...prev, location: locationString }));
       toast({
         title: "Location Updated",
         description: "GPS coordinates added to incident form",
       });
     } else {
-      getCurrentPosition();
+      // Location automatically fetched;
       toast({
         title: "Getting Location",
         description: "Requesting GPS coordinates...",
@@ -263,10 +263,10 @@ export default function IncidentReporting() {
                     onChange={(e) => setIncidentForm(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="Specific location or address"
                   />
-                  {position && (
+                  {location && (
                     <p className="text-xs text-muted-foreground mt-1 flex items-center">
                       <MapPin className="h-3 w-3 mr-1" />
-                      GPS: {position.coords.latitude.toFixed(6)}, {position.coords.longitude.toFixed(6)}
+                      GPS: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                     </p>
                   )}
                 </div>
