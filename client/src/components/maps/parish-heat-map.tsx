@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Activity, Users, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Layers, BarChart3, Zap, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import HereMapParishHeatMap from "./here-map-parish-heat-map";
 
 // Jamaica parish coordinates and boundaries
 const PARISH_COORDINATES = {
@@ -231,64 +232,17 @@ export default function ParishHeatMap({
                 className="relative w-full bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden"
                 style={{ height }}
               >
-                {/* SVG Map Container */}
-                <svg 
-                  width="100%" 
-                  height="100%" 
-                  viewBox="0 0 800 600"
-                  className="absolute inset-0"
-                >
-                  {/* Jamaica outline and parish boundaries */}
-                  {parishStatsArray && Object.entries(PARISH_COORDINATES).map(([parishName, coords]) => {
-                    const parishData = parishStatsArray.find((p: ParishStats) => p.parishName === parishName);
-                    const value = parishData ? getMetricValue(parishData, heatMapMetric) : 0;
-                    const color = getHeatMapColor(value, maxValue, heatMapMetric);
-                    
-                    // Calculate position on SVG (simplified mapping)
-                    const x = ((coords.lng + 78.5) / 1.5) * 800;
-                    const y = ((18.6 - coords.lat) / 1.0) * 600;
-                    
-                    return (
-                      <g key={parishName}>
-                        {/* Parish circle representation */}
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={30 + (value / maxValue) * 20}
-                          fill={color}
-                          stroke="#374151"
-                          strokeWidth="2"
-                          className="cursor-pointer hover:stroke-blue-500 transition-all duration-200"
-                          onClick={() => setSelectedParish(parishName)}
-                        />
-                        
-                        {/* Parish label */}
-                        <text
-                          x={x}
-                          y={y + 5}
-                          textAnchor="middle"
-                          className="text-xs font-medium fill-gray-800 dark:fill-gray-200 pointer-events-none"
-                        >
-                          {parishName.split(' ')[0]}
-                        </text>
-                        
-                        {/* Value display */}
-                        <text
-                          x={x}
-                          y={y - 10}
-                          textAnchor="middle"
-                          className="text-xs font-bold fill-gray-900 dark:fill-gray-100 pointer-events-none"
-                        >
-                          {value}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
+                {/* Interactive Parish Heat Map with Enhanced Map */}
+                <HereMapParishHeatMap
+                  parishStats={parishStatsArray}
+                  selectedMetric={heatMapMetric}
+                  onParishSelect={setSelectedParish}
+                  selectedParish={selectedParish}
+                />
 
                 {/* Loading overlay */}
                 {isLoading && (
-                  <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
                 )}
