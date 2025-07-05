@@ -24,7 +24,8 @@ import {
   Brain,
   Edit3,
   FileSpreadsheet,
-  Navigation
+  Navigation,
+  Cloud
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Report Incident', href: '/incident-reporting', icon: AlertTriangle },
   { name: 'My Reports', href: '/reports', icon: FileText },
   { name: 'Polling Stations', href: '/polling-stations', icon: MapPin },
+  { name: 'Weather Conditions', href: '/weather-dashboard', icon: Cloud },
   { name: 'Training', href: '/training-center', icon: GraduationCap },
   { name: 'QR Tools', href: '/qr-scanner', icon: QrCode },
   { name: 'Support', href: '/live-chat', icon: MessageCircle },

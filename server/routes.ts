@@ -30,6 +30,7 @@ import { emergencyService } from "./lib/emergency-service.js";
 import { CentralAIService } from "./lib/central-ai-service.js";
 import { SocialMonitoringService } from "./lib/social-monitoring-service.js";
 import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator.js";
+import { getWeatherService } from "./lib/weather-service.js";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service.js";
 
@@ -2547,6 +2548,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         valid: false,
         error: "Failed to validate Google Sheets connection" 
+      });
+    }
+  });
+
+  // Weather API endpoints
+  app.get("/api/weather/parishes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const weatherService = getWeatherService();
+      const parishes = weatherService.getAvailableParishes();
+      res.json({ parishes });
+    } catch (error) {
+      console.error("Error getting available parishes:", error);
+      res.status(500).json({ error: "Failed to get available parishes" });
+    }
+  });
+
+  app.get("/api/weather/parish/:parishName", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { parishName } = req.params;
+      const weatherService = getWeatherService();
+      
+      const weatherData = await weatherService.getParishWeather(parishName);
+      res.json(weatherData);
+    } catch (error) {
+      console.error(`Error getting weather for ${req.params.parishName}:`, error);
+      res.status(500).json({ 
+        error: "Failed to get parish weather data",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/weather/parish/:parishName/summary", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { parishName } = req.params;
+      const weatherService = getWeatherService();
+      
+      const summary = await weatherService.getElectoralWeatherSummary(parishName);
+      res.json(summary);
+    } catch (error) {
+      console.error(`Error getting weather summary for ${req.params.parishName}:`, error);
+      res.status(500).json({ 
+        error: "Failed to get weather summary",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/weather/all-parishes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const weatherService = getWeatherService();
+      const allWeatherData = await weatherService.getAllParishesWeather();
+      res.json(allWeatherData);
+    } catch (error) {
+      console.error("Error getting weather for all parishes:", error);
+      res.status(500).json({ 
+        error: "Failed to get weather data for all parishes",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/weather/current/:latitude/:longitude", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { latitude, longitude } = req.params;
+      const units = (req.query.units as "METRIC" | "IMPERIAL") || "METRIC";
+      
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ error: "Invalid latitude or longitude" });
+      }
+
+      const weatherService = getWeatherService();
+      const currentWeather = await weatherService.getCurrentWeather(lat, lng, units);
+      res.json(currentWeather);
+    } catch (error) {
+      console.error("Error getting current weather:", error);
+      res.status(500).json({ 
+        error: "Failed to get current weather",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/weather/forecast/daily/:latitude/:longitude", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { latitude, longitude } = req.params;
+      const days = parseInt(req.query.days as string) || 7;
+      const units = (req.query.units as "METRIC" | "IMPERIAL") || "METRIC";
+      
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ error: "Invalid latitude or longitude" });
+      }
+
+      const weatherService = getWeatherService();
+      const forecast = await weatherService.getDailyForecast(lat, lng, days, units);
+      res.json({ forecast, days, units });
+    } catch (error) {
+      console.error("Error getting daily forecast:", error);
+      res.status(500).json({ 
+        error: "Failed to get daily forecast",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/weather/forecast/hourly/:latitude/:longitude", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { latitude, longitude } = req.params;
+      const hours = parseInt(req.query.hours as string) || 24;
+      const units = (req.query.units as "METRIC" | "IMPERIAL") || "METRIC";
+      
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ error: "Invalid latitude or longitude" });
+      }
+
+      const weatherService = getWeatherService();
+      const forecast = await weatherService.getHourlyForecast(lat, lng, hours, units);
+      res.json({ forecast, hours, units });
+    } catch (error) {
+      console.error("Error getting hourly forecast:", error);
+      res.status(500).json({ 
+        error: "Failed to get hourly forecast",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/weather/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const weatherService = getWeatherService();
+      const validation = await weatherService.validateConfiguration();
+      res.json(validation);
+    } catch (error) {
+      console.error("Weather API validation error:", error);
+      res.status(500).json({ 
+        valid: false,
+        error: "Failed to validate weather API",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
