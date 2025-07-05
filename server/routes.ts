@@ -29,6 +29,7 @@ import { aiClassificationService } from "./lib/ai-classification-service.js";
 import { emergencyService } from "./lib/emergency-service.js";
 import { CentralAIService } from "./lib/central-ai-service.js";
 import { SocialMonitoringService } from "./lib/social-monitoring-service.js";
+import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator.js";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service.js";
 
@@ -1342,6 +1343,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("NewsAPI test error:", error);
       res.status(500).json({ error: "Failed to test NewsAPI integration" });
+    }
+  });
+
+  // Enhanced Jamaica News Aggregation Endpoint
+  app.get("/api/news/jamaica-aggregated", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const newsAggregator = new JamaicaNewsAggregator(process.env.GEMINI_API_KEY || '');
+      
+      console.log('Starting Jamaica news aggregation from authentic sources...');
+      const articles = await newsAggregator.aggregateAllSources();
+      const stats = newsAggregator.getSourceStatistics();
+      const alerts = newsAggregator.getHighPriorityAlerts();
+
+      res.json({
+        success: true,
+        data: {
+          articles: articles.slice(0, 50), // Return top 50 most relevant
+          statistics: stats,
+          criticalAlerts: alerts,
+          sources: {
+            'Jamaica Gleaner': 'Multiple RSS feeds (Politics, News, Main)',
+            'Jamaica Observer': 'Multiple RSS feeds (Politics, News, Main)', 
+            'Nationwide Radio': 'RSS feed and Vote2020 section',
+            'NewsAPI.org': 'Global Jamaica coverage as backup'
+          },
+          processingInfo: {
+            totalProcessed: articles.length,
+            duplicatesRemoved: stats.duplicatesFound,
+            highRelevance: stats.highRelevanceArticles,
+            lastUpdated: new Date().toISOString()
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Jamaica news aggregation error:", error);
+      res.status(500).json({ 
+        error: "Failed to aggregate Jamaica news sources",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Real-time news source health check
+  app.get("/api/news/source-health", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const sources = [
+        { name: 'Jamaica Gleaner', url: 'https://jamaica-gleaner.com/feed', type: 'RSS' },
+        { name: 'Jamaica Observer', url: 'https://www.jamaicaobserver.com/feed/', type: 'RSS' },
+        { name: 'Nationwide Radio', url: 'https://nationwideradiojm.com/feed/', type: 'RSS' },
+        { name: 'NewsAPI.org', url: 'https://newsapi.org/v2/everything', type: 'API' }
+      ];
+
+      const healthChecks = await Promise.all(sources.map(async (source) => {
+        try {
+          const startTime = Date.now();
+          let response;
+          
+          if (source.name === 'NewsAPI.org') {
+            response = await fetch(`${source.url}?q=Jamaica&apiKey=${process.env.NEWSAPI_KEY}`, {
+              timeout: 5000,
+              headers: { 'User-Agent': 'CAFFE Electoral Observer Bot 1.0' }
+            });
+          } else {
+            response = await fetch(source.url, {
+              timeout: 5000,
+              headers: { 'User-Agent': 'CAFFE Electoral Observer Bot 1.0' }
+            });
+          }
+          
+          const responseTime = Date.now() - startTime;
+          
+          return {
+            name: source.name,
+            status: response.ok ? 'healthy' : 'error',
+            responseTime: `${responseTime}ms`,
+            statusCode: response.status,
+            type: source.type,
+            lastChecked: new Date().toISOString()
+          };
+        } catch (error) {
+          return {
+            name: source.name,
+            status: 'offline',
+            responseTime: 'timeout',
+            statusCode: 0,
+            type: source.type,
+            error: error instanceof Error ? error.message : 'Connection failed',
+            lastChecked: new Date().toISOString()
+          };
+        }
+      }));
+
+      const healthySources = healthChecks.filter(h => h.status === 'healthy').length;
+      const totalSources = healthChecks.length;
+
+      res.json({
+        overall: {
+          status: healthySources >= totalSources * 0.5 ? 'operational' : 'degraded',
+          healthy: healthySources,
+          total: totalSources,
+          uptime: `${Math.round((healthySources / totalSources) * 100)}%`
+        },
+        sources: healthChecks,
+        recommendations: healthySources < totalSources * 0.5 ? 
+          ['Consider using NewsAPI.org as primary source', 'Check RSS feed URLs for updates'] :
+          ['All systems operational', 'Continue monitoring for election coverage']
+      });
+    } catch (error) {
+      console.error("Source health check error:", error);
+      res.status(500).json({ error: "Failed to check news source health" });
     }
   });
 

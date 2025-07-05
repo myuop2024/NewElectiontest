@@ -92,6 +92,18 @@ export default function CentralAIIntelligence() {
     refetchInterval: 180000 // Refresh every 3 minutes
   });
 
+  // Jamaica News Aggregation
+  const { data: jamaicaNewsData, isLoading: jamaicaNewsLoading, refetch: refetchJamaicaNews } = useQuery({
+    queryKey: ["/api/news/jamaica-aggregated"],
+    refetchInterval: 60000 // Refresh every minute for fresh news
+  });
+
+  // News Source Health Check
+  const { data: sourceHealthData, isLoading: sourceHealthLoading, refetch: refetchSourceHealth } = useQuery({
+    queryKey: ["/api/news/source-health"],
+    refetchInterval: 120000 // Check source health every 2 minutes
+  });
+
   const handleRefreshAll = async () => {
     setRefreshing(true);
     await Promise.all([
@@ -99,7 +111,9 @@ export default function CentralAIIntelligence() {
       refetchIntelligence(),
       refetchSentiment(),
       refetchNews(),
-      refetchSocial()
+      refetchSocial(),
+      refetchJamaicaNews(),
+      refetchSourceHealth()
     ]);
     setRefreshing(false);
   };
@@ -191,10 +205,11 @@ export default function CentralAIIntelligence() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="jamaica-news">Jamaica News</TabsTrigger>
           <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
-          <TabsTrigger value="news">News</TabsTrigger>
+          <TabsTrigger value="news">Global News</TabsTrigger>
           <TabsTrigger value="social">Social Media</TabsTrigger>
           <TabsTrigger value="intelligence">Intelligence</TabsTrigger>
         </TabsList>
@@ -286,6 +301,276 @@ export default function CentralAIIntelligence() {
                         </div>
                       </AlertDescription>
                     </Alert>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="jamaica-news" className="space-y-4">
+          {/* Source Health Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Jamaica News Source Health
+              </CardTitle>
+              <CardDescription>
+                Real-time monitoring of authentic Jamaica news sources
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {sourceHealthLoading ? (
+                <div className="text-center py-4">Loading source health...</div>
+              ) : sourceHealthData?.overall ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Overall Status:</span>
+                    <Badge className={sourceHealthData.overall.status === 'operational' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {sourceHealthData.overall.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{sourceHealthData.overall.healthy}/{sourceHealthData.overall.total}</div>
+                      <div className="text-sm text-muted-foreground">Sources Online</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{sourceHealthData.overall.uptime}</div>
+                      <div className="text-sm text-muted-foreground">Uptime</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {sourceHealthData.sources?.map((source: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${source.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <span className="font-medium">{source.name}</span>
+                          <Badge variant="outline">{source.type}</Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {source.responseTime}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">No source health data available</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Jamaica News Statistics */}
+          {jamaicaNewsData?.data && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total Articles</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{jamaicaNewsData.data.statistics?.totalProcessed || 0}</div>
+                  <p className="text-xs text-muted-foreground">Processed articles</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">High Relevance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{jamaicaNewsData.data.statistics?.highRelevance || 0}</div>
+                  <p className="text-xs text-muted-foreground">Election relevant</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Duplicates Removed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{jamaicaNewsData.data.statistics?.duplicatesRemoved || 0}</div>
+                  <p className="text-xs text-muted-foreground">Clean data</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Critical Alerts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">{jamaicaNewsData.data.criticalAlerts?.length || 0}</div>
+                  <p className="text-xs text-muted-foreground">Urgent items</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Critical Alerts */}
+          {jamaicaNewsData?.data?.criticalAlerts?.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="w-5 h-5" />
+                  Critical Election Alerts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {jamaicaNewsData.data.criticalAlerts.slice(0, 5).map((alert: any, index: number) => (
+                    <Alert key={index} className="border-red-200">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <AlertDescription>
+                        <div className="space-y-2">
+                          <div className="font-medium">{alert.title}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">{alert.source}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-red-100 text-red-800">Score: {alert.relevanceScore}/10</Badge>
+                              <Badge className="bg-yellow-100 text-yellow-800">{alert.sentimentAnalysis?.riskLevel}</Badge>
+                            </div>
+                          </div>
+                          {alert.parishMentions?.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {alert.parishMentions.map((parish: string, i: number) => (
+                                <Badge key={i} variant="outline" className="text-xs">{parish}</Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Jamaica News Articles with Scoring */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Newspaper className="w-5 h-5" />
+                Jamaica News Analysis
+              </CardTitle>
+              <CardDescription>
+                Real-time news from authentic Jamaica sources with AI relevance scoring
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {jamaicaNewsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-muted-foreground">Aggregating Jamaica news sources...</p>
+                </div>
+              ) : jamaicaNewsData?.data?.articles?.length > 0 ? (
+                <div className="space-y-4">
+                  {jamaicaNewsData.data.articles.slice(0, 10).map((article: any, index: number) => (
+                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-lg leading-tight">{article.title}</h4>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline">{article.source}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(article.publishedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 ml-4">
+                          <Badge className={`${article.relevanceScore >= 7 ? 'bg-red-100 text-red-800' : 
+                                           article.relevanceScore >= 4 ? 'bg-yellow-100 text-yellow-800' : 
+                                           'bg-green-100 text-green-800'}`}>
+                            Score: {article.relevanceScore}/10
+                          </Badge>
+                          {article.sentimentAnalysis?.riskLevel && (
+                            <Badge className={getRiskLevelColor(article.sentimentAnalysis.riskLevel)}>
+                              {article.sentimentAnalysis.riskLevel}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {article.content && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {article.content}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {article.electionKeywords?.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium">Keywords:</span>
+                              {article.electionKeywords.slice(0, 3).map((keyword: string, i: number) => (
+                                <Badge key={i} variant="secondary" className="text-xs">{keyword}</Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {article.parishMentions?.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {article.parishMentions.map((parish: string, i: number) => (
+                              <Badge key={i} variant="outline" className="text-xs">{parish}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {article.aiAnalysis && (
+                        <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
+                          <div className="text-sm">
+                            <strong>AI Analysis:</strong> {article.aiAnalysis.summary}
+                          </div>
+                          {article.aiAnalysis.actionRequired && (
+                            <Badge className="mt-2 bg-red-100 text-red-800">Action Required</Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  <div className="text-center pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      Showing top 10 most relevant articles from {jamaicaNewsData.data.articles.length} total
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No Jamaica news data available</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The system will fetch news from Jamaica Observer, Gleaner, and other authentic sources
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* News Sources Information */}
+          {jamaicaNewsData?.data?.sources && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  Authentic Jamaica News Sources
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(jamaicaNewsData.data.sources).map(([source, description]: [string, any], index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 border rounded">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <div>
+                        <div className="font-medium">{source}</div>
+                        <div className="text-sm text-muted-foreground">{description}</div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </CardContent>
