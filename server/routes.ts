@@ -27,6 +27,8 @@ import { createAIIncidentService } from "./lib/ai-incident-service.js";
 import { googleSheetsService } from "./lib/google-sheets-service.js";
 import { aiClassificationService } from "./lib/ai-classification-service.js";
 import { emergencyService } from "./lib/emergency-service.js";
+import { CentralAIService } from "./lib/central-ai-service.js";
+import { SocialMonitoringService } from "./lib/social-monitoring-service.js";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service.js";
 
@@ -1081,6 +1083,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching enhanced reports:", error);
       res.status(500).json({ error: "Failed to fetch enhanced reports" });
+    }
+  });
+
+  // Central AI Hub - Jamaica Election Intelligence
+  app.get("/api/central-ai/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const centralAI = CentralAIService.getInstance(geminiKey);
+      const status = await centralAI.validateConnection();
+      
+      res.json({
+        ...status,
+        features: [
+          'incident_analysis',
+          'document_processing', 
+          'social_sentiment_monitoring',
+          'election_intelligence',
+          'comprehensive_reporting'
+        ],
+        jamaica_coverage: {
+          parishes: 14,
+          major_towns: 15,
+          monitoring_active: true
+        }
+      });
+    } catch (error) {
+      console.error("Central AI status error:", error);
+      res.status(500).json({ error: "Failed to check Central AI status" });
+    }
+  });
+
+  app.get("/api/central-ai/comprehensive-intelligence", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const centralAI = CentralAIService.getInstance(geminiKey);
+      const intelligence = await centralAI.generateComprehensiveIntelligence();
+      
+      res.json({
+        intelligence,
+        generated_at: new Date(),
+        data_sources: ['incidents', 'documents', 'social_media', 'news'],
+        coverage: 'Jamaica nationwide'
+      });
+    } catch (error) {
+      console.error("Comprehensive intelligence error:", error);
+      res.status(500).json({ error: "Failed to generate comprehensive intelligence" });
+    }
+  });
+
+  // Social Media & News Monitoring for Jamaica Elections
+  app.get("/api/social-monitoring/sentiment", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const socialMonitoring = new SocialMonitoringService(geminiKey);
+      const sentimentReport = await socialMonitoring.generateSentimentReport();
+      
+      res.json({
+        ...sentimentReport,
+        monitoring_scope: 'Jamaica Elections',
+        parishes_covered: [
+          'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
+          'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
+          'Manchester', 'Clarendon', 'St. Catherine'
+        ]
+      });
+    } catch (error) {
+      console.error("Social sentiment monitoring error:", error);
+      res.status(500).json({ error: "Failed to generate sentiment report" });
+    }
+  });
+
+  app.get("/api/social-monitoring/news", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const keywords = req.query.keywords ? (req.query.keywords as string).split(',') : undefined;
+      const socialMonitoring = new SocialMonitoringService(geminiKey);
+      const newsData = await socialMonitoring.monitorJamaicanNews(keywords);
+      
+      res.json({
+        news_data: newsData,
+        sources_monitored: [
+          'Jamaica Observer', 'Jamaica Gleaner', 'Loop Jamaica', 
+          'RJR News', 'CVM TV', 'TVJ', 'Nationwide Radio'
+        ],
+        keywords_tracked: keywords || ['election', 'voting', 'democracy', 'politics'],
+        analysis_timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("News monitoring error:", error);
+      res.status(500).json({ error: "Failed to monitor Jamaica news" });
+    }
+  });
+
+  app.get("/api/social-monitoring/social-media", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const platforms = req.query.platforms ? (req.query.platforms as string).split(',') : undefined;
+      const socialMonitoring = new SocialMonitoringService(geminiKey);
+      const socialData = await socialMonitoring.monitorSocialMedia(platforms);
+      
+      res.json({
+        social_data: socialData,
+        platforms_monitored: platforms || ['twitter', 'facebook', 'instagram', 'tiktok'],
+        geographic_coverage: 'All 14 Jamaica parishes',
+        analysis_timestamp: new Date()
+      });
+    } catch (error) {
+      console.error("Social media monitoring error:", error);
+      res.status(500).json({ error: "Failed to monitor social media" });
+    }
+  });
+
+  app.post("/api/central-ai/analyze-content", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { content, type, location } = req.body;
+      
+      if (!content || !type) {
+        return res.status(400).json({ error: "Content and type are required" });
+      }
+
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const centralAI = CentralAIService.getInstance(geminiKey);
+      
+      if (type === 'social_sentiment') {
+        const analysis = await centralAI.analyzeSocialSentiment(content, location);
+        res.json({
+          analysis,
+          content_type: type,
+          location: location || 'Jamaica (general)',
+          processed_at: new Date()
+        });
+      } else {
+        const analysis = await centralAI.processDataFlow({ content, location }, type, 'manual_submission');
+        res.json({
+          analysis,
+          content_type: type,
+          processed_at: new Date()
+        });
+      }
+    } catch (error) {
+      console.error("Content analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze content" });
     }
   });
 

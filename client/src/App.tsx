@@ -40,6 +40,7 @@ import LocationTracking from "@/pages/location-tracking";
 import AIIncidentClassifier from "@/pages/ai-incident-classifier";
 import EmergencyManagement from "@/pages/emergency-management";
 import PollingStationManagement from "@/pages/polling-station-management";
+import CentralAIIntelligence from "@/pages/central-ai-intelligence";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -231,6 +232,11 @@ function Router() {
       <Route path="/ai-classifier">
         <ProtectedLayout>
           <AIIncidentClassifier />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/central-ai-intelligence">
+        <ProtectedLayout>
+          <CentralAIIntelligence />
         </ProtectedLayout>
       </Route>
       <Route path="/emergency-management">
