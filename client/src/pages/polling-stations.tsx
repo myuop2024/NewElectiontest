@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search, Filter, Download, Map, List } from "lucide-react";
+import { MapPin, Search, Filter, Download, Map, List, Navigation, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStation, setSelectedStation] = useState<any>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const { toast } = useToast();
   
   const { data: stations, isLoading } = useQuery({
     queryKey: ["/api/polling-stations"],
@@ -19,6 +24,73 @@ export default function PollingStations() {
     station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     station.stationCode.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  // Export stations data as CSV
+  const handleExportData = () => {
+    if (!stations || stations.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No polling stations data to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const headers = ['Station Code', 'Name', 'Address', 'Parish', 'Latitude', 'Longitude', 'Capacity', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...stations.map((station: any) => [
+        station.stationCode || '',
+        `"${station.name || ''}"`,
+        `"${station.address || ''}"`,
+        station.parish || '',
+        station.latitude || '',
+        station.longitude || '',
+        station.capacity || '',
+        station.isActive ? 'Active' : 'Inactive'
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `polling-stations-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Successful",
+      description: `Exported ${stations.length} polling stations to CSV`
+    });
+  };
+
+  // Navigate to polling station using Google Maps
+  const handleNavigate = (station: any) => {
+    if (!station.latitude || !station.longitude) {
+      toast({
+        title: "Location Not Available",
+        description: "GPS coordinates not set for this polling station",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}&travelmode=driving`;
+    window.open(mapsUrl, '_blank');
+    
+    toast({
+      title: "Navigation Started",
+      description: `Opening directions to ${station.name}`
+    });
+  };
+
+  // View station details
+  const handleViewDetails = (station: any) => {
+    setSelectedStation(station);
+  };
 
   if (isLoading) {
     return (
@@ -40,7 +112,7 @@ export default function PollingStations() {
           <p className="text-muted-foreground">Monitor and manage polling station assignments</p>
         </div>
         <div className="flex space-x-2">
-          <Button className="btn-caffe-primary">
+          <Button onClick={handleExportData} className="btn-caffe-primary">
             <Download className="h-4 w-4 mr-2" />
             Export Data
           </Button>
@@ -60,7 +132,11 @@ export default function PollingStations() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" className="btn-caffe-outline">
+            <Button 
+              variant="outline" 
+              className="btn-caffe-outline"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
@@ -117,10 +193,21 @@ export default function PollingStations() {
                   )}
 
                   <div className="flex space-x-2 pt-4">
-                    <Button size="sm" className="flex-1 btn-caffe-primary">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 btn-caffe-primary"
+                      onClick={() => handleViewDetails(station)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
                       View Details
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleNavigate(station)}
+                    >
+                      <Navigation className="h-4 w-4 mr-1" />
                       Navigate
                     </Button>
                   </div>
@@ -173,6 +260,72 @@ export default function PollingStations() {
           </CardContent>
         </Card>
       )}
+
+      {/* Station Details Dialog */}
+      <Dialog open={!!selectedStation} onOpenChange={() => setSelectedStation(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              {selectedStation?.stationCode} - {selectedStation?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Detailed information for this polling station
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedStation && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Basic Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Station Code:</strong> {selectedStation.stationCode}</div>
+                    <div><strong>Name:</strong> {selectedStation.name}</div>
+                    <div><strong>Parish:</strong> {selectedStation.parish || 'Not specified'}</div>
+                    <div><strong>Status:</strong> 
+                      <Badge className={`ml-2 ${selectedStation.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {selectedStation.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold mb-2">Location Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Address:</strong> {selectedStation.address}</div>
+                    <div><strong>Coordinates:</strong> 
+                      {selectedStation.latitude && selectedStation.longitude 
+                        ? `${parseFloat(selectedStation.latitude).toFixed(6)}, ${parseFloat(selectedStation.longitude).toFixed(6)}`
+                        : 'Not set'
+                      }
+                    </div>
+                    <div><strong>Capacity:</strong> {selectedStation.capacity || 'Not specified'} voters</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-4 border-t">
+                <Button 
+                  onClick={() => handleNavigate(selectedStation)}
+                  className="btn-caffe-primary"
+                  disabled={!selectedStation.latitude || !selectedStation.longitude}
+                >
+                  <Navigation className="h-4 w-4 mr-2" />
+                  Get Directions
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setSelectedStation(null)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
