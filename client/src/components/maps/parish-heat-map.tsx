@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Activity, Users, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, Layers, BarChart3, Zap, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import HereMapParishHeatMap from "./here-map-parish-heat-map";
+import JamaicaParishMap from "./jamaica-parish-map";
 
 // Jamaica parish coordinates and boundaries
 const PARISH_COORDINATES = {
@@ -232,8 +232,8 @@ export default function ParishHeatMap({
                 className="relative w-full bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden"
                 style={{ height }}
               >
-                {/* Interactive Parish Heat Map with Enhanced Map */}
-                <HereMapParishHeatMap
+                {/* Interactive Parish Heat Map with Visual Map */}
+                <JamaicaParishMap
                   parishStats={parishStatsArray}
                   selectedMetric={heatMapMetric}
                   onParishSelect={setSelectedParish}

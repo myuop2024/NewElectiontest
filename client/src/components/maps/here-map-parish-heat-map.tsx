@@ -241,7 +241,7 @@ export default function HereMapParishHeatMap({
   return (
     <div className="relative w-full h-full">
       <div ref={mapRef} className="w-full h-full rounded-lg overflow-hidden bg-blue-50 dark:bg-gray-800">
-        <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0">
+        <svg width="100%" height="100%" viewBox="0 0 800 600" className="w-full h-full">
           {/* Background map styling */}
           <rect width="800" height="600" fill="url(#jamaicaGradient)" />
           
