@@ -479,9 +479,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/reports", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      // Validate required fields
+      const { title, description, type, stationId } = req.body;
+      
+      if (!title || !description || !type || !stationId) {
+        return res.status(400).json({ 
+          error: "Missing required fields: title, description, type, and stationId are required" 
+        });
+      }
+
       const report = await storage.createReport({
         ...req.body,
-        userId: req.user?.id
+        userId: req.user?.id,
+        stationId: parseInt(stationId) || null
       });
       
       // Create audit log for incident report

@@ -124,6 +124,13 @@ The CAFFE (Citizens Action for Free & Fair Elections) Electoral Observation Plat
 - **Security**: Encrypted sensitive data with environment-based keys
 
 ## Changelog
+- July 5, 2025: Comprehensive system maintenance and bug fixes
+  - Fixed broken navigation link for AI Classifier (updated from `/ai-classifier` to `/ai-incident-classifier`)
+  - Resolved Gemini AI model compatibility issues (updated all references from deprecated `gemini-pro` to `gemini-1.5-flash`)
+  - Improved form validation and error handling for reports endpoint with proper field validation
+  - Optimized toast notification system (reduced auto-dismiss delay from 1000000ms to 5000ms)
+  - Verified and tested all critical system components: authentication, emergency notifications, AI services, WebSocket connectivity
+  - All core functionality confirmed working: incident reporting, training management, analytics, emergency alerts
 - June 13, 2025. Initial setup
 
 ## User Preferences
