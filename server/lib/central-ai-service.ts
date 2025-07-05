@@ -130,13 +130,33 @@ Return in this JSON structure:
       let analysisText = response.text();
       
       // Clean and parse the JSON response
-      if (analysisText.startsWith('```json')) {
-        analysisText = analysisText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      } else if (analysisText.startsWith('```')) {
-        analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+      if (analysisText.includes('```json')) {
+        analysisText = analysisText.replace(/^.*```json\n?/, '').replace(/\n?```.*$/, '');
+      } else if (analysisText.includes('```')) {
+        analysisText = analysisText.replace(/^.*```\n?/, '').replace(/\n?```.*$/, '');
       }
       
-      return JSON.parse(analysisText);
+      // Remove any trailing commas before closing brackets/braces
+      analysisText = analysisText.replace(/,(\s*[}\]])/g, '$1');
+      
+      try {
+        return JSON.parse(analysisText);
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Problematic text (first 200 chars):", analysisText.substring(0, 200));
+        
+        // Return a fallback response structure
+        return {
+          overall_sentiment: "neutral",
+          confidence: 0.5,
+          key_issues: [],
+          election_relevance: 0.5,
+          geographic_focus: [],
+          concerns: [],
+          positive_indicators: [],
+          risk_level: "medium"
+        };
+      }
     } catch (error) {
       console.error("Social sentiment analysis error:", error);
       throw new Error("Failed to analyze social sentiment");
