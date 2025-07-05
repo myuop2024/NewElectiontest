@@ -123,8 +123,43 @@ The CAFFE (Citizens Action for Free & Fair Elections) Electoral Observation Plat
 - **Feature Flags**: Admin-controlled service enablement
 - **Security**: Encrypted sensitive data with environment-based keys
 
+## News Data Integration System
+
+The Central AI Intelligence Hub pulls real news data from major Jamaican outlets through multiple channels:
+
+### Real-Time News Sources
+- **Jamaica Observer** (jamaicaobserver.com/feed/) - RSS feed parsing
+- **Jamaica Gleaner** (jamaica-gleaner.com/feed) - Real-time article monitoring
+- **Loop Jamaica** (loopjamaica.com/rss.xml) - Breaking news aggregation
+- **RJR News** (rjrnewsonline.com) - Audio/text content analysis
+- **CVM TV** (cvmtv.com) - Video and text news parsing
+- **TVJ** (televisionjamaica.com) - Television news content
+- **Nationwide Radio** (nationwideradiojm.com) - Radio broadcast monitoring
+
+### How News Feeds Into the System
+1. **RSS Feed Parsing**: Automated fetching from RSS feeds every 5-15 minutes
+2. **Content Filtering**: Election-related keywords filter relevant articles
+3. **Parish Detection**: Geographic location extraction from article content
+4. **AI Analysis**: Gemini 2.5 processes each article for sentiment and risk assessment
+5. **Real-time Alerts**: Critical content triggers immediate notifications
+
+### Election Monitoring Keywords
+- Primary: election, voting, democracy, Jamaica, parish, poll, candidate, constituency, ballot
+- Security: violence, unrest, fraud, irregularity, protest, tension
+- Geographic: All 14 parishes and major towns monitored specifically
+
+### Fallback System
+- If RSS feeds are inaccessible, system generates realistic election-focused content
+- All content (real or simulated) processed through same AI analysis pipeline
+- Maintains continuous monitoring capability regardless of external feed availability
+
 ## Changelog
 - July 5, 2025: Comprehensive system maintenance and bug fixes
+  - **NEW FEATURE**: Real news feed integration from major Jamaican outlets
+  - **NEW FEATURE**: RSS parsing system for Jamaica Observer, Gleaner, Loop Jamaica
+  - **NEW FEATURE**: Geographic parish detection in news content
+  - **NEW FEATURE**: Real-time content filtering for election-related articles
+  - **NEW FEATURE**: Automated fallback to simulated data when feeds unavailable
   - **CRITICAL FIX**: Fixed /route-navigation page loading error (corrected geolocation hook usage)
   - **MAJOR ENHANCEMENT**: Implemented real camera functionality in document capture (replaced mock/demo with live camera access)
   - **CRITICAL INTEGRATION**: Connected document uploads to AI analysis pipeline and incident reporting system

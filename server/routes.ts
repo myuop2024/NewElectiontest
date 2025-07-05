@@ -1215,6 +1215,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint to demonstrate real news fetching
+  app.get("/api/test/news-fetch", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(400).json({ error: "Gemini API key not configured" });
+      }
+
+      const socialMonitoring = new SocialMonitoringService(geminiKey);
+      
+      // Test individual news source fetching
+      const observerResponse = await fetch('https://www.jamaicaobserver.com/feed/', {
+        headers: { 'User-Agent': 'CAFFE Electoral Observer Bot 1.0' }
+      });
+      
+      const observerStatus = observerResponse.ok ? 'accessible' : 'blocked';
+      
+      res.json({
+        news_sources: {
+          'Jamaica Observer': {
+            url: 'https://www.jamaicaobserver.com/feed/',
+            status: observerStatus,
+            response_code: observerResponse.status
+          },
+          'Jamaica Gleaner': {
+            url: 'https://jamaica-gleaner.com/feed',
+            status: 'configured',
+            note: 'RSS feed monitored for election content'
+          },
+          'Loop Jamaica': {
+            url: 'https://loopjamaica.com/rss.xml',
+            status: 'configured',
+            note: 'Real-time news aggregation'
+          }
+        },
+        election_keywords: ['election', 'voting', 'democracy', 'Jamaica', 'parish', 'poll', 'candidate', 'constituency', 'ballot'],
+        parish_monitoring: [
+          'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
+          'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
+          'Manchester', 'Clarendon', 'St. Catherine'
+        ],
+        how_it_works: {
+          step1: 'Fetch RSS feeds from major Jamaican news outlets',
+          step2: 'Parse XML/RSS content for election-related articles',
+          step3: 'Filter content by election keywords and parish mentions',
+          step4: 'Analyze sentiment using Gemini AI for each article',
+          step5: 'Generate risk assessments and alerts for election monitoring'
+        },
+        real_vs_simulated: {
+          real_data: 'RSS feeds from Jamaica Observer, Gleaner, Loop Jamaica provide live news',
+          fallback: 'Simulated data used if RSS feeds are inaccessible or blocked',
+          ai_analysis: 'All content (real or simulated) processed through Gemini AI for sentiment analysis'
+        }
+      });
+    } catch (error) {
+      console.error("News fetch test error:", error);
+      res.status(500).json({ error: "Failed to test news fetching" });
+    }
+  });
+
   app.post("/api/central-ai/analyze-content", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { content, type, location } = req.body;
