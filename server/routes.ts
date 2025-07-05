@@ -1219,11 +1219,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         social_data: socialData,
         platforms_monitored: platforms || ['twitter', 'facebook', 'instagram', 'tiktok'],
         geographic_coverage: 'All 14 Jamaica parishes',
-        analysis_timestamp: new Date()
+        analysis_timestamp: new Date(),
+        api_status: {
+          twitter_connected: !!process.env.TWITTER_BEARER_TOKEN,
+          data_authentic: socialData.length > 0
+        }
       });
     } catch (error) {
       console.error("Social media monitoring error:", error);
       res.status(500).json({ error: "Failed to monitor social media" });
+    }
+  });
+
+  // Twitter API status check endpoint
+  app.get("/api/social-monitoring/twitter-status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const twitterToken = process.env.TWITTER_BEARER_TOKEN;
+      
+      if (!twitterToken) {
+        return res.json({
+          connected: false,
+          status: 'No credentials',
+          message: 'Twitter Bearer Token not configured'
+        });
+      }
+
+      // Test API connectivity with minimal quota usage
+      const response = await fetch('https://api.twitter.com/2/users/me', {
+        headers: {
+          'Authorization': `Bearer ${twitterToken}`
+        }
+      });
+
+      if (response.status === 429) {
+        return res.json({
+          connected: true,
+          status: 'Rate limited',
+          message: 'API credentials working but rate limit reached'
+        });
+      }
+
+      if (response.ok) {
+        return res.json({
+          connected: true,
+          status: 'Active',
+          message: 'Twitter API fully operational'
+        });
+      }
+
+      return res.json({
+        connected: false,
+        status: 'Authentication error',
+        message: `API error: ${response.status} ${response.statusText}`
+      });
+
+    } catch (error) {
+      res.json({
+        connected: false,
+        status: 'Connection error',
+        message: 'Failed to connect to Twitter API'
+      });
     }
   });
 

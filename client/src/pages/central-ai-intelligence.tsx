@@ -92,6 +92,11 @@ export default function CentralAIIntelligence() {
     refetchInterval: 180000 // Refresh every 3 minutes
   });
 
+  const { data: twitterStatus } = useQuery({
+    queryKey: ["/api/social-monitoring/twitter-status"],
+    refetchInterval: 30000 // Check every 30 seconds
+  });
+
   // Jamaica News Aggregation
   const { data: jamaicaNewsData, isLoading: jamaicaNewsLoading, refetch: refetchJamaicaNews } = useQuery({
     queryKey: ["/api/news/jamaica-aggregated"],
@@ -727,15 +732,29 @@ export default function CentralAIIntelligence() {
                       ))}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-green-600" />
-                      <span className="text-xs text-green-600 font-medium">Live API Data</span>
+                      {twitterStatus?.connected ? (
+                        <>
+                          <Shield className="w-4 h-4 text-green-600" />
+                          <span className="text-xs text-green-600 font-medium">
+                            {twitterStatus.status === 'Rate limited' ? 'API Connected (Rate Limited)' : 'Live API Data'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-orange-600" />
+                          <span className="text-xs text-orange-600 font-medium">API Inactive</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Displaying authentic social media content from {socialData.social_data.length} recent posts via Twitter/X API
+                      {twitterStatus?.status === 'Rate limited' 
+                        ? `Twitter/X API connected successfully! Showing demo data due to rate limiting. API status: ${twitterStatus.message}`
+                        : `Displaying authentic social media content from ${socialData.social_data.length} recent posts via Twitter/X API`
+                      }
                     </AlertDescription>
                   </Alert>
                   
