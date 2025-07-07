@@ -153,36 +153,60 @@ export default function HereMapsParishHeatMap({
     };
 
     // Load HERE Maps API if not already loaded
-    if (typeof window.H !== 'undefined') {
-      initializeMap();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://js.api.here.com/v3/3.1/mapsjs-core.js';
-      script.async = true;
-      script.onload = () => {
-        // Load additional HERE Maps modules
-        const modules = [
-          'https://js.api.here.com/v3/3.1/mapsjs-service.js',
-          'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
-          'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
-        ];
+    const loadHereAPI = async () => {
+      try {
+        // Check if HERE Maps is already loaded
+        if (window.H && window.H.service && window.H.Map && window.H.service.Platform) {
+          initializeMap();
+          return;
+        }
 
-        let loadedModules = 0;
-        modules.forEach(src => {
-          const moduleScript = document.createElement('script');
-          moduleScript.src = src;
-          moduleScript.async = true;
-          moduleScript.onload = () => {
-            loadedModules++;
-            if (loadedModules === modules.length) {
-              initializeMap();
+        // Load HERE Maps CSS first
+        if (!document.querySelector('link[href*="mapsjs-ui.css"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://js.api.here.com/v3/3.1/mapsjs-ui.css';
+          document.head.appendChild(link);
+        }
+
+        // Load scripts in sequence to ensure proper loading order
+        const loadScript = (src: string): Promise<void> => {
+          return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) {
+              resolve();
+              return;
             }
-          };
-          document.head.appendChild(moduleScript);
-        });
-      };
-      document.head.appendChild(script);
-    }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = false; // Load in order
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+          });
+        };
+
+        // Load all HERE Maps modules in the correct order
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-core.js');
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-service.js');
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js');
+        await loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js');
+
+        // Wait a bit for all modules to be properly initialized
+        setTimeout(() => {
+          if (window.H && window.H.service && window.H.Map && window.H.service.Platform) {
+            initializeMap();
+          } else {
+            console.error('HERE Maps modules failed to initialize properly');
+          }
+        }, 100);
+
+      } catch (error) {
+        console.error('Failed to load HERE Maps API:', error);
+      }
+    };
+
+    loadHereAPI();
   }, [hereSettings]);
 
   // Update parish markers with heat map data
