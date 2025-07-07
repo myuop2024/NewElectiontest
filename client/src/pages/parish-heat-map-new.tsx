@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Activity, Users, AlertTriangle, TrendingUp, RefreshCw, BarChart3, Eye } from "lucide-react";
+import { MapPin, Activity, Users, AlertTriangle, TrendingUp, RefreshCw, BarChart3, Eye, Map } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import JamaicaSvgMap from "@/components/maps/jamaica-svg-map";
 
 // Jamaica parish data with coordinates and boundaries
 const JAMAICA_PARISHES = {
@@ -222,11 +223,39 @@ export default function ParishHeatMapNew() {
         </div>
 
         <TabsContent value="heatmap" className="space-y-4">
+          {/* Map Visualization */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Map className="h-5 w-5 mr-2" />
+                Interactive Jamaica Map - {selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-96">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading map data...</p>
+                  </div>
+                </div>
+              ) : (
+                <JamaicaSvgMap
+                  parishStats={parishStats}
+                  selectedMetric={selectedMetric}
+                  onParishSelect={setSelectedParish}
+                  selectedParish={selectedParish}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Parish Cards Grid */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2" />
-                Parish Heat Map - {selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)}
+                Parish Statistics Grid
               </CardTitle>
             </CardHeader>
             <CardContent>
