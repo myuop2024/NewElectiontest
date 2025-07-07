@@ -72,6 +72,16 @@ export default function ParishHeatMap({
   // Type guard to ensure parishStats is an array
   const parishStatsArray: ParishStats[] = Array.isArray(parishStats) ? parishStats : [];
 
+  // Map to the structure expected by GoogleMapsParishHeatMapSimple
+  const mappedParishStats = parishStatsArray.map(p => ({
+    parishId: p.parishId,
+    parishName: p.parishName,
+    incidents: p.totalIncidents,
+    turnout: p.voterTurnout,
+    observers: p.activeObservers,
+    critical: p.criticalIncidents,
+  }));
+
   // Fetch weather data for all parishes
   const { data: weatherData } = useQuery({
     queryKey: ["/api/weather/all-parishes"],
@@ -234,7 +244,7 @@ export default function ParishHeatMap({
               >
                 {/* Google Maps Parish Heat Map with Real Jamaica Geography */}
                 <GoogleMapsParishHeatMapSimple
-                  parishStats={parishStatsArray}
+                  parishStats={mappedParishStats}
                   selectedMetric={heatMapMetric}
                   onParishSelect={setSelectedParish}
                   selectedParish={selectedParish}
