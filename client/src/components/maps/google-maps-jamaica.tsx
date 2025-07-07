@@ -130,9 +130,9 @@ export default function GoogleMapsJamaica({
     if (typeof window.google !== 'undefined' && window.google.maps) {
       initializeMap();
     } else {
-      // Create script to load Google Maps
+      // Create script to load Google Maps with optimal loading pattern
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBYCjNhNgCK3kx4VJ0-FJJ5g5XzQ1g9XnI&libraries=geometry`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBYCjNhNgCK3kx4VJ0-FJJ5g5XzQ1g9XnI&libraries=geometry&loading=async`;
       script.async = true;
       script.defer = true;
       script.onload = initializeMap;
@@ -140,7 +140,13 @@ export default function GoogleMapsJamaica({
         console.error('Failed to load Google Maps API');
         setIsLoading(false);
       };
-      document.head.appendChild(script);
+      
+      // Avoid duplicate script loading
+      if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+        document.head.appendChild(script);
+      } else {
+        initializeMap();
+      }
     }
   }, []);
 
