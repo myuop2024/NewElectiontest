@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Activity, Users, AlertTriangle, TrendingUp, RefreshCw, BarChart3, Eye, Map } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import JamaicaSvgMap from "@/components/maps/jamaica-svg-map";
+import GoogleMapsJamaica from "@/components/maps/google-maps-jamaica";
 
 // Jamaica parish data with coordinates and boundaries
 const JAMAICA_PARISHES = {
@@ -240,7 +240,7 @@ export default function ParishHeatMapNew() {
                   </div>
                 </div>
               ) : (
-                <JamaicaSvgMap
+                <GoogleMapsJamaica
                   parishStats={parishStats}
                   selectedMetric={selectedMetric}
                   onParishSelect={setSelectedParish}
