@@ -60,8 +60,8 @@ export default function HereMapsParishHeatMap({
   const [platform, setPlatform] = useState<any>(null);
 
   // Get HERE Maps API key from settings
-  const { data: settings } = useQuery({
-    queryKey: ["/api/settings/app"],
+  const { data: hereSettings } = useQuery({
+    queryKey: ["/api/settings/here-api"],
   });
 
   // Get metric value for a parish
@@ -113,36 +113,43 @@ export default function HereMapsParishHeatMap({
     if (!mapRef.current) return;
 
     const initializeMap = () => {
-      // Get HERE API key from settings
-      const hereApiKey = settings?.here_api_key;
-      if (!hereApiKey) {
-        console.warn('HERE API key not configured in settings');
-        return;
-      }
-
-      // Initialize HERE Maps platform
-      const platformInstance = new window.H.service.Platform({
-        'apikey': hereApiKey
-      });
-
-      const defaultMapTypes = platformInstance.createDefaultMapTypes();
-
-      // Initialize map
-      const mapInstance = new window.H.Map(
-        mapRef.current,
-        defaultMapTypes.vector.normal.map,
-        {
-          zoom: 9,
-          center: { lat: 18.1096, lng: -77.2975 } // Center of Jamaica
+      try {
+        // Get HERE API key from settings
+        const hereApiKey = hereSettings?.apiKey;
+        if (!hereApiKey) {
+          console.warn('HERE API key not configured in settings');
+          return;
         }
-      );
 
-      // Make the map interactive
-      const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(mapInstance));
-      const ui = new window.H.ui.UI.createDefault(mapInstance);
+        console.log('Initializing HERE Maps with API key configured');
 
-      setMap(mapInstance);
-      setPlatform(platformInstance);
+        // Initialize HERE Maps platform
+        const platformInstance = new window.H.service.Platform({
+          'apikey': hereApiKey
+        });
+
+        const defaultMapTypes = platformInstance.createDefaultMapTypes();
+
+        // Initialize map
+        const mapInstance = new window.H.Map(
+          mapRef.current,
+          defaultMapTypes.vector.normal.map,
+          {
+            zoom: 9,
+            center: { lat: 18.1096, lng: -77.2975 } // Center of Jamaica
+          }
+        );
+
+        // Make the map interactive
+        const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(mapInstance));
+        const ui = new window.H.ui.UI.createDefault(mapInstance);
+
+        console.log('HERE Maps initialized successfully');
+        setMap(mapInstance);
+        setPlatform(platformInstance);
+      } catch (error) {
+        console.error('Error initializing HERE Maps:', error);
+      }
     };
 
     // Load HERE Maps API if not already loaded
@@ -176,7 +183,7 @@ export default function HereMapsParishHeatMap({
       };
       document.head.appendChild(script);
     }
-  }, [settings]);
+  }, [hereSettings]);
 
   // Update parish markers with heat map data
   useEffect(() => {
@@ -267,19 +274,18 @@ export default function HereMapsParishHeatMap({
   }, [map, parishStats, selectedMetric, selectedParish, onParishSelect]);
 
   // Show configuration message if HERE Maps API is not available
-  const hereApiKey = settings?.here_api_key;
-  if (!settings) {
+  if (!hereSettings) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
         <div className="text-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading HERE Maps configuration...</p>
         </div>
       </div>
     );
   }
 
-  if (!hereApiKey || settings.here_maps_enabled !== 'true') {
+  if (!hereSettings.configured || !hereSettings.apiKey) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
         <div className="text-center p-8">
@@ -309,46 +315,61 @@ export default function HereMapsParishHeatMap({
         className="w-full h-full rounded-lg overflow-hidden"
         style={{ minHeight: '400px' }}
       />
+
+      {/* Loading overlay when map is not ready */}
+      {!map && (
+        <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading Jamaica Geography...</p>
+          </div>
+        </div>
+      )}
       
-      {/* Metric indicator */}
-      <div className="absolute top-4 right-4 z-10">
-        <Badge variant="secondary" className="bg-white/90 text-gray-800 shadow-lg">
-          {selectedMetric === "incidents" && "Incident Count"}
-          {selectedMetric === "turnout" && "Voter Turnout (%)"}
-          {selectedMetric === "observers" && "Active Observers"}
-          {selectedMetric === "critical" && "Critical Incidents"}
-        </Badge>
-      </div>
+      {/* Map UI Elements - Only show when map is loaded */}
+      {map && (
+        <>
+          {/* Metric indicator */}
+          <div className="absolute top-4 right-4 z-10">
+            <Badge variant="secondary" className="bg-white/90 text-gray-800 shadow-lg">
+              {selectedMetric === "incidents" && "Incident Count"}
+              {selectedMetric === "turnout" && "Voter Turnout (%)"}
+              {selectedMetric === "observers" && "Active Observers"}
+              {selectedMetric === "critical" && "Critical Incidents"}
+            </Badge>
+          </div>
 
-      {/* Instructions */}
-      <div className="absolute bottom-4 left-4 z-10">
-        <div className="bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg max-w-xs">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            Click on any parish marker to view detailed statistics and select it for analysis.
-          </p>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg">
-        <h4 className="text-sm font-semibold mb-2">Heat Map Legend</h4>
-        <div className="space-y-1">
-          {[
-            { label: "High", color: selectedMetric === "incidents" ? "#dc2626" : selectedMetric === "turnout" ? "#16a34a" : selectedMetric === "observers" ? "#2563eb" : "#ea580c" },
-            { label: "Medium", color: selectedMetric === "incidents" ? "#f87171" : selectedMetric === "turnout" ? "#4ade80" : selectedMetric === "observers" ? "#60a5fa" : "#fb923c" },
-            { label: "Low", color: selectedMetric === "incidents" ? "#fecaca" : selectedMetric === "turnout" ? "#bbf7d0" : selectedMetric === "observers" ? "#bfdbfe" : "#fed7aa" },
-            { label: "None", color: "#94a3b8" }
-          ].map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div 
-                className="w-4 h-4 rounded-full border border-gray-300"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="text-xs text-gray-700 dark:text-gray-300">{item.label}</span>
+          {/* Instructions */}
+          <div className="absolute bottom-4 left-4 z-10">
+            <div className="bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg max-w-xs">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Click on any parish marker to view detailed statistics and select it for analysis.
+              </p>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+
+          {/* Legend */}
+          <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg">
+            <h4 className="text-sm font-semibold mb-2">Heat Map Legend</h4>
+            <div className="space-y-1">
+              {[
+                { label: "High", color: selectedMetric === "incidents" ? "#dc2626" : selectedMetric === "turnout" ? "#16a34a" : selectedMetric === "observers" ? "#2563eb" : "#ea580c" },
+                { label: "Medium", color: selectedMetric === "incidents" ? "#f87171" : selectedMetric === "turnout" ? "#4ade80" : selectedMetric === "observers" ? "#60a5fa" : "#fb923c" },
+                { label: "Low", color: selectedMetric === "incidents" ? "#fecaca" : selectedMetric === "turnout" ? "#bbf7d0" : selectedMetric === "observers" ? "#bfdbfe" : "#fed7aa" },
+                { label: "None", color: "#94a3b8" }
+              ].map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div 
+                    className="w-4 h-4 rounded-full border border-gray-300"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
