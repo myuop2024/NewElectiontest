@@ -41,6 +41,7 @@ export default function GoogleMapsParishHeatMapSimple({
   onParishSelect,
   selectedParish
 }: GoogleMapsParishHeatMapProps) {
+  console.log('[DEBUG] GoogleMapsParishHeatMapSimple props:', { parishStats, selectedMetric, selectedParish });
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
@@ -103,15 +104,16 @@ export default function GoogleMapsParishHeatMapSimple({
           ]
         });
 
-        console.log('Google Maps initialized successfully');
+        console.log('[DEBUG] Google Maps initialized successfully');
         setMap(mapInstance);
       } catch (error) {
-        console.error('Error initializing Google Maps:', error);
+        console.error('[DEBUG] Error initializing Google Maps:', error);
       }
     };
 
     // Check if Google Maps is already loaded
     if (typeof google !== 'undefined' && google.maps) {
+      console.log('[DEBUG] Google Maps API already loaded');
       initMap();
     } else {
       // Load Google Maps API
@@ -119,8 +121,11 @@ export default function GoogleMapsParishHeatMapSimple({
       script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBYCjNhNgCK3kx4VJ0-FJJ5g5XzQ1g9XnI&libraries=geometry`;
       script.async = true;
       script.defer = true;
-      script.onload = initMap;
-      script.onerror = () => console.error('Failed to load Google Maps API');
+      script.onload = () => {
+        console.log('[DEBUG] Google Maps API script loaded');
+        initMap();
+      };
+      script.onerror = () => console.error('[DEBUG] Failed to load Google Maps API');
       document.head.appendChild(script);
     }
   }, []);
@@ -137,6 +142,7 @@ export default function GoogleMapsParishHeatMapSimple({
     Object.entries(PARISH_COORDINATES).forEach(([parishName, coords]) => {
       const value = getMetricValue(parishName);
       const color = getMarkerColor(value);
+      console.log('[DEBUG] Creating marker:', { parishName, coords, value, color });
       
       // Create custom icon
       const icon = {
@@ -148,37 +154,41 @@ export default function GoogleMapsParishHeatMapSimple({
         scale: selectedParish === parishName ? 15 : 12
       };
 
-      const marker = new google.maps.Marker({
-        position: coords,
-        map: map,
-        title: parishName,
-        icon: icon
-      });
+      try {
+        const marker = new google.maps.Marker({
+          position: coords,
+          map: map,
+          title: parishName,
+          icon: icon
+        });
 
-      // Info window content
-      const parish = parishStats.find(p => p.parishName === parishName);
-      const infoContent = parish ? `
-        <div style="padding: 8px; min-width: 200px;">
-          <h3 style="margin: 0 0 8px 0; color: #1f2937;">${parishName}</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">
-            <div><strong>Incidents:</strong> ${parish.incidents}</div>
-            <div><strong>Turnout:</strong> ${parish.turnout}%</div>
-            <div><strong>Observers:</strong> ${parish.observers}</div>
-            <div><strong>Critical:</strong> ${parish.critical}</div>
+        // Info window content
+        const parish = parishStats.find(p => p.parishName === parishName);
+        const infoContent = parish ? `
+          <div style="padding: 8px; min-width: 200px;">
+            <h3 style="margin: 0 0 8px 0; color: #1f2937;">${parishName}</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">
+              <div><strong>Incidents:</strong> ${parish.incidents}</div>
+              <div><strong>Turnout:</strong> ${parish.turnout}%</div>
+              <div><strong>Observers:</strong> ${parish.observers}</div>
+              <div><strong>Critical:</strong> ${parish.critical}</div>
+            </div>
           </div>
-        </div>
-      ` : `<div style="padding: 8px;"><h3>${parishName}</h3><p>No data available</p></div>`;
+        ` : `<div style="padding: 8px;"><h3>${parishName}</h3><p>No data available</p></div>`;
 
-      const infoWindow = new google.maps.InfoWindow({
-        content: infoContent
-      });
+        const infoWindow = new google.maps.InfoWindow({
+          content: infoContent
+        });
 
-      marker.addListener('click', () => {
-        onParishSelect(parishName);
-        infoWindow.open(map, marker);
-      });
+        marker.addListener('click', () => {
+          onParishSelect(parishName);
+          infoWindow.open(map, marker);
+        });
 
-      newMarkers.push(marker);
+        newMarkers.push(marker);
+      } catch (markerError) {
+        console.error('[DEBUG] Error creating marker for', parishName, markerError);
+      }
     });
 
     setMarkers(newMarkers);
