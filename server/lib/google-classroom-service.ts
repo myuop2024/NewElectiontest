@@ -8,7 +8,10 @@ export class GoogleClassroomService {
   constructor() {
     // Use proper redirect URI for current environment
     const getRedirectUri = () => {
-      // Priority: Custom domain > Replit domain > Dev domain > localhost
+      // Priority: Deployed domain > Custom domain > Dev domain > localhost
+      if (process.env.REPLIT_URL) {
+        return `${process.env.REPLIT_URL}/api/auth/google/callback`;
+      }
       if (process.env.REPLIT_DOMAIN) {
         return `https://${process.env.REPLIT_DOMAIN}/api/auth/google/callback`;
       }
@@ -17,6 +20,11 @@ export class GoogleClassroomService {
         const customDomain = domains.find(d => !d.includes('.replit.dev'));
         if (customDomain) {
           return `https://${customDomain}/api/auth/google/callback`;
+        }
+        // Check for .replit.app deployment domain
+        const deployDomain = domains.find(d => d.includes('.replit.app'));
+        if (deployDomain) {
+          return `https://${deployDomain}/api/auth/google/callback`;
         }
       }
       if (process.env.REPLIT_DEV_DOMAIN) {
