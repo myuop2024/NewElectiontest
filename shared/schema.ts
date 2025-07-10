@@ -841,6 +841,44 @@ export type CourseAssignment = typeof courseAssignments.$inferSelect;
 export type AssignmentSubmission = typeof assignmentSubmissions.$inferSelect;
 
 
+// Google Classroom integration tables
+export const googleClassroomTokens = pgTable("google_classroom_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  tokenType: text("token_type").default("Bearer"),
+  expiryDate: timestamp("expiry_date"),
+  scope: text("scope"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull()
+});
+
+export const classroomCourses = pgTable("classroom_courses", {
+  id: serial("id").primaryKey(),
+  classroomId: text("classroom_id").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  section: text("section"),
+  room: text("room"),
+  ownerId: text("owner_id"),
+  courseState: text("course_state").default("ACTIVE"),
+  alternateLink: text("alternate_link"),
+  teacherGroupEmail: text("teacher_group_email"),
+  courseGroupEmail: text("course_group_email"),
+  guardiansEnabled: boolean("guardians_enabled").default(false),
+  calendarId: text("calendar_id"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull()
+});
+
+// Google Classroom schemas
+export const insertGoogleClassroomTokenSchema = createInsertSchema(googleClassroomTokens).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertClassroomCourseSchema = createInsertSchema(classroomCourses).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Google Classroom types
+export type GoogleClassroomToken = typeof googleClassroomTokens.$inferSelect;
+export type ClassroomCourse = typeof classroomCourses.$inferSelect;
 
 // Re-exporting Zod for use in other files if needed, or can be imported directly
 export { z as zod };

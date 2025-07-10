@@ -74,7 +74,7 @@ const adminNavigationGroups = [
   {
     title: "Configuration",
     items: [
-      { name: 'Training Management', href: '/admin-training', icon: BookOpen },
+      { name: 'Google Classroom', href: '/training-center', icon: BookOpen },
       { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
       { name: 'System Settings', href: '/admin/didit-settings', icon: Settings },
       { name: 'Data Integration', href: '/sheets-integration', icon: FileSpreadsheet },

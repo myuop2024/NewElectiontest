@@ -17,8 +17,8 @@ import Reports from "@/pages/reports";
 import LiveChat from "@/pages/live-chat";
 import DocumentCapture from "@/pages/document-capture";
 import RouteNavigation from "@/pages/route-navigation";
-import ModernTrainingHub from "@/pages/modern-training-hub";
-import UnifiedTrainingAdmin from "@/pages/unified-training-admin";
+import GoogleClassroom from "@/pages/google-classroom";
+
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import CheckIn from "@/pages/check-in";
@@ -117,30 +117,10 @@ function Router() {
       </Route>
       <Route path="/training-center">
         <ProtectedLayout>
-          <ModernTrainingHub />
+          <GoogleClassroom />
         </ProtectedLayout>
       </Route>
 
-      <Route path="/admin-training">
-        <ProtectedLayout>
-          <UnifiedTrainingAdmin />
-        </ProtectedLayout>
-      </Route>
-      <Route path="/unified-training-admin">
-        <ProtectedLayout>
-          <UnifiedTrainingAdmin />
-        </ProtectedLayout>
-      </Route>
-      <Route path="/admin/enhanced-training">
-        <ProtectedLayout>
-          <UnifiedTrainingAdmin />
-        </ProtectedLayout>
-      </Route>
-      <Route path="/admin/training">
-        <ProtectedLayout>
-          <UnifiedTrainingAdmin />
-        </ProtectedLayout>
-      </Route>
 
       <Route path="/analytics">
         <ProtectedLayout>

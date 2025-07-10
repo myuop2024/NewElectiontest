@@ -10,7 +10,8 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { db } from "./db";
-import { settings, courses, enrollments, courseModules, courseLessons } from "@shared/schema";
+import { settings, courses, enrollments, courseModules, courseLessons, googleClassroomTokens, classroomCourses } from "@shared/schema";
+import { classroomService } from "./lib/google-classroom-service.js";
 import { eq } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
 import { SecurityService } from "./lib/security.js";
@@ -2201,33 +2202,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Get course modules and lessons
-  app.get("/api/training/courses/:courseId/modules", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+
+
+  // Google Classroom OAuth endpoints
+  app.get("/api/auth/google/classroom", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const courseId = parseInt(req.params.courseId);
-      
-      // Get modules for this course
-      const modules = await db.select().from(courseModules).where(eq(courseModules.courseId, courseId))
-        .orderBy(courseModules.moduleOrder);
-      
-      // Get lessons for each module
-      const modulesWithLessons = await Promise.all(
-        modules.map(async (module) => {
-          const lessons = await db.select().from(courseLessons)
-            .where(eq(courseLessons.moduleId, module.id))
-            .orderBy(courseLessons.lessonOrder);
-          
-          return {
-            ...module,
-            lessons
-          };
-        })
-      );
-      
-      res.json(modulesWithLessons);
+      const userId = req.user!.id;
+      const authUrl = classroomService.getAuthUrl(userId.toString());
+      res.json({ authUrl });
     } catch (error) {
-      console.error("Error fetching course modules:", error);
-      res.status(500).json({ error: "Failed to fetch course modules" });
+      console.error("Error generating auth URL:", error);
+      res.status(500).json({ error: "Failed to generate auth URL" });
+    }
+  });
+
+  // Google Classroom OAuth callback
+  app.get("/api/auth/google/callback", async (req: Request, res: Response) => {
+    try {
+      const { code, state } = req.query;
+      
+      if (!code || !state) {
+        return res.status(400).send("Missing authorization code or state");
+      }
+
+      const userId = parseInt(state as string);
+      const tokens = await classroomService.getTokens(code as string);
+
+      // Store tokens in database
+      await db.insert(googleClassroomTokens).values({
+        userId,
+        accessToken: tokens.access_token!,
+        refreshToken: tokens.refresh_token,
+        tokenType: tokens.token_type || "Bearer",
+        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        scope: tokens.scope
+      }).onConflictDoUpdate({
+        target: googleClassroomTokens.userId,
+        set: {
+          accessToken: tokens.access_token!,
+          refreshToken: tokens.refresh_token,
+          expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          updatedAt: new Date()
+        }
+      });
+
+      // Redirect back to training hub
+      res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?connected=true`);
+    } catch (error) {
+      console.error("Error in OAuth callback:", error);
+      res.status(500).send("Authentication failed");
+    }
+  });
+
+  // Get user's Google Classroom courses
+  app.get("/api/classroom/courses", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Get user's stored tokens
+      const tokenRecord = await db.select().from(googleClassroomTokens)
+        .where(eq(googleClassroomTokens.userId, userId))
+        .limit(1);
+
+      if (!tokenRecord[0]) {
+        return res.status(401).json({ error: "Google Classroom not connected" });
+      }
+
+      const tokens = {
+        access_token: tokenRecord[0].accessToken,
+        refresh_token: tokenRecord[0].refreshToken,
+        token_type: tokenRecord[0].tokenType,
+        expiry_date: tokenRecord[0].expiryDate?.getTime()
+      };
+
+      const courses = await classroomService.getCourses(tokens);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching Classroom courses:", error);
+      res.status(500).json({ error: "Failed to fetch courses" });
+    }
+  });
+
+  // Get specific course details
+  app.get("/api/classroom/courses/:courseId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const courseId = req.params.courseId;
+      
+      const tokenRecord = await db.select().from(googleClassroomTokens)
+        .where(eq(googleClassroomTokens.userId, userId))
+        .limit(1);
+
+      if (!tokenRecord[0]) {
+        return res.status(401).json({ error: "Google Classroom not connected" });
+      }
+
+      const tokens = {
+        access_token: tokenRecord[0].accessToken,
+        refresh_token: tokenRecord[0].refreshToken,
+        token_type: tokenRecord[0].tokenType,
+        expiry_date: tokenRecord[0].expiryDate?.getTime()
+      };
+
+      const course = await classroomService.getCourse(courseId, tokens);
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+      res.status(500).json({ error: "Failed to fetch course details" });
+    }
+  });
+
+  // Get course assignments/coursework
+  app.get("/api/classroom/courses/:courseId/coursework", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const courseId = req.params.courseId;
+      
+      const tokenRecord = await db.select().from(googleClassroomTokens)
+        .where(eq(googleClassroomTokens.userId, userId))
+        .limit(1);
+
+      if (!tokenRecord[0]) {
+        return res.status(401).json({ error: "Google Classroom not connected" });
+      }
+
+      const tokens = {
+        access_token: tokenRecord[0].accessToken,
+        refresh_token: tokenRecord[0].refreshToken,
+        token_type: tokenRecord[0].tokenType,
+        expiry_date: tokenRecord[0].expiryDate?.getTime()
+      };
+
+      const coursework = await classroomService.getCourseWork(courseId, tokens);
+      res.json(coursework);
+    } catch (error) {
+      console.error("Error fetching coursework:", error);
+      res.status(500).json({ error: "Failed to fetch coursework" });
+    }
+  });
+
+  // Create a new course (admin/teacher only)
+  app.post("/api/classroom/courses", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const userId = req.user!.id;
+      const tokenRecord = await db.select().from(googleClassroomTokens)
+        .where(eq(googleClassroomTokens.userId, userId))
+        .limit(1);
+
+      if (!tokenRecord[0]) {
+        return res.status(401).json({ error: "Google Classroom not connected" });
+      }
+
+      const tokens = {
+        access_token: tokenRecord[0].accessToken,
+        refresh_token: tokenRecord[0].refreshToken,
+        token_type: tokenRecord[0].tokenType,
+        expiry_date: tokenRecord[0].expiryDate?.getTime()
+      };
+
+      const course = await classroomService.createCourse(req.body, tokens);
+      res.json(course);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ error: "Failed to create course" });
+    }
+  });
+
+  // Check Google Classroom connection status
+  app.get("/api/classroom/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      
+      const tokenRecord = await db.select().from(googleClassroomTokens)
+        .where(eq(googleClassroomTokens.userId, userId))
+        .limit(1);
+
+      const connected = !!tokenRecord[0];
+      const tokens = connected ? {
+        access_token: tokenRecord[0].accessToken,
+        refresh_token: tokenRecord[0].refreshToken,
+        token_type: tokenRecord[0].tokenType,
+        expiry_date: tokenRecord[0].expiryDate?.getTime()
+      } : null;
+
+      const profile = connected ? await classroomService.getUserProfile(tokens) : null;
+
+      res.json({ 
+        connected, 
+        profile: connected ? {
+          id: profile.id,
+          name: profile.name?.fullName,
+          emailAddress: profile.emailAddress,
+          photoUrl: profile.photoUrl
+        } : null
+      });
+    } catch (error) {
+      console.error("Error checking connection status:", error);
+      res.json({ connected: false, profile: null });
     }
   });
 
