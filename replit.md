@@ -225,7 +225,7 @@ The system analyzes traffic conditions for their impact on electoral activities:
 ## Changelog
 - July 10, 2025: Security Vulnerability Fix - Google API Key Exposure
   - **SECURITY CRITICAL**: Fixed hardcoded Google Maps API key exposure in client-side code
-  - **VULNERABILITY**: Removed hardcoded API key `AIzaSyBYCjNhNgCK3kx4VJ0-FJJ5g5XzQ1g9XnI` from two map components
+  - **VULNERABILITY**: Removed hardcoded API key from two map components
   - **SECURE IMPLEMENTATION**: Replaced hardcoded keys with environment variable `VITE_GOOGLE_MAPS_API_KEY`
   - **ERROR HANDLING**: Added comprehensive error handling for missing API keys
   - **USER EXPERIENCE**: Implemented clear error messages when API key is not configured
