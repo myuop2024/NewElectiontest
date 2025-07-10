@@ -117,7 +117,18 @@ export default function GoogleClassroom() {
         throw new Error(errorData.error || "Failed to get auth URL");
       }
       const data = await res.json();
-      window.location.href = data.authUrl;
+      
+      // Ensure we're using the current domain for OAuth redirect
+      const currentDomain = window.location.origin;
+      const authUrl = new URL(data.authUrl);
+      const params = new URLSearchParams(authUrl.search);
+      
+      // Update redirect_uri to current domain to avoid "Service Unavailable"
+      params.set('redirect_uri', `${currentDomain}/api/auth/google/callback`);
+      authUrl.search = params.toString();
+      
+      console.log('Using OAuth URL with current domain:', authUrl.toString());
+      window.location.href = authUrl.toString();
     },
     onError: (error) => {
       toast({
