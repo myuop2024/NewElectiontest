@@ -2228,7 +2228,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Classroom OAuth callback
   app.get("/api/auth/google/callback", async (req: Request, res: Response) => {
     try {
-      const { code, state } = req.query;
+      const { code, state, error } = req.query;
+      
+      if (error) {
+        console.error("OAuth error:", error);
+        return res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?error=access_denied`);
+      }
       
       if (!code || !state) {
         return res.status(400).send("Missing authorization code or state");
@@ -2259,7 +2264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?connected=true`);
     } catch (error) {
       console.error("Error in OAuth callback:", error);
-      res.status(500).send("Authentication failed");
+      res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?error=auth_failed`);
     }
   });
 

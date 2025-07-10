@@ -119,6 +119,9 @@ export default function TrainingSetupGuide() {
                     <div><strong>Application name:</strong> CAFFE Electoral Observer Platform</div>
                     <div><strong>User support email:</strong> Your contact email</div>
                     <div><strong>Scopes:</strong> Add Google Classroom read-only scopes</div>
+                    <div className="bg-amber-50 border border-amber-200 p-2 rounded mt-2">
+                      <strong>⚠️ Important:</strong> Add yourself as a "Test user" in the testing section to avoid the 403 error.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -203,6 +206,21 @@ export default function TrainingSetupGuide() {
               <h4 className="font-semibold">Common Issues:</h4>
               
               <div className="space-y-3 text-sm">
+                <div>
+                  <strong>Error 403: Access Denied (App in Testing):</strong>
+                  <p className="text-muted-foreground mb-2">
+                    This error means your Google OAuth app is in "testing" mode and can only be accessed by approved testers.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 p-3 rounded">
+                    <p className="text-sm font-semibold text-blue-800 mb-2">Required Actions:</p>
+                    <ol className="text-sm text-blue-700 space-y-1 ml-4 list-decimal">
+                      <li>Go to Google Cloud Console → APIs & Services → OAuth consent screen</li>
+                      <li>Add your email address as a "Test user" in the testing section</li>
+                      <li>OR publish your app to production (requires verification for sensitive scopes)</li>
+                    </ol>
+                  </div>
+                </div>
+
                 <div>
                   <strong>OAuth App Verification:</strong>
                   <p className="text-muted-foreground">
@@ -289,9 +307,9 @@ export default function TrainingSetupGuide() {
               </a>
             </Button>
             <Button variant="outline" asChild>
-              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">
-                <Key className="h-4 w-4 mr-2" />
-                Manage Credentials
+              <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer">
+                <Shield className="h-4 w-4 mr-2" />
+                OAuth Consent Screen
               </a>
             </Button>
             <Button variant="outline" asChild>

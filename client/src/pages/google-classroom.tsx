@@ -132,6 +132,10 @@ export default function GoogleClassroom() {
   const shouldShowSetupGuide = connectionStatus && !connectionStatus.connected && 
     (connectionStatus.error?.includes('403') || connectionStatus.error?.includes('credentials'));
 
+  // Check for OAuth error in URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const oauthError = urlParams.get('error');
+
   // Create new course
   const createCourseMutation = useMutation({
     mutationFn: async (courseData: any) => {
@@ -184,8 +188,8 @@ export default function GoogleClassroom() {
     );
   }
 
-  // Show setup guide if there are configuration issues
-  if (shouldShowSetupGuide) {
+  // Show setup guide if there are configuration issues or OAuth errors
+  if (shouldShowSetupGuide || oauthError === 'access_denied') {
     return <TrainingSetupGuide />;
   }
 
