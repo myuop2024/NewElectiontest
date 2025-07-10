@@ -209,6 +209,29 @@ export class GoogleClassroomService {
       throw error;
     }
   }
+
+  // Get submissions for a specific coursework
+  async getSubmissions(courseId: string, courseWorkId: string, tokens: any) {
+    this.setCredentials(tokens);
+    
+    try {
+      const response = await this.classroom.courses.courseWork.studentSubmissions.list({
+        courseId: courseId,
+        courseWorkId: courseWorkId,
+        pageSize: 100
+      });
+
+      return response.data.studentSubmissions || [];
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+      throw error;
+    }
+  }
+
+  // Get coursework (alias for getCourseWork for consistency)
+  async getCoursework(courseId: string, tokens: any) {
+    return this.getCourseWork(courseId, tokens);
+  }
 }
 
 export const classroomService = new GoogleClassroomService();

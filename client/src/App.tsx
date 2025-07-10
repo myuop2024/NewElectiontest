@@ -18,6 +18,8 @@ import LiveChat from "@/pages/live-chat";
 import DocumentCapture from "@/pages/document-capture";
 import RouteNavigation from "@/pages/route-navigation";
 import GoogleClassroom from "@/pages/google-classroom";
+import TrainingAnalyticsDashboard from "@/pages/training-analytics-dashboard";
+import CertificateVerification from "@/pages/certificate-verification";
 
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
@@ -119,6 +121,14 @@ function Router() {
         <ProtectedLayout>
           <GoogleClassroom />
         </ProtectedLayout>
+      </Route>
+      <Route path="/training-analytics">
+        <ProtectedLayout>
+          <TrainingAnalyticsDashboard />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/verify-certificate">
+        <CertificateVerification />
       </Route>
 
 

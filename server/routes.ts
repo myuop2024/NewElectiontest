@@ -10,7 +10,27 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { db } from "./db";
-import { settings, courses, enrollments, courseModules, courseLessons, googleClassroomTokens, classroomCourses } from "@shared/schema";
+import { 
+  settings, 
+  courses, 
+  enrollments, 
+  courseModules, 
+  courseLessons, 
+  googleClassroomTokens, 
+  classroomCourses,
+  trainingCompletions,
+  certificates,
+  classroomProgress,
+  trainingAnalytics,
+  users,
+  parishes,
+  pollingStations,
+  assignments,
+  checkIns,
+  reports,
+  documents,
+  messages
+} from "@shared/schema";
 import { classroomService } from "./lib/google-classroom-service.js";
 import { eq } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
@@ -5416,6 +5436,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking system health:", error);
       res.status(500).json({ error: "Failed to check system health" });
+    }
+  });
+
+  // Training Analytics and Certificate Management endpoints
+  app.post("/api/training/sync-progress", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const analyticsService = new TrainingAnalyticsService();
+      
+      await analyticsService.syncUserProgress(userId);
+      res.json({ message: "Progress synced successfully" });
+    } catch (error) {
+      console.error("Error syncing progress:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to sync progress" });
+    }
+  });
+
+  app.get("/api/training/dashboard", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const analyticsService = new TrainingAnalyticsService();
+      
+      const dashboard = await analyticsService.getUserTrainingDashboard(userId);
+      res.json(dashboard);
+    } catch (error) {
+      console.error("Error fetching training dashboard:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch dashboard" });
+    }
+  });
+
+  app.post("/api/training/generate-certificate/:completionId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const completionId = parseInt(req.params.completionId);
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const analyticsService = new TrainingAnalyticsService();
+      
+      // Get completion record and verify ownership
+      const completion = await db.select().from(trainingCompletions)
+        .where(and(
+          eq(trainingCompletions.id, completionId),
+          eq(trainingCompletions.userId, userId)
+        ))
+        .limit(1);
+
+      if (!completion[0]) {
+        return res.status(404).json({ error: "Training completion not found" });
+      }
+
+      const certificateNumber = await analyticsService.generateCertificate(userId, completion[0]);
+      res.json({ certificateNumber, message: "Certificate generated successfully" });
+    } catch (error) {
+      console.error("Error generating certificate:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate certificate" });
+    }
+  });
+
+  app.get("/api/certificates/verify/:certificateNumber", async (req: Request, res: Response) => {
+    try {
+      const { certificateNumber } = req.params;
+      const { hash } = req.query;
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const analyticsService = new TrainingAnalyticsService();
+      
+      const verification = await analyticsService.verifyCertificate(certificateNumber, hash as string);
+      res.json(verification);
+    } catch (error) {
+      console.error("Error verifying certificate:", error);
+      res.status(500).json({ error: "Failed to verify certificate" });
+    }
+  });
+
+  app.get("/api/certificates/user", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      
+      const userCertificates = await db.select().from(certificates)
+        .where(eq(certificates.userId, userId))
+        .orderBy(desc(certificates.issueDate));
+
+      res.json(userCertificates);
+    } catch (error) {
+      console.error("Error fetching user certificates:", error);
+      res.status(500).json({ error: "Failed to fetch certificates" });
+    }
+  });
+
+  app.get("/api/training/analytics/:userId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Only allow users to view their own analytics or admins to view any
+      if (req.user!.id !== userId && req.user!.role !== 'admin') {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const analytics = await db.select().from(trainingAnalytics)
+        .where(eq(trainingAnalytics.userId, userId))
+        .limit(1);
+
+      const completions = await db.select().from(trainingCompletions)
+        .where(eq(trainingCompletions.userId, userId))
+        .orderBy(desc(trainingCompletions.completionDate));
+
+      const progress = await db.select().from(classroomProgress)
+        .where(eq(classroomProgress.userId, userId))
+        .orderBy(desc(classroomProgress.lastSyncDate))
+        .limit(20);
+
+      res.json({
+        analytics: analytics[0] || null,
+        completions,
+        recentProgress: progress
+      });
+    } catch (error) {
+      console.error("Error fetching training analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/admin/training/overview", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user!.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      // Get overall training statistics
+      const totalUsers = await db.select({ count: sql`count(*)` }).from(users);
+      const totalCompletions = await db.select({ count: sql`count(*)` }).from(trainingCompletions);
+      const totalCertificates = await db.select({ count: sql`count(*)` }).from(certificates);
+      
+      // Get readiness distribution
+      const readinessStats = await db.select({
+        readinessLevel: trainingAnalytics.readinessLevel,
+        count: sql`count(*)`
+      }).from(trainingAnalytics)
+        .groupBy(trainingAnalytics.readinessLevel);
+
+      // Get recent completions
+      const recentCompletions = await db.select({
+        completion: trainingCompletions,
+        user: {
+          firstName: users.firstName,
+          lastName: users.lastName,
+          observerId: users.observerId
+        }
+      }).from(trainingCompletions)
+        .leftJoin(users, eq(trainingCompletions.userId, users.id))
+        .orderBy(desc(trainingCompletions.completionDate))
+        .limit(10);
+
+      res.json({
+        overview: {
+          totalUsers: totalUsers[0]?.count || 0,
+          totalCompletions: totalCompletions[0]?.count || 0,
+          totalCertificates: totalCertificates[0]?.count || 0
+        },
+        readinessDistribution: readinessStats,
+        recentCompletions
+      });
+    } catch (error) {
+      console.error("Error fetching training overview:", error);
+      res.status(500).json({ error: "Failed to fetch training overview" });
     }
   });
 

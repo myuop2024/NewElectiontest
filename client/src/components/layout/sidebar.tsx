@@ -40,6 +40,7 @@ const navigation = [
   { name: 'Polling Stations', href: '/polling-stations', icon: MapPin },
   { name: 'Weather Conditions', href: '/weather-dashboard', icon: Cloud },
   { name: 'Training Hub', href: '/training-center', icon: GraduationCap },
+  { name: 'Training Analytics', href: '/training-analytics', icon: BarChart3 },
   { name: 'QR Tools', href: '/qr-scanner', icon: QrCode },
   { name: 'Support', href: '/live-chat', icon: MessageCircle },
   { name: 'Settings', href: '/settings', icon: Settings },

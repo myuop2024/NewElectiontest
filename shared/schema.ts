@@ -872,13 +872,93 @@ export const classroomCourses = pgTable("classroom_courses", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull()
 });
 
+// Training completion tracking based on Google Classroom data
+export const trainingCompletions = pgTable("training_completions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  classroomCourseId: text("classroom_course_id").notNull(),
+  courseName: text("course_name").notNull(),
+  completionDate: timestamp("completion_date").notNull(),
+  finalGrade: decimal("final_grade", { precision: 5, scale: 2 }),
+  totalAssignments: integer("total_assignments").notNull().default(0),
+  completedAssignments: integer("completed_assignments").notNull().default(0),
+  submissionQuality: text("submission_quality"), // excellent, good, satisfactory, needs_improvement
+  certificateGenerated: boolean("certificate_generated").notNull().default(false),
+  certificateNumber: text("certificate_number").unique(),
+  competencyLevel: text("competency_level"), // basic, intermediate, advanced, expert
+  skillsAcquired: json("skills_acquired"), // Array of skills/competencies earned
+  instructorNotes: text("instructor_notes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull()
+});
+
+// Digital certificates with blockchain-style verification
+export const certificates = pgTable("certificates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  trainingCompletionId: integer("training_completion_id").references(() => trainingCompletions.id),
+  certificateNumber: text("certificate_number").notNull().unique(),
+  certificateType: text("certificate_type").notNull(), // course_completion, competency, excellence, master_observer
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  issueDate: timestamp("issue_date").notNull(),
+  expiryDate: timestamp("expiry_date"),
+  verificationHash: text("verification_hash").notNull().unique(),
+  qrCodeData: text("qr_code_data").notNull(),
+  certificateTemplate: text("certificate_template").notNull(), // Template ID/name
+  metadata: json("metadata"), // Course details, grades, instructor info
+  isActive: boolean("is_active").notNull().default(true),
+  downloadCount: integer("download_count").notNull().default(0),
+  lastDownloaded: timestamp("last_downloaded"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull()
+});
+
+// Real-time Google Classroom training progress tracking
+export const classroomProgress = pgTable("classroom_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  classroomCourseId: text("classroom_course_id").notNull(),
+  assignmentId: text("assignment_id"),
+  progressType: text("progress_type").notNull(), // assignment_submitted, assignment_graded, course_milestone
+  progressValue: decimal("progress_value", { precision: 5, scale: 2 }), // 0-100 percentage
+  details: json("details"), // Assignment details, grades, feedback
+  lastSyncDate: timestamp("last_sync_date").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull()
+});
+
+// Training analytics and insights
+export const trainingAnalytics = pgTable("training_analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  analysisDate: timestamp("analysis_date").notNull(),
+  totalCoursesEnrolled: integer("total_courses_enrolled").notNull().default(0),
+  totalCoursesCompleted: integer("total_courses_completed").notNull().default(0),
+  averageGrade: decimal("average_grade", { precision: 5, scale: 2 }),
+  totalStudyHours: decimal("total_study_hours", { precision: 8, scale: 2 }),
+  competencyScore: decimal("competency_score", { precision: 5, scale: 2 }), // 0-100 overall competency
+  trainingEfficiency: decimal("training_efficiency", { precision: 5, scale: 2 }), // completion rate vs time
+  strongAreas: json("strong_areas"), // Areas of excellence
+  improvementAreas: json("improvement_areas"), // Areas needing attention
+  recommendedCourses: json("recommended_courses"), // AI-suggested next courses
+  readinessLevel: text("readiness_level").notNull(), // not_ready, basic_ready, field_ready, expert_ready
+  lastUpdated: timestamp("last_updated").default(sql`CURRENT_TIMESTAMP`).notNull()
+});
+
 // Google Classroom schemas
 export const insertGoogleClassroomTokenSchema = createInsertSchema(googleClassroomTokens).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertClassroomCourseSchema = createInsertSchema(classroomCourses).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTrainingCompletionSchema = createInsertSchema(trainingCompletions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, createdAt: true });
+export const insertClassroomProgressSchema = createInsertSchema(classroomProgress).omit({ id: true, createdAt: true });
+export const insertTrainingAnalyticsSchema = createInsertSchema(trainingAnalytics).omit({ id: true, lastUpdated: true });
 
 // Google Classroom types
 export type GoogleClassroomToken = typeof googleClassroomTokens.$inferSelect;
 export type ClassroomCourse = typeof classroomCourses.$inferSelect;
+export type TrainingCompletion = typeof trainingCompletions.$inferSelect;
+export type Certificate = typeof certificates.$inferSelect;
+export type ClassroomProgress = typeof classroomProgress.$inferSelect;
+export type TrainingAnalytics = typeof trainingAnalytics.$inferSelect;
 
 // Re-exporting Zod for use in other files if needed, or can be imported directly
 export { z as zod };
