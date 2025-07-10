@@ -93,7 +93,7 @@ async function initializeAdminAccount() {
     }
 
     // Create admin account
-    const hashedPassword = await bcrypt.hash("Admin123!@#", 10);
+    const hashedPassword = await bcrypt.hash("password", 10);
     const observerId = SecurityService.generateObserverId();
     
     const adminUser = await storage.createUser({
@@ -113,7 +113,7 @@ async function initializeAdminAccount() {
     });
 
     console.log(`Admin account created successfully with ID: ${adminUser.id}`);
-    console.log("Admin credentials: username: admin, password: Admin123!@#");
+    console.log("Admin credentials: username: admin, password: password");
   } catch (error) {
     console.error("Failed to create admin account:", error);
   }
@@ -2207,15 +2207,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Classroom OAuth endpoints
   app.get("/api/auth/google/classroom", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log("Google Classroom auth request from user:", req.user?.id);
+      
       // Check if credentials are configured
       if (!process.env.GOOGLE_CLASSROOM_CLIENT_ID || !process.env.GOOGLE_CLASSROOM_CLIENT_SECRET) {
+        console.error("Google Classroom credentials missing");
         return res.status(500).json({ 
           error: "Google Classroom credentials not configured. Please set GOOGLE_CLASSROOM_CLIENT_ID and GOOGLE_CLASSROOM_CLIENT_SECRET in environment variables." 
         });
       }
 
       const userId = req.user!.id;
+      console.log("Generating auth URL for user:", userId);
+      
       const authUrl = classroomService.getAuthUrl(userId.toString());
+      console.log("Auth URL generated successfully");
+      
       res.json({ authUrl });
     } catch (error) {
       console.error("Error generating auth URL:", error);
