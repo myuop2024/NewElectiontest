@@ -118,7 +118,14 @@ export default function GoogleMapsParishHeatMapSimple({
     } else {
       // Load Google Maps API
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBYCjNhNgCK3kx4VJ0-FJJ5g5XzQ1g9XnI&libraries=geometry`;
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+      
+      if (!apiKey) {
+        console.error('[DEBUG] Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
+        return;
+      }
+      
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
       script.async = true;
       script.defer = true;
       script.onload = () => {

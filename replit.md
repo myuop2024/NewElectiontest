@@ -223,6 +223,15 @@ The system analyzes traffic conditions for their impact on electoral activities:
 - `/api/traffic/alerts/:lat/:lng` - Traffic incident alerts and recommendations
 
 ## Changelog
+- July 10, 2025: Security Vulnerability Fix - Google API Key Exposure
+  - **SECURITY CRITICAL**: Fixed hardcoded Google Maps API key exposure in client-side code
+  - **VULNERABILITY**: Removed hardcoded API key `AIzaSyBYCjNhNgCK3kx4VJ0-FJJ5g5XzQ1g9XnI` from two map components
+  - **SECURE IMPLEMENTATION**: Replaced hardcoded keys with environment variable `VITE_GOOGLE_MAPS_API_KEY`
+  - **ERROR HANDLING**: Added comprehensive error handling for missing API keys
+  - **USER EXPERIENCE**: Implemented clear error messages when API key is not configured
+  - **FILES UPDATED**: `google-maps-jamaica.tsx` and `google-maps-parish-heat-map-simple.tsx`
+  - **IMPACT**: Prevents unauthorized API key usage and potential service abuse
+  - **DEPLOYMENT NOTE**: Requires setting `VITE_GOOGLE_MAPS_API_KEY` environment variable before deployment
 - July 7, 2025: Complete Parish Heat Map Redesign
   - **COMPLETE REDESIGN**: Entirely rebuilt parish heat map with logical structure and working visualization
   - **NEW ARCHITECTURE**: Card-based grid layout showing all 14 Jamaica parishes with real-time statistics
