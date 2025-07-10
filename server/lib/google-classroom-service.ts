@@ -25,19 +25,21 @@ export class GoogleClassroomService {
 
   // Generate OAuth URL for user authentication
   getAuthUrl(userId: string) {
+    // Use more basic scopes to avoid 403 issues with unverified apps
     const scopes = [
-      'https://www.googleapis.com/auth/classroom.courses',
-      'https://www.googleapis.com/auth/classroom.coursework.students',
-      'https://www.googleapis.com/auth/classroom.rosters',
-      'https://www.googleapis.com/auth/classroom.profile.emails',
-      'https://www.googleapis.com/auth/classroom.profile.photos'
+      'https://www.googleapis.com/auth/classroom.courses.readonly',
+      'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+      'https://www.googleapis.com/auth/classroom.rosters.readonly',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/userinfo.email'
     ];
 
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       state: userId.toString(),
-      prompt: 'consent'
+      prompt: 'consent',
+      include_granted_scopes: true
     });
   }
 

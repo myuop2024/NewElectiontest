@@ -2207,12 +2207,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Classroom OAuth endpoints
   app.get("/api/auth/google/classroom", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      // Check if credentials are configured
+      if (!process.env.GOOGLE_CLASSROOM_CLIENT_ID || !process.env.GOOGLE_CLASSROOM_CLIENT_SECRET) {
+        return res.status(500).json({ 
+          error: "Google Classroom credentials not configured. Please set GOOGLE_CLASSROOM_CLIENT_ID and GOOGLE_CLASSROOM_CLIENT_SECRET in environment variables." 
+        });
+      }
+
       const userId = req.user!.id;
       const authUrl = classroomService.getAuthUrl(userId.toString());
       res.json({ authUrl });
     } catch (error) {
       console.error("Error generating auth URL:", error);
-      res.status(500).json({ error: "Failed to generate auth URL" });
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to generate auth URL. Check Google Cloud Console setup." 
+      });
     }
   });
 
@@ -2375,6 +2384,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check Google Classroom connection status
   app.get("/api/classroom/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      // Check if credentials are configured
+      if (!process.env.GOOGLE_CLASSROOM_CLIENT_ID || !process.env.GOOGLE_CLASSROOM_CLIENT_SECRET) {
+        return res.json({ 
+          connected: false, 
+          profile: null, 
+          error: "Google Classroom credentials not configured" 
+        });
+      }
+
       const userId = req.user!.id;
       
       const tokenRecord = await db.select().from(googleClassroomTokens)
@@ -2389,11 +2407,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry_date: tokenRecord[0].expiryDate?.getTime()
       } : null;
 
-      const profile = connected ? await classroomService.getUserProfile(tokens) : null;
+      let profile = null;
+      if (connected) {
+        try {
+          profile = await classroomService.getUserProfile(tokens);
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          // If profile fetch fails, user is effectively not connected
+          return res.json({ connected: false, profile: null, error: "Authentication expired" });
+        }
+      }
 
       res.json({ 
         connected, 
-        profile: connected ? {
+        profile: connected && profile ? {
           id: profile.id,
           name: profile.name?.fullName,
           emailAddress: profile.emailAddress,
@@ -2402,7 +2429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error checking connection status:", error);
-      res.json({ connected: false, profile: null });
+      res.json({ connected: false, profile: null, error: error.message });
     }
   });
 

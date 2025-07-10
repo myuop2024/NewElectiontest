@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import TrainingSetupGuide from './training-setup-guide';
 
 interface Course {
   id: string;
@@ -111,18 +112,25 @@ export default function GoogleClassroom() {
   const connectMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/auth/google/classroom");
-      if (!res.ok) throw new Error("Failed to get auth URL");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to get auth URL");
+      }
       const data = await res.json();
       window.location.href = data.authUrl;
     },
     onError: (error) => {
       toast({
         title: "Connection Failed",
-        description: error.message,
+        description: `${error.message}. Please check your Google Cloud Console configuration.`,
         variant: "destructive"
       });
     }
   });
+
+  // Check if we should show setup guide
+  const shouldShowSetupGuide = connectionStatus && !connectionStatus.connected && 
+    (connectionStatus.error?.includes('403') || connectionStatus.error?.includes('credentials'));
 
   // Create new course
   const createCourseMutation = useMutation({
@@ -176,6 +184,11 @@ export default function GoogleClassroom() {
     );
   }
 
+  // Show setup guide if there are configuration issues
+  if (shouldShowSetupGuide) {
+    return <TrainingSetupGuide />;
+  }
+
   if (!connectionStatus?.connected) {
     return (
       <div className="container mx-auto p-6">
@@ -198,8 +211,16 @@ export default function GoogleClassroom() {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Professional Training Platform:</strong> Leverage Google's proven education platform with built-in mobile apps, 
-                notifications, grade tracking, and seamless integration with Google Drive and other services.
+                <strong>Google Classroom Integration:</strong> Connect with Google's education platform to access courses, 
+                assignments, and training materials. Note: This integration requires Google Cloud Console setup with proper API credentials.
+              </AlertDescription>
+            </Alert>
+
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>Setup Required:</strong> If you encounter permission errors, ensure your Google Cloud project has the 
+                Classroom API enabled and your OAuth consent screen is properly configured.
               </AlertDescription>
             </Alert>
 
