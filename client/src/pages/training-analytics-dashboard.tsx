@@ -20,8 +20,7 @@ import {
   BarChart3,
   Target,
   GraduationCap,
-  Zap,
-  Chart
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -460,11 +459,9 @@ export default function TrainingAnalyticsDashboard() {
               <CardContent className="space-y-6">
                 {dashboard?.currentProgress?.length > 0 ? (
                   <div className="space-y-4">
-                    <Chart 
-                      data={dashboard.currentProgress.map(p => ({ name: p.assignmentTitle, value: p.grade }))}
-                      type="bar"
-                      height={300}
-                    />
+                    <div className="p-4 bg-gray-100 rounded-lg">
+                      <p className="text-center text-gray-600">Progress visualization coming soon</p>
+                    </div>
                     <div className="space-y-2">
                       {dashboard.currentProgress.map((progress, index) => (
                         <div key={index} className="p-3 bg-gray-50 rounded-lg">
