@@ -182,7 +182,10 @@ export default function UnifiedTrainingAdmin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(courseData)
       });
-      if (!res.ok) throw new Error("Failed to create course");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to create course");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -190,6 +193,13 @@ export default function UnifiedTrainingAdmin() {
       setCourseDialogOpen(false);
       resetCourseForm();
       toast({ title: "Course created successfully!" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Course creation failed", 
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 

@@ -2231,6 +2231,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin course creation endpoint
+  app.post("/api/admin/training/courses", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { title, description, role, category, difficulty, duration, passingScore, isActive } = req.body;
+      
+      if (!title || !description) {
+        return res.status(400).json({ error: "Title and description are required" });
+      }
+
+      const course = await storage.createCourse({
+        title,
+        description,
+        role: role || 'Observer',
+        content: { category: category || 'General Training', difficulty: difficulty || 'beginner' },
+        duration: duration || 60,
+        passingScore: passingScore || 80,
+        isActive: isActive !== false
+      });
+
+      res.json(course);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ error: "Failed to create course" });
+    }
+  });
+
   // Enhanced Training System API Endpoints
   
   // Enhanced courses with user-specific enrollment data

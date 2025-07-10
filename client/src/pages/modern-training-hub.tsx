@@ -514,7 +514,7 @@ export default function ModernTrainingHub() {
       {/* Course Viewer */}
       {viewingCourse && (
         <Dialog open={!!viewingCourse} onOpenChange={() => setViewingCourse(null)}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-6">
             <CourseViewer 
               course={viewingCourse}
               userProgress={userProgress?.enrolledCourses?.find((c: Course) => c.id === viewingCourse.id)}

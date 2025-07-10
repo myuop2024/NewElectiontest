@@ -109,7 +109,7 @@ export default function CourseViewer({ course, userProgress, onStartLesson, onCo
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="w-full space-y-6">
       {/* Course Header */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg opacity-10"></div>
@@ -263,14 +263,14 @@ export default function CourseViewer({ course, userProgress, onStartLesson, onCo
         </TabsContent>
 
         {/* Curriculum Tab */}
-        <TabsContent value="curriculum" className="space-y-6">
+        <TabsContent value="curriculum" className="space-y-6 max-h-[60vh] overflow-y-auto">
           <Card>
             <CardHeader>
               <CardTitle>Course Curriculum</CardTitle>
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="space-y-4">
-                {course.modules?.map((module: any, index: number) => (
+                {modules?.map((module: any, index: number) => (
                   <AccordionItem key={module.id} value={`module-${module.id}`}>
                     <AccordionTrigger className="text-left">
                       <div className="flex items-center justify-between w-full pr-4">
@@ -341,7 +341,7 @@ export default function CourseViewer({ course, userProgress, onStartLesson, onCo
                 ))}
               </Accordion>
 
-              {(!course.modules || course.modules.length === 0) && (
+              {(!modules || modules.length === 0) && (
                 <div className="text-center py-12">
                   <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Course content coming soon</h3>
