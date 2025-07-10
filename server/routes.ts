@@ -10,7 +10,7 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { storage } from "./storage";
 import { db } from "./db";
-import { settings, courses, enrollments } from "@shared/schema";
+import { settings, courses, enrollments, courseModules, courseLessons } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
 import { SecurityService } from "./lib/security.js";
@@ -2200,6 +2200,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
+  // Get course modules and lessons
+  app.get("/api/training/courses/:courseId/modules", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      
+      // Get modules for this course
+      const modules = await db.select().from(courseModules).where(eq(courseModules.courseId, courseId))
+        .orderBy(courseModules.moduleOrder);
+      
+      // Get lessons for each module
+      const modulesWithLessons = await Promise.all(
+        modules.map(async (module) => {
+          const lessons = await db.select().from(courseLessons)
+            .where(eq(courseLessons.moduleId, module.id))
+            .orderBy(courseLessons.lessonOrder);
+          
+          return {
+            ...module,
+            lessons
+          };
+        })
+      );
+      
+      res.json(modulesWithLessons);
+    } catch (error) {
+      console.error("Error fetching course modules:", error);
+      res.status(500).json({ error: "Failed to fetch course modules" });
+    }
+  });
 
   // Enhanced Training System API Endpoints
   

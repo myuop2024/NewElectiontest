@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -30,12 +30,44 @@ interface CourseViewerProps {
   onEnroll?: () => void;
 }
 
+interface Module {
+  id: number;
+  title: string;
+  description: string;
+  duration: number;
+  moduleOrder: number;
+  moduleType: string;
+  lessons?: Lesson[];
+}
+
+interface Lesson {
+  id: number;
+  title: string;
+  description: string;
+  duration: number;
+  lessonOrder: number;
+  type: string;
+  content: any;
+}
+
 export default function CourseViewer({ course, userProgress, onStartLesson, onCompleteLesson, onEnroll }: CourseViewerProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+  const [modules, setModules] = useState<Module[]>([]);
 
-  const isEnrolled = userProgress?.isEnrolled || false;
-  const overallProgress = userProgress?.progress || 0;
+  const isEnrolled = userProgress?.isEnrolled || course?.isEnrolled || false;
+  const overallProgress = userProgress?.progress || course?.progress || 0;
+
+  // Fetch course modules and lessons
+  React.useEffect(() => {
+    if (course?.id) {
+      fetch(`/api/training/courses/${course.id}/modules`)
+        .then(res => res.json())
+        .then(data => setModules(data))
+        .catch(err => console.error('Failed to fetch modules:', err));
+    }
+  }, [course?.id]);
   
   const calculateModuleProgress = (moduleId: number) => {
     if (!userProgress?.moduleProgress) return 0;

@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CourseViewer from "@/components/training/course-viewer";
 
 interface Course {
   id: number;
@@ -83,6 +84,7 @@ export default function ModernTrainingHub() {
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [activeTab, setActiveTab] = useState("catalog");
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [viewingCourse, setViewingCourse] = useState<Course | null>(null);
 
   // Fetch courses with user-specific data
   const { data: courses, isLoading: coursesLoading } = useQuery({
@@ -221,7 +223,7 @@ export default function ModernTrainingHub() {
               <Button 
                 size="sm" 
                 className="w-full"
-                onClick={() => setSelectedCourse(course)}
+                onClick={() => setViewingCourse(course)}
               >
                 Continue Learning
               </Button>
@@ -490,7 +492,13 @@ export default function ModernTrainingHub() {
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button className="flex-1">
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    setSelectedCourse(null);
+                    setViewingCourse(selectedCourse);
+                  }}
+                >
                   <PlayCircle className="w-4 h-4 mr-2" />
                   Start Course
                 </Button>
@@ -499,6 +507,25 @@ export default function ModernTrainingHub() {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Course Viewer */}
+      {viewingCourse && (
+        <Dialog open={!!viewingCourse} onOpenChange={() => setViewingCourse(null)}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+            <CourseViewer 
+              course={viewingCourse}
+              userProgress={userProgress?.enrolledCourses?.find((c: Course) => c.id === viewingCourse.id)}
+              onStartLesson={(lessonId) => {
+                console.log("Starting lesson:", lessonId);
+              }}
+              onCompleteLesson={(lessonId) => {
+                console.log("Completing lesson:", lessonId);
+              }}
+              onEnroll={() => enrollMutation.mutate(viewingCourse.id)}
+            />
           </DialogContent>
         </Dialog>
       )}
