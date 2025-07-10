@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +17,6 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
-  Users,
-  Calendar,
   BarChart3,
   Target,
   GraduationCap,
@@ -26,30 +24,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-
-interface TrainingDashboard {
-  analytics: {
-    totalCoursesEnrolled: number;
-    totalCoursesCompleted: number;
-    averageGrade: number;
-    totalStudyHours: number;
-    competencyScore: number;
-    trainingEfficiency: number;
-    strongAreas: string[];
-    improvementAreas: string[];
-    recommendedCourses: string[];
-    readinessLevel: string;
-  } | null;
-  recentCompletions: any[];
-  certificates: any[];
-  currentProgress: any[];
-  summary: {
-    coursesCompleted: number;
-    certificatesEarned: number;
-    competencyLevel: number;
-    readinessStatus: string;
-  };
-}
 
 export default function TrainingAnalyticsDashboard() {
   const { user } = useAuth();
@@ -60,12 +34,14 @@ export default function TrainingAnalyticsDashboard() {
   // Fetch training dashboard data
   const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ['/api/training/dashboard'],
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 30000,
+    retry: 2
   });
 
   // Fetch user certificates
-  const { data: certificates } = useQuery({
-    queryKey: ['/api/certificates/user']
+  const { data: certificates, isLoading: certificatesLoading } = useQuery({
+    queryKey: ['/api/certificates/user'],
+    retry: 2
   });
 
   // Sync progress mutation
@@ -73,7 +49,9 @@ export default function TrainingAnalyticsDashboard() {
     mutationFn: async () => {
       const response = await fetch('/api/training/sync-progress', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json'
+        }
       });
       if (!response.ok) throw new Error('Failed to sync progress');
       return response.json();
@@ -145,13 +123,14 @@ export default function TrainingAnalyticsDashboard() {
   }
 
   if (error) {
+    console.error("Training dashboard error:", error);
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
         <div className="max-w-7xl mx-auto">
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Failed to load training analytics. Please connect your Google Classroom account first.
+              Failed to load training analytics. Please try refreshing the page or contact support.
             </AlertDescription>
           </Alert>
         </div>
@@ -160,7 +139,7 @@ export default function TrainingAnalyticsDashboard() {
   }
 
   const analytics = dashboard?.analytics;
-  const competency = analytics ? getCompetencyLevel(analytics.competencyScore) : { label: 'Unknown', color: 'bg-gray-500' };
+  const competency = analytics ? getCompetencyLevel(analytics.competencyScore || 0) : { label: 'Unknown', color: 'bg-gray-500' };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -275,22 +254,22 @@ export default function TrainingAnalyticsDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {analytics && (
+                  {analytics ? (
                     <>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Average Grade</span>
-                          <span className="font-medium">{analytics.averageGrade.toFixed(1)}%</span>
+                          <span className="font-medium">{analytics.averageGrade?.toFixed(1) || 0}%</span>
                         </div>
-                        <Progress value={analytics.averageGrade} className="h-2" />
+                        <Progress value={analytics.averageGrade || 0} className="h-2" />
                       </div>
                       
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Training Efficiency</span>
-                          <span className="font-medium">{analytics.trainingEfficiency.toFixed(1)}%</span>
+                          <span className="font-medium">{analytics.trainingEfficiency?.toFixed(1) || 0}%</span>
                         </div>
-                        <Progress value={analytics.trainingEfficiency} className="h-2" />
+                        <Progress value={analytics.trainingEfficiency || 0} className="h-2" />
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t">
@@ -298,9 +277,11 @@ export default function TrainingAnalyticsDashboard() {
                           <Clock className="h-4 w-4 text-gray-500" />
                           <span className="text-sm text-gray-600">Study Hours</span>
                         </div>
-                        <span className="font-medium">{analytics.totalStudyHours.toFixed(1)}h</span>
+                        <span className="font-medium">{analytics.totalStudyHours?.toFixed(1) || 0}h</span>
                       </div>
                     </>
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">No analytics data available</p>
                   )}
                 </CardContent>
               </Card>
@@ -314,99 +295,33 @@ export default function TrainingAnalyticsDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {analytics && (
-                    <>
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="text-sm font-medium text-green-600 mb-2">Strong Areas</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {analytics.strongAreas.map((area, index) => (
-                              <Badge key={index} variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                                {area}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h4 className="text-sm font-medium text-orange-600 mb-2">Improvement Areas</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {analytics.improvementAreas.map((area, index) => (
-                              <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
-                                {area}
-                              </Badge>
-                            ))}
-                          </div>
+                  {analytics && analytics.strongAreas && analytics.improvementAreas ? (
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="text-sm font-medium text-green-600 mb-2">Strong Areas</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {analytics.strongAreas.map((area, index) => (
+                            <Badge key={index} variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                              {area}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-                    </>
+                      
+                      <div>
+                        <h4 className="text-sm font-medium text-orange-600 mb-2">Improvement Areas</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {analytics.improvementAreas.map((area, index) => (
+                            <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                              {area}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">Complete courses to see skill assessment</p>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="progress" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Completions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Recent Completions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {dashboard?.recentCompletions?.map((completion) => (
-                      <div key={completion.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div>
-                          <h4 className="font-medium">{completion.courseName}</h4>
-                          <p className="text-sm text-gray-600">
-                            Completed {new Date(completion.completionDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge className={getCompetencyLevel(completion.finalGrade || 0).color}>
-                            {(completion.finalGrade || 0).toFixed(1)}%
-                          </Badge>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {completion.competencyLevel}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Current Progress */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Current Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {dashboard?.currentProgress?.map((progress) => (
-                      <div key={progress.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-sm">{progress.details?.assignmentTitle || 'Assignment'}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {progress.progressType.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <Progress value={progress.progressValue || 0} className="h-1" />
-                          <p className="text-xs text-gray-500">
-                            Last updated: {new Date(progress.lastSyncDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -424,40 +339,46 @@ export default function TrainingAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {certificates?.map((cert) => (
-                    <Card key={cert.id} className="border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <Award className="h-8 w-8 text-yellow-500" />
-                          <Badge variant="secondary">{cert.certificateType.replace('_', ' ')}</Badge>
-                        </div>
-                        <CardTitle className="text-sm">{cert.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <p className="text-xs text-gray-600 mb-3">{cert.description}</p>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span>Certificate #:</span>
-                            <span className="font-mono">{cert.certificateNumber}</span>
+                {certificatesLoading ? (
+                  <p className="text-center py-4">Loading certificates...</p>
+                ) : certificates && certificates.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {certificates.map((cert) => (
+                      <Card key={cert.id} className="border-2 border-dashed border-gray-200 hover:border-blue-300 transition-colors">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <Award className="h-8 w-8 text-yellow-500" />
+                            <Badge variant="secondary">{cert.certificateType?.replace('_', ' ') || 'Certificate'}</Badge>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Issued:</span>
-                            <span>{new Date(cert.issueDate).toLocaleDateString()}</span>
+                          <CardTitle className="text-sm">{cert.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-xs text-gray-600 mb-3">{cert.description}</p>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span>Certificate #:</span>
+                              <span className="font-mono text-xs">{cert.certificateNumber}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Issued:</span>
+                              <span>{new Date(cert.issueDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Downloads:</span>
+                              <span>{cert.downloadCount || 0}</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Downloads:</span>
-                            <span>{cert.downloadCount}</span>
-                          </div>
-                        </div>
-                        <Button size="sm" className="w-full mt-3" variant="outline">
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                          <Button size="sm" className="w-full mt-3" variant="outline">
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No certificates earned yet. Complete training courses to earn certificates!</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -474,24 +395,44 @@ export default function TrainingAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {analytics?.recommendedCourses?.map((course, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
-                          <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                {analytics?.recommendedCourses && analytics.recommendedCourses.length > 0 ? (
+                  <div className="space-y-4">
+                    {analytics.recommendedCourses.map((course, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                            <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{course}</h4>
+                            <p className="text-sm text-gray-600">Recommended for your career advancement</p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-medium">{course}</h4>
-                          <p className="text-sm text-gray-600">Recommended for your career advancement</p>
-                        </div>
+                        <Button size="sm" variant="outline">
+                          View Course
+                        </Button>
                       </div>
-                      <Button size="sm" variant="outline">
-                        View Course
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">Complete more courses to receive personalized recommendations!</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="progress" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Learning Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500 text-center py-8">
+                  Connect your Google Classroom account to view detailed progress tracking
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
