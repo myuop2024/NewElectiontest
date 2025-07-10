@@ -29,6 +29,9 @@ export default function TrainingSetupGuide() {
 
   const currentDomain = window.location.origin;
   const redirectUri = `${currentDomain}/api/auth/google/callback`;
+  
+  // Also show the current Replit domain if available
+  const replitDomain = window.location.hostname;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -137,16 +140,21 @@ export default function TrainingSetupGuide() {
                     </div>
                     <div className="text-xs">
                       <strong>Authorized redirect URI:</strong>
-                      <div className="flex items-center gap-2 mt-1">
-                        <code className="bg-gray-100 px-2 py-1 rounded text-xs">{redirectUri}</code>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => copyToClipboard(redirectUri)}
-                          className="h-6 px-2"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                      <div className="space-y-2 mt-1">
+                        <div className="flex items-center gap-2">
+                          <code className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">{redirectUri}</code>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => copyToClipboard(redirectUri)}
+                            className="h-6 px-2"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="text-red-600 bg-red-50 p-2 rounded text-xs">
+                          <strong>⚠️ Important:</strong> Copy this exact URI to your Google Cloud Console
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -204,11 +212,25 @@ export default function TrainingSetupGuide() {
                 </div>
 
                 <div>
-                  <strong>Redirect URI Mismatch:</strong>
-                  <p className="text-muted-foreground">
-                    Ensure the redirect URI in Google Cloud Console exactly matches: <br />
-                    <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">{redirectUri}</code>
+                  <strong>Redirect URI Mismatch (Error 400):</strong>
+                  <p className="text-muted-foreground mb-2">
+                    This error means the redirect URI in Google Cloud Console doesn't match your current domain.
                   </p>
+                  <div className="bg-red-50 border border-red-200 p-3 rounded">
+                    <p className="text-sm font-semibold text-red-800 mb-2">Required Action:</p>
+                    <p className="text-sm text-red-700 mb-2">Add this exact URI to your Google Cloud Console:</p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-white px-2 py-1 rounded border flex-1">{redirectUri}</code>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => copyToClipboard(redirectUri)}
+                        className="h-6 px-2 border-red-300"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
                 <div>

@@ -8,9 +8,11 @@ export class GoogleClassroomService {
   constructor() {
     // Use proper redirect URI for current environment
     const getRedirectUri = () => {
+      // For Replit, use the current domain from environment variables
       if (process.env.REPLIT_DEV_DOMAIN) {
         return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
       }
+      // Fallback to localhost for local development
       return 'http://localhost:5000/api/auth/google/callback';
     };
 
