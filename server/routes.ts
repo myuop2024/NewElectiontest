@@ -2199,6 +2199,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   // Enhanced Training System API Endpoints
   
   // Enhanced courses with user-specific enrollment data

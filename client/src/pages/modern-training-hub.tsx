@@ -122,24 +122,37 @@ export default function ModernTrainingHub() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId })
       });
-      if (!res.ok) throw new Error("Failed to enroll");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to enroll");
+      }
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/courses/enhanced"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training/my-progress"] });
       toast({ title: "Successfully enrolled in course!" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Enrollment failed", 
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 
   // Filter courses based on search and filters
   const filteredCourses = courses?.filter((course: Course) => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = searchTerm === "" || 
+                         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || course.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || 
+                           course.category === selectedCategory ||
+                           course.role?.toLowerCase().includes(selectedCategory.toLowerCase());
     const matchesDifficulty = selectedDifficulty === "all" || course.difficulty === selectedDifficulty;
-    const matchesRole = course.role === user?.role || course.role === "All";
     
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesRole;
+    return matchesSearch && matchesCategory && matchesDifficulty;
   }) || [];
 
   // Get recommended courses for user
