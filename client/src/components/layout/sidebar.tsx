@@ -113,12 +113,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 government-sidebar">
       <div className="flex flex-col items-center p-4 border-b border-border">
-        <img 
-          src={caffeLogo} 
-          alt="CAFFE Logo" 
-          className="w-16 h-16 object-contain mb-2"
-        />
-        <h2 className="text-lg font-bold caffe-primary">CAFFE</h2>
+        <h2 className="text-lg font-bold caffe-primary">Navigation</h2>
         <p className="text-xs text-muted-foreground text-center">Electoral Observer Platform</p>
       </div>
       <nav className="mt-6 px-3">
