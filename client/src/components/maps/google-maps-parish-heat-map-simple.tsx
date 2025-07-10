@@ -45,6 +45,9 @@ export default function GoogleMapsParishHeatMapSimple({
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyLoading, setApiKeyLoading] = useState(true);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
   // Get metric value for a parish
   const getMetricValue = (parishName: string): number => {
@@ -111,6 +114,26 @@ export default function GoogleMapsParishHeatMapSimple({
       }
     };
 
+    const loadApiKey = async () => {
+      try {
+        setApiKeyLoading(true);
+        const response = await fetch('/api/settings/google-maps-api');
+        if (!response.ok) throw new Error('Failed to fetch API key');
+        const data = await response.json();
+        if (data.hasKey) {
+          setApiKey(data.apiKey);
+        } else {
+          setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');
+        }
+      } catch (error) {
+        console.error('Error fetching Google Maps API key:', error);
+        setApiKeyError('Failed to load Google Maps API configuration.');
+      } finally {
+        setApiKeyLoading(false);
+      }
+    };
+    loadApiKey();
+
     // Check if Google Maps is already loaded
     if (typeof google !== 'undefined' && google.maps) {
       console.log('[DEBUG] Google Maps API already loaded');
@@ -118,7 +141,6 @@ export default function GoogleMapsParishHeatMapSimple({
     } else {
       // Load Google Maps API
       const script = document.createElement('script');
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
       
       if (!apiKey) {
         console.error('[DEBUG] Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
@@ -200,6 +222,27 @@ export default function GoogleMapsParishHeatMapSimple({
 
     setMarkers(newMarkers);
   }, [map, parishStats, selectedMetric, selectedParish, onParishSelect]);
+
+  if (apiKeyLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading Google Maps...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (apiKeyError || !apiKey) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+        <div className="text-center p-4">
+          <p className="text-red-600 dark:text-red-400">{apiKeyError || 'Google Maps API key not available'}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!map) {
     return (

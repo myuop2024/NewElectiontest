@@ -415,6 +415,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google Maps API Settings - Public endpoint for map functionality
+  app.get("/api/settings/google-maps-api", async (req: Request, res: Response) => {
+    try {
+      const envApiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (envApiKey) {
+        res.json({ 
+          configured: true,
+          hasKey: true,
+          apiKey: envApiKey
+        });
+        return;
+      }
+      const setting = await storage.getSettingByKey("GOOGLE_MAPS_API_KEY");
+      const hasKey = !!(setting?.value);
+      res.json({ 
+        configured: hasKey,
+        hasKey: hasKey,
+        apiKey: hasKey ? setting.value : undefined
+      });
+    } catch (error) {
+      console.error("Get Google Maps API settings error:", error);
+      res.status(500).json({ message: "Failed to get Google Maps API settings" });
+    }
+  });
+
+  app.post("/api/settings/google-maps-api", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { apiKey } = req.body;
+      if (!apiKey) {
+        return res.status(400).json({ message: "API key is required" });
+      }
+      await storage.updateSetting("GOOGLE_MAPS_API_KEY", apiKey, req.user.id);
+      res.json({ message: "Google Maps API key updated successfully" });
+    } catch (error) {
+      console.error("Update Google Maps API key error:", error);
+      res.status(500).json({ message: "Failed to update Google Maps API key" });
+    }
+  });
+
   // Observer assignments routes
   app.get("/api/assignments", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
