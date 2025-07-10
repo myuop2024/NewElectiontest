@@ -21,13 +21,15 @@ import {
   Target,
   Brain,
   Filter,
-  Search
+  Search,
+  ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CourseViewer from "@/components/training/course-viewer";
+import { GoogleClassroomHub } from "@/components/training/google-classroom-hub";
 
 interface Course {
   id: number;
@@ -334,7 +336,7 @@ export default function ModernTrainingHub() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="catalog" className="flex items-center gap-2">
             <Search className="w-4 h-4" />
             Course Catalog
@@ -350,6 +352,10 @@ export default function ModernTrainingHub() {
           <TabsTrigger value="recommended" className="flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
             Recommended
+          </TabsTrigger>
+          <TabsTrigger value="classroom" className="flex items-center gap-2">
+            <GraduationCap className="w-4 h-4" />
+            Google Classroom
           </TabsTrigger>
         </TabsList>
 
@@ -442,6 +448,11 @@ export default function ModernTrainingHub() {
               <CourseCard key={course.id} course={course} />
             ))}
           </div>
+        </TabsContent>
+
+        {/* Google Classroom Tab */}
+        <TabsContent value="classroom">
+          <GoogleClassroomHub />
         </TabsContent>
       </Tabs>
 
