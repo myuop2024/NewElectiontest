@@ -2221,9 +2221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Generating auth URL for user:", userId);
       
       // Dynamically determine the current domain for redirect URI
-      // Always use https for Replit domains, http only for localhost
+      // Check for forwarded protocol header from proxy, fallback to protocol detection
       const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-      const protocol = host.includes('localhost') ? 'http' : 'https';
+      const protocol = req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
       const currentRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
       
       console.log("Using dynamic redirect URI:", currentRedirectUri);
@@ -2243,40 +2243,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Classroom OAuth callback
   app.get("/api/auth/google/callback", async (req: Request, res: Response) => {
     try {
-      console.log("OAuth callback received:", req.query);
+      console.log("=== OAuth Callback Debug ===");
+      console.log("Full request URL:", req.url);
+      console.log("Host header:", req.get('host'));
+      console.log("X-Forwarded-Proto:", req.get('x-forwarded-proto'));
+      console.log("Query params:", req.query);
+      console.log("Headers:", Object.fromEntries(Object.entries(req.headers).filter(([k]) => k.includes('host') || k.includes('proto'))));
+      
       const { code, state, error } = req.query;
       
       if (error) {
-        console.error("OAuth error:", error);
-        const protocol = req.secure ? 'https' : 'http';
+        console.error("OAuth error from Google:", error);
+        // Determine the correct base URL for redirect
         const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+        const protocol = req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
         const baseUrl = `${protocol}://${host}`;
+        console.log("Redirecting to error page:", `${baseUrl}/training-center?error=access_denied`);
         return res.redirect(`${baseUrl}/training-center?error=access_denied`);
       }
       
       if (!code || !state) {
-        console.error("Missing code or state:", { code: !!code, state: !!state });
-        return res.status(400).send("Missing authorization code or state");
+        console.error("Missing required OAuth parameters:", { code: !!code, state: !!state });
+        const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+        const protocol = req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+        const baseUrl = `${protocol}://${host}`;
+        return res.redirect(`${baseUrl}/training-center?error=missing_params`);
       }
 
       const userId = parseInt(state as string);
-      console.log("Processing OAuth for user:", userId);
+      console.log("Processing OAuth callback for user:", userId);
       
       if (!classroomService) {
-        console.error("classroomService not initialized");
-        const protocol = req.secure ? 'https' : 'http';
+        console.error("ClassroomService not initialized - this should not happen");
         const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+        const protocol = req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
         const baseUrl = `${protocol}://${host}`;
         return res.redirect(`${baseUrl}/training-center?error=service_unavailable`);
       }
       
-      // Use the same redirect URI as the auth URL for consistency
-      // Always use https for Replit domains, http only for localhost
+      // Determine the exact redirect URI that was used in the auth URL
       const callbackHost = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-      const callbackProtocol = callbackHost.includes('localhost') ? 'http' : 'https';
+      const callbackProtocol = req.get('x-forwarded-proto') || (callbackHost.includes('localhost') ? 'http' : 'https');
       const currentRedirectUri = `${callbackProtocol}://${callbackHost}/api/auth/google/callback`;
       
-      console.log("Using callback redirect URI:", currentRedirectUri);
+      console.log("Callback redirect URI for token exchange:", currentRedirectUri);
       
       const tokens = await classroomService.getTokens(code as string, currentRedirectUri);
       console.log("Tokens received:", tokens ? Object.keys(tokens) : "no tokens");
@@ -2299,14 +2309,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
+      console.log("=== OAuth Success ===");
+      console.log("Tokens stored successfully for user:", userId);
+      
       // Redirect back to training hub using the current domain from the request
       const baseUrl = `${callbackProtocol}://${callbackHost}`;
+      
+      console.log("Redirecting to success page:", `${baseUrl}/training-center?connected=true`);
       res.redirect(`${baseUrl}/training-center?connected=true`);
     } catch (error) {
-      console.error("Error in OAuth callback:", error);
-      const errorProtocol = req.secure ? 'https' : 'http';
+      console.error("=== OAuth Error ===");
+      console.error("Error details:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
       const errorHost = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const errorProtocol = req.get('x-forwarded-proto') || (errorHost.includes('localhost') ? 'http' : 'https');
       const errorBaseUrl = `${errorProtocol}://${errorHost}`;
+      
+      console.log("Redirecting to error page:", `${errorBaseUrl}/training-center?error=auth_failed`);
       res.redirect(`${errorBaseUrl}/training-center?error=auth_failed`);
     }
   });
