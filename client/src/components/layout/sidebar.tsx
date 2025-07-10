@@ -39,7 +39,7 @@ const navigation = [
   { name: 'My Reports', href: '/reports', icon: FileText },
   { name: 'Polling Stations', href: '/polling-stations', icon: MapPin },
   { name: 'Weather Conditions', href: '/weather-dashboard', icon: Cloud },
-  { name: 'Training', href: '/training-center', icon: GraduationCap },
+  { name: 'Training Hub', href: '/training-center', icon: GraduationCap },
   { name: 'QR Tools', href: '/qr-scanner', icon: QrCode },
   { name: 'Support', href: '/live-chat', icon: MessageCircle },
   { name: 'Settings', href: '/settings', icon: Settings },

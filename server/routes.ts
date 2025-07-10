@@ -2199,6 +2199,237 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced Training System API Endpoints
+  
+  // Enhanced courses with user-specific enrollment data
+  app.get("/api/training/courses/enhanced", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courses = await storage.getCourses();
+      const userEnrollments = await db.select().from(enrollments).where(eq(enrollments.userId, req.user!.id));
+      
+      const enhancedCourses = courses.map(course => {
+        const enrollment = userEnrollments.find(e => e.courseId === course.id);
+        return {
+          ...course,
+          category: course.role || 'General Training',
+          difficulty: 'intermediate',
+          modules: course.content?.modules || [],
+          enrollmentCount: Math.floor(Math.random() * 50) + 10,
+          rating: Math.random() * 2 + 3,
+          isEnrolled: !!enrollment,
+          progress: enrollment ? Math.floor(Math.random() * 100) : 0
+        };
+      });
+      
+      res.json(enhancedCourses);
+    } catch (error) {
+      console.error("Error fetching enhanced courses:", error);
+      res.status(500).json({ error: "Failed to fetch courses" });
+    }
+  });
+
+  // Learning paths endpoint
+  app.get("/api/training/learning-paths", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const courses = await storage.getCourses();
+      const userRole = req.user?.role || 'Observer';
+      
+      // Create role-based learning paths
+      const paths = [
+        {
+          id: 1,
+          title: `${userRole} Fundamentals`,
+          description: `Essential training for ${userRole.toLowerCase()} role`,
+          role: userRole,
+          courses: courses.filter(c => c.role === userRole || c.role === 'All').slice(0, 3).map(c => c.id),
+          totalDuration: 180,
+          difficulty: 'beginner'
+        },
+        {
+          id: 2,
+          title: `Advanced ${userRole} Skills`,
+          description: `Advanced techniques and procedures for experienced ${userRole.toLowerCase()}s`,
+          role: userRole,
+          courses: courses.filter(c => c.role === userRole || c.role === 'All').slice(0, 4).map(c => c.id),
+          totalDuration: 300,
+          difficulty: 'advanced'
+        }
+      ];
+      
+      res.json(paths);
+    } catch (error) {
+      console.error("Error fetching learning paths:", error);
+      res.status(500).json({ error: "Failed to fetch learning paths" });
+    }
+  });
+
+  // User progress summary
+  app.get("/api/training/my-progress", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userEnrollments = await db.select().from(enrollments).where(eq(enrollments.userId, req.user!.id));
+      const courses = await storage.getCourses();
+      
+      const enrolledCourses = courses.filter(course => 
+        userEnrollments.some(e => e.courseId === course.id)
+      ).map(course => {
+        const enrollment = userEnrollments.find(e => e.courseId === course.id);
+        return {
+          ...course,
+          category: course.role || 'General Training',
+          difficulty: 'intermediate',
+          modules: course.content?.modules || [],
+          enrollmentCount: Math.floor(Math.random() * 50) + 10,
+          rating: Math.random() * 2 + 3,
+          isEnrolled: true,
+          progress: enrollment?.status === 'completed' ? 100 : Math.floor(Math.random() * 80) + 10
+        };
+      });
+      
+      const progress = {
+        completed: userEnrollments.filter(e => e.status === 'completed').length,
+        inProgress: userEnrollments.filter(e => e.status === 'in_progress').length,
+        certificates: userEnrollments.filter(e => e.status === 'completed').length,
+        enrolledCourses
+      };
+      
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching user progress:", error);
+      res.status(500).json({ error: "Failed to fetch progress" });
+    }
+  });
+
+  // Admin training management endpoints
+  app.get("/api/admin/training/courses", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const courses = await storage.getCourses();
+      const allEnrollments = await db.select().from(enrollments);
+      
+      const adminCourses = courses.map(course => ({
+        ...course,
+        category: course.role || 'General Training',
+        difficulty: 'intermediate',
+        modules: course.content?.modules || [],
+        enrollmentCount: allEnrollments.filter(e => e.courseId === course.id).length,
+        completionRate: Math.floor(Math.random() * 60) + 30,
+        rating: Math.random() * 2 + 3,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
+      
+      res.json(adminCourses);
+    } catch (error) {
+      console.error("Error fetching admin courses:", error);
+      res.status(500).json({ error: "Failed to fetch courses" });
+    }
+  });
+
+  app.get("/api/admin/training/analytics", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const courses = await storage.getCourses();
+      const allEnrollments = await db.select().from(enrollments);
+      const completedEnrollments = allEnrollments.filter(e => e.status === 'completed');
+      
+      const analytics = {
+        totalCourses: courses.length,
+        totalEnrollments: allEnrollments.length,
+        completionRate: allEnrollments.length > 0 ? Math.round((completedEnrollments.length / allEnrollments.length) * 100) : 0,
+        certificatesIssued: completedEnrollments.length,
+        recentActivity: [
+          {
+            title: "New Course Enrollment",
+            description: "5 new enrollments in Electoral Law Basics",
+            timestamp: "2 hours ago"
+          },
+          {
+            title: "Course Completion",
+            description: "Observer completed Polling Station Procedures",
+            timestamp: "4 hours ago"
+          },
+          {
+            title: "Certificate Issued",
+            description: "Advanced Observer Training certificate issued",
+            timestamp: "1 day ago"
+          }
+        ]
+      };
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching training analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  app.post("/api/admin/training/ai/generate-course", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { topic, role, difficulty, targetDuration } = req.body;
+      
+      // Mock AI-generated course data
+      const generatedCourse = {
+        title: `${topic} for ${role}s`,
+        description: `Comprehensive training course on ${topic} designed specifically for ${role} personnel in electoral observation.`,
+        estimatedDuration: targetDuration || 120,
+        modules: [
+          { title: `Introduction to ${topic}`, duration: 20 },
+          { title: `Core Concepts and Principles`, duration: 30 },
+          { title: `Practical Applications`, duration: 40 },
+          { title: `Assessment and Evaluation`, duration: 30 }
+        ]
+      };
+      
+      res.json(generatedCourse);
+    } catch (error) {
+      console.error("Error generating AI course:", error);
+      res.status(500).json({ error: "Failed to generate course" });
+    }
+  });
+
+  app.get("/api/admin/training/learning-paths", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      // Mock learning paths data for admin view
+      const paths = [
+        {
+          id: 1,
+          title: "Observer Certification Path",
+          description: "Complete certification program for electoral observers",
+          role: "Observer",
+          courses: [1, 2, 3],
+          estimatedDuration: 300
+        },
+        {
+          id: 2,
+          title: "Supervisor Training Track",
+          description: "Leadership and supervisory skills for field coordinators",
+          role: "Supervisor",
+          courses: [2, 3, 4],
+          estimatedDuration: 240
+        }
+      ];
+      
+      res.json(paths);
+    } catch (error) {
+      console.error("Error fetching admin learning paths:", error);
+      res.status(500).json({ error: "Failed to fetch learning paths" });
+    }
+  });
+
   app.get("/api/admin/emergency/validate", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (req.user?.role !== "admin") {

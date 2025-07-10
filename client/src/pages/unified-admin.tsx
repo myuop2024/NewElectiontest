@@ -32,7 +32,8 @@ import {
   Save,
   TestTube,
   Cloud,
-  Brain
+  Brain,
+  GraduationCap
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -485,19 +486,21 @@ export default function UnifiedAdmin() {
                       onClick={() => window.open('/training-center', '_blank')}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
-                      Open Training Center
+                      <GraduationCap className="w-4 h-4 mr-2" />
+                      Student Experience
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => window.open('/admin/enhanced-training', '_blank')}
+                      onClick={() => window.open('/admin-training', '_blank')}
                     >
-                      Enhanced Management
+                      <Brain className="w-4 h-4 mr-2" />
+                      Training Administration
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => window.open('/admin/training', '_blank')}
+                      onClick={() => window.open('/legacy-training-center', '_blank')}
                     >
-                      Basic Training Management
+                      Legacy Interface
                     </Button>
                   </div>
                   

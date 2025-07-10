@@ -20,6 +20,8 @@ import RouteNavigation from "@/pages/route-navigation";
 import TrainingCenter from "@/pages/training-center";
 import TrainingManagement from "@/pages/TrainingManagement";
 import EnhancedTrainingManagement from "@/pages/EnhancedTrainingManagement";
+import ModernTrainingHub from "@/pages/modern-training-hub";
+import UnifiedTrainingAdmin from "@/pages/unified-training-admin";
 import Analytics from "@/pages/analytics";
 import QRScanner from "@/pages/qr-scanner";
 import CheckIn from "@/pages/check-in";
@@ -118,22 +120,37 @@ function Router() {
       </Route>
       <Route path="/training-center">
         <ProtectedLayout>
-          <TrainingCenter />
+          <ModernTrainingHub />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/modern-training-hub">
+        <ProtectedLayout>
+          <ModernTrainingHub />
         </ProtectedLayout>
       </Route>
       <Route path="/admin-training">
         <ProtectedLayout>
-          <TrainingManagement />
+          <UnifiedTrainingAdmin />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/unified-training-admin">
+        <ProtectedLayout>
+          <UnifiedTrainingAdmin />
         </ProtectedLayout>
       </Route>
       <Route path="/admin/enhanced-training">
         <ProtectedLayout>
-          <EnhancedTrainingManagement />
+          <UnifiedTrainingAdmin />
         </ProtectedLayout>
       </Route>
       <Route path="/admin/training">
         <ProtectedLayout>
-          <TrainingManagement />
+          <UnifiedTrainingAdmin />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/legacy-training-center">
+        <ProtectedLayout>
+          <TrainingCenter />
         </ProtectedLayout>
       </Route>
       <Route path="/analytics">
