@@ -2232,7 +2232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (error) {
         console.error("OAuth error:", error);
-        return res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?error=access_denied`);
+        const protocol = req.secure ? 'https' : 'http';
+        const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+        const baseUrl = `${protocol}://${host}`;
+        return res.redirect(`${baseUrl}/training-center?error=access_denied`);
       }
       
       if (!code || !state) {
@@ -2260,11 +2263,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Redirect back to training hub
-      res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?connected=true`);
+      // Redirect back to training hub using the current domain from the request
+      const protocol = req.secure ? 'https' : 'http';
+      const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      res.redirect(`${baseUrl}/training-center?connected=true`);
     } catch (error) {
       console.error("Error in OAuth callback:", error);
-      res.redirect(`${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : 'http://localhost:5000'}/training-center?error=auth_failed`);
+      const protocol = req.secure ? 'https' : 'http';
+      const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      res.redirect(`${baseUrl}/training-center?error=auth_failed`);
     }
   });
 
