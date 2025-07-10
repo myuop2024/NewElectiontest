@@ -30,8 +30,9 @@ export default function TrainingSetupGuide() {
   const currentDomain = window.location.origin;
   const redirectUri = `${currentDomain}/api/auth/google/callback`;
   
-  // Also show the current Replit domain if available
-  const replitDomain = window.location.hostname;
+  // Check if using a custom domain or Replit's changing domain
+  const isReplitDevDomain = window.location.hostname.includes('.replit.dev');
+  const isChangingDomain = window.location.hostname.includes('-00-');
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -155,6 +156,11 @@ export default function TrainingSetupGuide() {
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
+                        {isChangingDomain && (
+                          <div className="text-amber-600 bg-amber-50 p-2 rounded text-xs">
+                            <strong>⚠️ Domain Issue:</strong> This Replit domain changes on restart. Consider using a custom domain for production.
+                          </div>
+                        )}
                         <div className="text-red-600 bg-red-50 p-2 rounded text-xs">
                           <strong>⚠️ Important:</strong> Copy this exact URI to your Google Cloud Console
                         </div>
@@ -234,6 +240,15 @@ export default function TrainingSetupGuide() {
                   <p className="text-muted-foreground mb-2">
                     This error means the redirect URI in Google Cloud Console doesn't match your current domain.
                   </p>
+                  {isChangingDomain && (
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-3">
+                      <p className="text-sm font-semibold text-yellow-800 mb-1">Replit Domain Issue:</p>
+                      <p className="text-sm text-yellow-700">
+                        Your current domain changes each time you restart. For production use, set up a custom domain 
+                        in Replit settings to avoid having to update Google Cloud Console repeatedly.
+                      </p>
+                    </div>
+                  )}
                   <div className="bg-red-50 border border-red-200 p-3 rounded">
                     <p className="text-sm font-semibold text-red-800 mb-2">Required Action:</p>
                     <p className="text-sm text-red-700 mb-2">Add this exact URI to your Google Cloud Console:</p>
