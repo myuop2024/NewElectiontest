@@ -64,8 +64,13 @@ export class GoogleClassroomService {
 
   // Exchange authorization code for tokens
   async getTokens(code: string) {
-    const { tokens } = await this.oauth2Client.getAccessToken(code);
-    return tokens;
+    try {
+      const { tokens } = await this.oauth2Client.getToken(code);
+      return tokens;
+    } catch (error) {
+      console.error('Error exchanging code for tokens:', error);
+      throw error;
+    }
   }
 
   // Set credentials for authenticated requests

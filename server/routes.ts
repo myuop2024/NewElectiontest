@@ -2228,6 +2228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Classroom OAuth callback
   app.get("/api/auth/google/callback", async (req: Request, res: Response) => {
     try {
+      console.log("OAuth callback received:", req.query);
       const { code, state, error } = req.query;
       
       if (error) {
@@ -2239,11 +2240,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!code || !state) {
+        console.error("Missing code or state:", { code: !!code, state: !!state });
         return res.status(400).send("Missing authorization code or state");
       }
 
       const userId = parseInt(state as string);
+      console.log("Processing OAuth for user:", userId);
+      
+      if (!classroomService) {
+        console.error("classroomService not initialized");
+        const protocol = req.secure ? 'https' : 'http';
+        const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+        const baseUrl = `${protocol}://${host}`;
+        return res.redirect(`${baseUrl}/training-center?error=service_unavailable`);
+      }
+      
       const tokens = await classroomService.getTokens(code as string);
+      console.log("Tokens received:", tokens ? Object.keys(tokens) : "no tokens");
 
       // Store tokens in database
       await db.insert(googleClassroomTokens).values({
