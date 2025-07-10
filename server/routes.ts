@@ -2220,8 +2220,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       console.log("Generating auth URL for user:", userId);
       
-      const authUrl = classroomService.getAuthUrl(userId.toString());
-      console.log("Auth URL generated successfully");
+      // Dynamically determine the current domain for redirect URI
+      const protocol = req.secure ? 'https' : 'http';
+      const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const currentRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
+      
+      console.log("Using dynamic redirect URI:", currentRedirectUri);
+      
+      const authUrl = classroomService.getAuthUrl(userId.toString(), currentRedirectUri);
+      console.log("Auth URL generated successfully with dynamic redirect");
       
       res.json({ authUrl });
     } catch (error) {
@@ -2262,7 +2269,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect(`${baseUrl}/training-center?error=service_unavailable`);
       }
       
-      const tokens = await classroomService.getTokens(code as string);
+      // Use the same redirect URI as the auth URL for consistency
+      const callbackProtocol = req.secure ? 'https' : 'http';
+      const callbackHost = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const currentRedirectUri = `${callbackProtocol}://${callbackHost}/api/auth/google/callback`;
+      
+      console.log("Using callback redirect URI:", currentRedirectUri);
+      
+      const tokens = await classroomService.getTokens(code as string, currentRedirectUri);
       console.log("Tokens received:", tokens ? Object.keys(tokens) : "no tokens");
 
       // Store tokens in database
@@ -2284,16 +2298,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Redirect back to training hub using the current domain from the request
-      const protocol = req.secure ? 'https' : 'http';
-      const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl = `${callbackProtocol}://${callbackHost}`;
       res.redirect(`${baseUrl}/training-center?connected=true`);
     } catch (error) {
       console.error("Error in OAuth callback:", error);
-      const protocol = req.secure ? 'https' : 'http';
-      const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-      const baseUrl = `${protocol}://${host}`;
-      res.redirect(`${baseUrl}/training-center?error=auth_failed`);
+      const errorProtocol = req.secure ? 'https' : 'http';
+      const errorHost = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const errorBaseUrl = `${errorProtocol}://${errorHost}`;
+      res.redirect(`${errorBaseUrl}/training-center?error=auth_failed`);
     }
   });
 
