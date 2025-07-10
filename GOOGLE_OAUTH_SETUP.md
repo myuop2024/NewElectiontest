@@ -19,6 +19,8 @@ https://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/a
 https://caffejm.replit.app/api/auth/google/callback
 ```
 
+**IMPORTANT**: Your current development domain may change. Check the server logs for the exact domain being used.
+
 ### 2. Test Users (Required for Test Mode)
 
 1. In Google Cloud Console, go to "APIs & Services" → "OAuth consent screen"
