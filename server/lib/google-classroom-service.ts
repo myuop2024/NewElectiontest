@@ -6,10 +6,19 @@ export class GoogleClassroomService {
   private classroom: any;
 
   constructor() {
+    // Get the correct redirect URI for the current Replit environment
+    const getRedirectUri = () => {
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
+      }
+      // For development
+      return 'http://localhost:5000/api/auth/google/callback';
+    };
+
     this.oauth2Client = new OAuth2Client(
       process.env.GOOGLE_CLASSROOM_CLIENT_ID,
       process.env.GOOGLE_CLASSROOM_CLIENT_SECRET,
-      `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/api/auth/google/callback`
+      getRedirectUri()
     );
 
     this.classroom = google.classroom({ version: 'v1', auth: this.oauth2Client });
