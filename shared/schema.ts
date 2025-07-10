@@ -844,7 +844,7 @@ export type AssignmentSubmission = typeof assignmentSubmissions.$inferSelect;
 // Google Classroom integration tables
 export const googleClassroomTokens = pgTable("google_classroom_tokens", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().unique().references(() => users.id),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
   tokenType: text("token_type").default("Bearer"),
