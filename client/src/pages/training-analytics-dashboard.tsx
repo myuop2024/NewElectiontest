@@ -20,7 +20,8 @@ import {
   BarChart3,
   Target,
   GraduationCap,
-  Zap
+  Zap,
+  Chart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +35,11 @@ export default function TrainingAnalyticsDashboard() {
   // Fetch training dashboard data
   const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ['/api/training/dashboard'],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(queryKey[0]);
+      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      return response.json();
+    },
     refetchInterval: 30000,
     retry: 2
   });
@@ -41,6 +47,11 @@ export default function TrainingAnalyticsDashboard() {
   // Fetch user certificates
   const { data: certificates, isLoading: certificatesLoading } = useQuery({
     queryKey: ['/api/certificates/user'],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(queryKey[0]);
+      if (!response.ok) throw new Error('Failed to fetch certificates');
+      return response.json();
+    },
     retry: 2
   });
 
@@ -105,6 +116,23 @@ export default function TrainingAnalyticsDashboard() {
     if (score >= 70) return { label: 'Intermediate', color: 'bg-blue-500' };
     if (score >= 60) return { label: 'Basic', color: 'bg-yellow-500' };
     return { label: 'Beginner', color: 'bg-gray-500' };
+  };
+
+  const handleDownloadCertificate = async (certificateId) => {
+    try {
+      const response = await fetch(`/api/certificates/${certificateId}/download`);
+      if (!response.ok) throw new Error('Failed to download');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate-${certificateId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (error) {
+      toast({ title: 'Download Failed', description: error.message, variant: 'destructive' });
+    }
   };
 
   if (isLoading) {
@@ -368,7 +396,7 @@ export default function TrainingAnalyticsDashboard() {
                               <span>{cert.downloadCount || 0}</span>
                             </div>
                           </div>
-                          <Button size="sm" className="w-full mt-3" variant="outline">
+                          <Button size="sm" className="w-full mt-3" variant="outline" onClick={() => handleDownloadCertificate(cert.id)}>
                             <Download className="h-3 w-3 mr-1" />
                             Download
                           </Button>
@@ -429,10 +457,29 @@ export default function TrainingAnalyticsDashboard() {
                   Learning Progress
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-500 text-center py-8">
-                  Connect your Google Classroom account to view detailed progress tracking
-                </p>
+              <CardContent className="space-y-6">
+                {dashboard?.currentProgress?.length > 0 ? (
+                  <div className="space-y-4">
+                    <Chart 
+                      data={dashboard.currentProgress.map(p => ({ name: p.assignmentTitle, value: p.grade }))}
+                      type="bar"
+                      height={300}
+                    />
+                    <div className="space-y-2">
+                      {dashboard.currentProgress.map((progress, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                          <p className="font-medium">{progress.assignmentTitle}</p>
+                          <p className="text-sm text-gray-600">Status: {progress.submissionState}</p>
+                          <p className="text-sm text-gray-600">Grade: {progress.grade || 'Pending'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">
+                    No progress data available. Sync your Google Classroom progress to view details.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
