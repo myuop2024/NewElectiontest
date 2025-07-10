@@ -732,6 +732,62 @@ export class DatabaseStorage implements IStorage {
     await db.delete(courseModules).where(eq(courseModules.id, id));
   }
 
+  // Course lessons management
+  async getCourseLessons(moduleId: number): Promise<CourseLesson[]> {
+    return await db
+      .select()
+      .from(courseLessons)
+      .where(eq(courseLessons.moduleId, moduleId))
+      .orderBy(courseLessons.lessonOrder);
+  }
+
+  async createCourseLesson(lessonData: InsertCourseLesson): Promise<CourseLesson> {
+    const [lesson] = await db
+      .insert(courseLessons)
+      .values(lessonData)
+      .returning();
+    return lesson;
+  }
+
+  async updateCourseLesson(id: number, updates: Partial<CourseLesson>): Promise<CourseLesson> {
+    const [updatedLesson] = await db
+      .update(courseLessons)
+      .set(updates)
+      .where(eq(courseLessons.id, id))
+      .returning();
+    return updatedLesson;
+  }
+
+  async deleteCourseLesson(id: number): Promise<void> {
+    await db.delete(courseLessons).where(eq(courseLessons.id, id));
+  }
+
+  // User lesson progress management
+  async getUserLessonProgress(userId: number, lessonId: number): Promise<UserLessonProgress | undefined> {
+    const [progress] = await db
+      .select()
+      .from(userLessonProgress)
+      .where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, lessonId)));
+    return progress || undefined;
+  }
+
+  async createUserLessonProgress(progressData: InsertUserLessonProgress): Promise<UserLessonProgress> {
+    const [progress] = await db
+      .insert(userLessonProgress)
+      .values(progressData)
+      .returning();
+    return progress;
+  }
+
+  async updateUserLessonProgress(userId: number, lessonId: number, updates: Partial<UserLessonProgress>): Promise<UserLessonProgress> {
+    const [updatedProgress] = await db
+      .update(userLessonProgress)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(userLessonProgress.userId, userId), eq(userLessonProgress.lessonId, lessonId)))
+      .returning();
+    return updatedProgress;
+  }
+
   // Course quizzes management
   async getCourseQuizzes(courseId: number): Promise<CourseQuiz[]> {
     return await db

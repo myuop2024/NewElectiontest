@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import CourseBuilder from "@/components/training/course-builder";
+import CourseViewer from "@/components/training/course-viewer";
 
 interface Course {
   id: number;
@@ -97,11 +99,13 @@ export default function UnifiedTrainingAdmin() {
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
   const [pathDialogOpen, setPathDialogOpen] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [showCourseBuilder, setShowCourseBuilder] = useState(false);
   
   // Edit states
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [selectedCourseForModule, setSelectedCourseForModule] = useState<number | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
   // Form states
   const [courseForm, setCourseForm] = useState({
@@ -274,6 +278,37 @@ export default function UnifiedTrainingAdmin() {
     setCourseDialogOpen(true);
   };
 
+  const handleSaveCourseFromBuilder = (courseData: any) => {
+    // Convert course builder data to API format
+    const coursePayload = {
+      title: courseData.title,
+      description: courseData.description,
+      target_audience: courseData.role,
+      content: {
+        category: courseData.category,
+        difficulty: courseData.difficulty,
+        modules: courseData.modules
+      },
+      duration: courseData.duration,
+      passingScore: courseData.passingScore,
+      isActive: courseData.isActive
+    };
+
+    if (editingCourse) {
+      updateCourseMutation.mutate({ id: editingCourse.id, data: coursePayload });
+    } else {
+      createCourseMutation.mutate(coursePayload);
+    }
+    
+    setShowCourseBuilder(false);
+    setEditingCourse(null);
+  };
+
+  const handleCancelCourseBuilder = () => {
+    setShowCourseBuilder(false);
+    setEditingCourse(null);
+  };
+
   const handleSubmitCourse = () => {
     if (editingCourse) {
       updateCourseMutation.mutate({ id: editingCourse.id, ...courseForm });
@@ -392,10 +427,16 @@ export default function UnifiedTrainingAdmin() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Course Management</h3>
-        <Button onClick={() => setCourseDialogOpen(true)} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Create Course
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowCourseBuilder(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Course Builder
+          </Button>
+          <Button onClick={() => setCourseDialogOpen(true)} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Quick Course
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -407,12 +448,24 @@ export default function UnifiedTrainingAdmin() {
                   <CardTitle className="flex items-center gap-2">
                     {course.title}
                     {!course.isActive && <Badge variant="secondary">Inactive</Badge>}
+                    {course.modules && course.modules.length > 0 && (
+                      <Badge className="bg-green-100 text-green-800">
+                        {course.modules.length} modules
+                      </Badge>
+                    )}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">{course.description}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => handleEditCourse(course)}>
                     <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setSelectedCourse(course)}
+                  >
+                    <BookOpen className="w-4 h-4" />
                   </Button>
                   <Button 
                     size="sm" 
@@ -445,20 +498,48 @@ export default function UnifiedTrainingAdmin() {
               
               <div className="mt-4">
                 <div className="flex justify-between text-sm mb-1">
-                  <span>Completion Rate</span>
-                  <span>{course.completionRate}%</span>
+                  <span>Content Progress</span>
+                  <span>{course.modules?.length || 0} modules</span>
                 </div>
-                <Progress value={course.completionRate} className="h-2" />
+                <Progress value={course.modules?.length ? 75 : 25} className="h-2" />
               </div>
+
+              {course.modules && course.modules.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="font-medium text-sm mb-2">Course Structure</h4>
+                  <div className="space-y-1">
+                    {course.modules.slice(0, 3).map((module: any, index: number) => (
+                      <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <BookOpen className="w-3 h-3" />
+                        <span>{module.title}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {module.lessons?.length || 0} lessons
+                        </Badge>
+                      </div>
+                    ))}
+                    {course.modules.length > 3 && (
+                      <div className="text-sm text-muted-foreground">
+                        +{course.modules.length - 3} more modules
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )) || (
           <div className="text-center py-12">
             <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No courses created yet</p>
-            <Button className="mt-4" onClick={() => setCourseDialogOpen(true)}>
-              Create Your First Course
-            </Button>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button onClick={() => setShowCourseBuilder(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create with Course Builder
+              </Button>
+              <Button variant="outline" onClick={() => setCourseDialogOpen(true)}>
+                Quick Course
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -718,6 +799,36 @@ export default function UnifiedTrainingAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Course Builder Interface */}
+      {showCourseBuilder && (
+        <div className="fixed inset-0 bg-background z-50 overflow-auto">
+          <CourseBuilder
+            course={editingCourse}
+            onSave={handleSaveCourseFromBuilder}
+            onCancel={handleCancelCourseBuilder}
+          />
+        </div>
+      )}
+
+      {/* Course Viewer Interface */}
+      {selectedCourse && (
+        <Dialog open={!!selectedCourse} onOpenChange={() => setSelectedCourse(null)}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
+            <CourseViewer
+              course={selectedCourse}
+              onStartLesson={(lessonId) => {
+                console.log('Starting lesson:', lessonId);
+                // Handle lesson start
+              }}
+              onCompleteLesson={(lessonId) => {
+                console.log('Completing lesson:', lessonId);
+                // Handle lesson completion
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

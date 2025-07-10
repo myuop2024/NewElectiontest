@@ -156,16 +156,33 @@ export const courseModules = pgTable("course_modules", { // Referred to as train
   courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  content: json("content"),
+  content: json("content"), // Rich content including lessons
   moduleOrder: integer("module_order").notNull(),
   duration: integer("duration"),
   isRequired: boolean("is_required").default(true),
-  type: text("module_type").default("lesson"), // Renamed from moduleType for consistency
-  resources: json("resources"),
-  completionCriteria: json("completion_criteria"),
-  status: text("status").default("draft"), // Added status
+  type: text("module_type").default("lesson"), // lesson, video, reading, quiz, assignment
+  resources: json("resources"), // External links, files, etc.
+  completionCriteria: json("completion_criteria"), // How to mark as complete
+  status: text("status").default("draft"), // draft, published, archived
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(), // Added updatedAt
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Individual lessons within modules
+export const courseLessons = pgTable("course_lessons", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").notNull().references(() => courseModules.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  content: json("content").notNull(), // Rich text content, videos, images
+  lessonOrder: integer("lesson_order").notNull(),
+  duration: integer("duration"), // minutes
+  type: text("type").notNull().default("text"), // text, video, interactive, document
+  videoUrl: text("video_url"),
+  attachments: json("attachments"), // Files, images, PDFs
+  isRequired: boolean("is_required").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const courseQuizzes = pgTable("course_quizzes", { // Referred to as trainingQuizzes
@@ -292,7 +309,7 @@ export const enrollments = pgTable("enrollments", { // Referred to as trainingEn
 });
 
 // User progress within modules
-export const trainingProgress = pgTable("training_progress", { // Added this table based on routes
+export const trainingProgress = pgTable("training_progress", {
     id: serial("id").primaryKey(),
     userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
@@ -301,6 +318,19 @@ export const trainingProgress = pgTable("training_progress", { // Added this tab
     status: text("status").notNull().default("in_progress"), // in_progress, completed
     progressDetail: json("progress_detail"), // e.g., video watch time, pages viewed
     lastAccessedAt: timestamp("last_accessed_at").notNull().defaultNow(),
+});
+
+// User progress tracking for individual lessons
+export const userLessonProgress = pgTable("user_lesson_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  lessonId: integer("lesson_id").notNull().references(() => courseLessons.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("not_started"), // not_started, in_progress, completed
+  timeSpent: integer("time_spent").default(0), // minutes
+  lastPosition: integer("last_position").default(0), // for videos, reading position
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 
@@ -730,7 +760,9 @@ export const insertCourseMediaSchema = createInsertSchema(courseMedia);
 export const insertCourseContestSchema = createInsertSchema(courseContests);
 export const insertContestParticipantSchema = createInsertSchema(contestParticipants);
 export const insertEnrollmentSchema = createInsertSchema(enrollments);
-export const insertTrainingProgressSchema = createInsertSchema(trainingProgress); // Added
+export const insertTrainingProgressSchema = createInsertSchema(trainingProgress);
+export const insertCourseLessonSchema = createInsertSchema(courseLessons);
+export const insertUserLessonProgressSchema = createInsertSchema(userLessonProgress);
 export const insertFaqSchema = createInsertSchema(faqs);
 export const insertNewsSchema = createInsertSchema(news);
 export const insertAuditLogSchema = createInsertSchema(auditLogs);
@@ -778,7 +810,9 @@ export type CourseMedia = typeof courseMedia.$inferSelect;
 export type CourseContest = typeof courseContests.$inferSelect;
 export type ContestParticipant = typeof contestParticipants.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
-export type TrainingProgress = typeof trainingProgress.$inferSelect; // Added
+export type TrainingProgress = typeof trainingProgress.$inferSelect;
+export type CourseLesson = typeof courseLessons.$inferSelect;
+export type UserLessonProgress = typeof userLessonProgress.$inferSelect;
 export type FAQ = typeof faqs.$inferSelect;
 export type News = typeof news.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
