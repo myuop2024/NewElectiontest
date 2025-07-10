@@ -32,7 +32,7 @@ import {
   messages
 } from "@shared/schema";
 import { classroomService } from "./lib/google-classroom-service.js";
-import { eq } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
 import { SecurityService } from "./lib/security.js";
 import { KYCService } from "./lib/kyc-service.js";
