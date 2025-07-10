@@ -2221,8 +2221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Generating auth URL for user:", userId);
       
       // Dynamically determine the current domain for redirect URI
-      const protocol = req.secure ? 'https' : 'http';
+      // Always use https for Replit domains, http only for localhost
       const host = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const protocol = host.includes('localhost') ? 'http' : 'https';
       const currentRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
       
       console.log("Using dynamic redirect URI:", currentRedirectUri);
@@ -2270,8 +2271,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use the same redirect URI as the auth URL for consistency
-      const callbackProtocol = req.secure ? 'https' : 'http';
+      // Always use https for Replit domains, http only for localhost
       const callbackHost = req.get('host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const callbackProtocol = callbackHost.includes('localhost') ? 'http' : 'https';
       const currentRedirectUri = `${callbackProtocol}://${callbackHost}/api/auth/google/callback`;
       
       console.log("Using callback redirect URI:", currentRedirectUri);
