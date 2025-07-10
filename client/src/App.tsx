@@ -17,9 +17,6 @@ import Reports from "@/pages/reports";
 import LiveChat from "@/pages/live-chat";
 import DocumentCapture from "@/pages/document-capture";
 import RouteNavigation from "@/pages/route-navigation";
-import TrainingCenter from "@/pages/training-center";
-import TrainingManagement from "@/pages/TrainingManagement";
-import EnhancedTrainingManagement from "@/pages/EnhancedTrainingManagement";
 import ModernTrainingHub from "@/pages/modern-training-hub";
 import UnifiedTrainingAdmin from "@/pages/unified-training-admin";
 import Analytics from "@/pages/analytics";
@@ -123,11 +120,7 @@ function Router() {
           <ModernTrainingHub />
         </ProtectedLayout>
       </Route>
-      <Route path="/modern-training-hub">
-        <ProtectedLayout>
-          <ModernTrainingHub />
-        </ProtectedLayout>
-      </Route>
+
       <Route path="/admin-training">
         <ProtectedLayout>
           <UnifiedTrainingAdmin />
@@ -148,11 +141,7 @@ function Router() {
           <UnifiedTrainingAdmin />
         </ProtectedLayout>
       </Route>
-      <Route path="/legacy-training-center">
-        <ProtectedLayout>
-          <TrainingCenter />
-        </ProtectedLayout>
-      </Route>
+
       <Route path="/analytics">
         <ProtectedLayout>
           <Analytics />
@@ -199,11 +188,7 @@ function Router() {
           <AdminDiditSettings />
         </ProtectedLayout>
       </Route>
-      <Route path="/training-management">
-        <ProtectedLayout>
-          <TrainingManagement />
-        </ProtectedLayout>
-      </Route>
+
       <Route path="/polling-station-management">
         <ProtectedLayout>
           <PollingStationManagement />
