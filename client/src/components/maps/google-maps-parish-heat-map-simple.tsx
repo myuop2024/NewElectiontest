@@ -84,8 +84,33 @@ export default function GoogleMapsParishHeatMapSimple({
   };
 
   // Initialize Google Maps
+  // 1) Fetch the API key once when the component mounts
   useEffect(() => {
-    if (!mapRef.current) return;
+    const fetchApiKey = async () => {
+      try {
+        setApiKeyLoading(true);
+        const response = await fetch('/api/settings/google-maps-api');
+        if (!response.ok) throw new Error('Failed to fetch API key');
+        const data = await response.json();
+        if (data.hasKey) {
+          setApiKey(data.apiKey);
+        } else {
+          setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');
+        }
+      } catch (error) {
+        console.error('Error fetching Google Maps API key:', error);
+        setApiKeyError('Failed to load Google Maps API configuration.');
+      } finally {
+        setApiKeyLoading(false);
+      }
+    };
+
+    fetchApiKey();
+  }, []);
+
+  // 2) Once we have a valid API key, load the Google Maps script *once*
+  useEffect(() => {
+    if (!apiKey || !mapRef.current) return;
 
     const initMap = () => {
       try {
@@ -114,51 +139,33 @@ export default function GoogleMapsParishHeatMapSimple({
       }
     };
 
-    const loadApiKey = async () => {
-      try {
-        setApiKeyLoading(true);
-        const response = await fetch('/api/settings/google-maps-api');
-        if (!response.ok) throw new Error('Failed to fetch API key');
-        const data = await response.json();
-        if (data.hasKey) {
-          setApiKey(data.apiKey);
-        } else {
-          setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');
-        }
-      } catch (error) {
-        console.error('Error fetching Google Maps API key:', error);
-        setApiKeyError('Failed to load Google Maps API configuration.');
-      } finally {
-        setApiKeyLoading(false);
-      }
-    };
-    loadApiKey();
-
-    // Check if Google Maps is already loaded
+    // If Maps already loaded, initialise immediately
     if (typeof google !== 'undefined' && google.maps) {
-      console.log('[DEBUG] Google Maps API already loaded');
       initMap();
-    } else {
-      // Load Google Maps API
-      const script = document.createElement('script');
-      
-      if (!apiKey) {
-        console.error('[DEBUG] Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
-        return;
-      }
-      
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        console.log('[DEBUG] Google Maps API script loaded');
-        initMap();
-      };
-      script.onerror = () => console.error('[DEBUG] Failed to load Google Maps API');
-      document.head.appendChild(script);
+      return;
     }
-  }, []);
 
+    // Otherwise, inject the script (prevent duplicates)
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', initMap);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
+    script.async = true;
+    script.defer = true;
+    script.onload = initMap;
+    script.onerror = () => console.error('[DEBUG] Failed to load Google Maps API');
+    document.head.appendChild(script);
+
+    // Cleanup: remove listener if component unmounts before load
+    return () => {
+      script.removeEventListener('load', initMap);
+    };
+  }, [apiKey]);
+  
   // Update parish markers
   useEffect(() => {
     if (!map) return;
