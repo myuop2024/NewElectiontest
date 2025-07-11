@@ -87,12 +87,21 @@ export default function GoogleMapsParishHeatMapSimple({
   // 1) Fetch the API key once when the component mounts
   useEffect(() => {
     const fetchApiKey = async () => {
+      // Check environment variable first
+      const envApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (envApiKey) {
+        console.log('[DEBUG] Using environment variable for Google Maps API key');
+        setApiKey(envApiKey);
+        return;
+      }
+
       try {
         setApiKeyLoading(true);
         const response = await fetch('/api/settings/google-maps-api');
         if (!response.ok) throw new Error('Failed to fetch API key');
         const data = await response.json();
-        if (data.hasKey) {
+        if (data.hasKey && data.apiKey) {
+          console.log('[DEBUG] Using server-provided Google Maps API key');
           setApiKey(data.apiKey);
         } else {
           setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');

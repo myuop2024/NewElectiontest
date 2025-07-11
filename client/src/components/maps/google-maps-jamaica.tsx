@@ -131,45 +131,49 @@ export default function GoogleMapsJamaica({
     if (typeof window.google !== 'undefined' && window.google.maps) {
       initializeMap();
     } else {
-      // Create script to load Google Maps with optimal loading pattern
-      const script = document.createElement('script');
-      let apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-      
-      // Fallback to fetch from server if not in environment
-      if (!apiKey) {
-        try {
-          const response = await fetch('/api/settings/google-maps-api');
-          const data = await response.json();
-          if (data.configured && data.apiKey) {
-            apiKey = data.apiKey;
+      // Create async function to handle API key fetching
+      const loadGoogleMaps = async () => {
+        const script = document.createElement('script');
+        let apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+        
+        // Fallback to fetch from server if not in environment
+        if (!apiKey) {
+          try {
+            const response = await fetch('/api/settings/google-maps-api');
+            const data = await response.json();
+            if (data.configured && data.apiKey) {
+              apiKey = data.apiKey;
+            }
+          } catch (error) {
+            console.error('Failed to fetch Google Maps API key from server');
           }
-        } catch (error) {
-          console.error('Failed to fetch Google Maps API key from server');
         }
-      }
-      
-      if (!apiKey) {
-        console.error('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
-        setIsLoading(false);
-        setApiError('Google Maps API key is not configured. Please contact your administrator.');
-        return;
-      }
-      
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&loading=async`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeMap;
-      script.onerror = () => {
-        console.error('Failed to load Google Maps API');
-        setIsLoading(false);
+        
+        if (!apiKey) {
+          console.error('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
+          setIsLoading(false);
+          setApiError('Google Maps API key is not configured. Please contact your administrator.');
+          return;
+        }
+        
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&loading=async`;
+        script.async = true;
+        script.defer = true;
+        script.onload = initializeMap;
+        script.onerror = () => {
+          console.error('Failed to load Google Maps API');
+          setIsLoading(false);
+        };
+        
+        // Avoid duplicate script loading
+        if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+          document.head.appendChild(script);
+        } else {
+          initializeMap();
+        }
       };
       
-      // Avoid duplicate script loading
-      if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
-        document.head.appendChild(script);
-      } else {
-        initializeMap();
-      }
+      loadGoogleMaps();
     }
   }, []);
 
