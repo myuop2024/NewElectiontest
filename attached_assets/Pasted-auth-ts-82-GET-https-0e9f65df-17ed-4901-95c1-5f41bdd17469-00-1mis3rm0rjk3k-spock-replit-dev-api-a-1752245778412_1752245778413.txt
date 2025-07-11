@@ -1,0 +1,81 @@
+auth.ts:82  GET https://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/api/auth/me 401 (Unauthorized)
+getCurrentUser @ auth.ts:82
+checkAuthStatus @ use-auth.tsx:30
+(anonymous) @ use-auth.tsx:23
+commitHookEffectListMount @ chunk-WERSD76P.js?v=d920c8b8:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=d920c8b8:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=d920c8b8:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=d920c8b8:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=d920c8b8:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=d920c8b8:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=d920c8b8:19447
+(anonymous) @ chunk-WERSD76P.js?v=d920c8b8:19328
+workLoop @ chunk-WERSD76P.js?v=d920c8b8:197
+flushWork @ chunk-WERSD76P.js?v=d920c8b8:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=d920c8b8:384Understand this error
+use-websocket.tsx:113 WebSocket not connected
+sendMessage @ use-websocket.tsx:113
+(anonymous) @ live-chat-widget.tsx:45
+commitHookEffectListMount @ chunk-WERSD76P.js?v=d920c8b8:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=d920c8b8:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=d920c8b8:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=d920c8b8:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=d920c8b8:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=d920c8b8:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=d920c8b8:19447
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=d920c8b8:18868
+flushSyncCallbacks @ chunk-WERSD76P.js?v=d920c8b8:9119
+commitRootImpl @ chunk-WERSD76P.js?v=d920c8b8:19432
+commitRoot @ chunk-WERSD76P.js?v=d920c8b8:19277
+finishConcurrentRender @ chunk-WERSD76P.js?v=d920c8b8:18805
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=d920c8b8:18718
+workLoop @ chunk-WERSD76P.js?v=d920c8b8:197
+flushWork @ chunk-WERSD76P.js?v=d920c8b8:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=d920c8b8:384Understand this warning
+use-websocket.tsx:113 WebSocket not connected
+sendMessage @ use-websocket.tsx:113
+(anonymous) @ live-chat-widget.tsx:56
+safelyCallDestroy @ chunk-WERSD76P.js?v=d920c8b8:16748
+commitHookEffectListUnmount @ chunk-WERSD76P.js?v=d920c8b8:16875
+commitPassiveUnmountOnFiber @ chunk-WERSD76P.js?v=d920c8b8:18232
+commitPassiveUnmountEffects_complete @ chunk-WERSD76P.js?v=d920c8b8:18213
+commitPassiveUnmountEffects_begin @ chunk-WERSD76P.js?v=d920c8b8:18204
+commitPassiveUnmountEffects @ chunk-WERSD76P.js?v=d920c8b8:18169
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=d920c8b8:19489
+flushPassiveEffects @ chunk-WERSD76P.js?v=d920c8b8:19447
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=d920c8b8:18868
+flushSyncCallbacks @ chunk-WERSD76P.js?v=d920c8b8:9119
+commitRootImpl @ chunk-WERSD76P.js?v=d920c8b8:19432
+commitRoot @ chunk-WERSD76P.js?v=d920c8b8:19277
+finishConcurrentRender @ chunk-WERSD76P.js?v=d920c8b8:18805
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=d920c8b8:18718
+workLoop @ chunk-WERSD76P.js?v=d920c8b8:197
+flushWork @ chunk-WERSD76P.js?v=d920c8b8:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=d920c8b8:384Understand this warning
+use-websocket.tsx:35 WebSocket connected
+google-maps-jamaica.tsx:92 [MAPS DEBUG] Component mounted - starting Google Maps initialization
+google-maps-jamaica.tsx:93 [MAPS DEBUG] mapRef.current exists: false
+google-maps-jamaica.tsx:94 [MAPS DEBUG] window.google exists: false
+google-maps-jamaica.tsx:95 [MAPS DEBUG] window.google.maps exists: false
+google-maps-jamaica.tsx:177 [MAPS DEBUG] Google Maps API not loaded, fetching API key and loading script
+google-maps-jamaica.tsx:181 [MAPS DEBUG] Starting API key fetching process
+google-maps-jamaica.tsx:185 [MAPS DEBUG] Environment API key: Not found
+google-maps-jamaica.tsx:189 [MAPS DEBUG] Fetching API key from server...
+google-maps-jamaica.tsx:192 [MAPS DEBUG] Server response status: 200
+google-maps-jamaica.tsx:194 [MAPS DEBUG] Server response data: {configured: true, hasKey: true, apiKey: 'AIzaSyC6wiaSjNtmasGrZ9hamKqjavBsbng3zow'}
+google-maps-jamaica.tsx:197 [MAPS DEBUG] API key retrieved from server successfully
+google-maps-jamaica.tsx:212 [MAPS DEBUG] Loading Google Maps script from: https://maps.googleapis.com/maps/api/js?key=AIzaSyC6wiaSjNtmasGrZ9hamKqjavBsbng3zow&libraries=geometry&loading=async
+google-maps-jamaica.tsx:230 [MAPS DEBUG] Adding script to document head
+google-maps-jamaica.tsx:218 [MAPS DEBUG] Google Maps script loaded successfully
+google-maps-jamaica.tsx:101 [MAPS DEBUG] Starting map initialization process
+google-maps-jamaica.tsx:105 [MAPS DEBUG] Initialization attempt #1
+google-maps-jamaica.tsx:106 [MAPS DEBUG] mapRef.current: false
+google-maps-jamaica.tsx:107 [MAPS DEBUG] window.google: true
+google-maps-jamaica.tsx:112 [MAPS DEBUG] DOM not ready, retrying in 100ms (attempt 1/50)
+google-maps-jamaica.tsx:105 [MAPS DEBUG] Initialization attempt #2
+google-maps-jamaica.tsx:106 [MAPS DEBUG] mapRef.current: false
+google-maps-jamaica.tsx:107 [MAPS DEBUG] window.google: true
+google-maps-jamaica.tsx:112 [MAPS DEBUG] DOM not ready, retrying in 100ms (attempt 2/50)
+google-maps-jamaica.tsx:105 [MAPS DEBUG] Initialization attempt #3
+google-maps-jamaica.tsx:106 [MAPS DEBUG] mapRef.current: false
+google-maps-jamaica.tsx:107 [MAPS DEBUG] window.google: true
