@@ -1537,7 +1537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/send", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { userId, message, type, data } = req.body;
-      const notification = await db.insert(schema.notifications).values({
+      const notification = await db.insert(notifications).values({
         userId: parseInt(userId),
         message,
         type,
@@ -1554,9 +1554,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user notifications
   app.get("/api/notifications", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const notifications = await db.select().from(schema.notifications)
-        .where(eq(schema.notifications.userId, req.user!.id))
-        .orderBy(desc(schema.notifications.createdAt))
+      const notifications = await db.select().from(notifications)
+        .where(eq(notifications.userId, req.user!.id))
+        .orderBy(desc(notifications.createdAt))
         .limit(50);
       res.json(notifications);
     } catch (error) {
@@ -1569,10 +1569,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/notifications/unread-count", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const [countResult] = await db.select({ count: sql`count(*)` })
-        .from(schema.notifications)
+        .from(notifications)
         .where(and(
-          eq(schema.notifications.userId, req.user!.id),
-          eq(schema.notifications.isRead, false)
+          eq(notifications.userId, req.user!.id),
+          eq(notifications.isRead, false)
         ));
       res.json({ count: countResult ? countResult.count : 0 });
     } catch (error) {
@@ -1584,11 +1584,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mark all unread as read
   app.patch("/api/notifications/mark-read", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      await db.update(schema.notifications)
+      await db.update(notifications)
         .set({ isRead: true })
         .where(and(
-          eq(schema.notifications.userId, req.user!.id),
-          eq(schema.notifications.isRead, false)
+          eq(notifications.userId, req.user!.id),
+          eq(notifications.isRead, false)
         ));
       res.json({ success: true });
     } catch (error) {
