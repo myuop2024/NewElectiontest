@@ -133,7 +133,20 @@ export default function GoogleMapsJamaica({
     } else {
       // Create script to load Google Maps with optimal loading pattern
       const script = document.createElement('script');
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+      let apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+      
+      // Fallback to fetch from server if not in environment
+      if (!apiKey) {
+        try {
+          const response = await fetch('/api/settings/google-maps-api');
+          const data = await response.json();
+          if (data.configured && data.apiKey) {
+            apiKey = data.apiKey;
+          }
+        } catch (error) {
+          console.error('Failed to fetch Google Maps API key from server');
+        }
+      }
       
       if (!apiKey) {
         console.error('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');

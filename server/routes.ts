@@ -1554,11 +1554,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user notifications
   app.get("/api/notifications", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const notifications = await db.select().from(notifications)
+      const notificationsResult = await db.select().from(notifications)
         .where(eq(notifications.userId, req.user!.id))
         .orderBy(desc(notifications.createdAt))
         .limit(50);
-      res.json(notifications);
+      res.json(notificationsResult);
     } catch (error) {
       console.error("Get notifications error:", error);
       res.status(500).json({ message: "Failed to get notifications" });
