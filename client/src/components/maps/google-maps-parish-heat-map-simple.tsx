@@ -41,13 +41,11 @@ export default function GoogleMapsParishHeatMapSimple({
   onParishSelect,
   selectedParish
 }: GoogleMapsParishHeatMapProps) {
-  console.log('[DEBUG] GoogleMapsParishHeatMapSimple props:', { parishStats, selectedMetric, selectedParish });
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiKeyLoading, setApiKeyLoading] = useState(true);
-  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Get metric value for a parish
   const getMetricValue = (parishName: string): number => {
@@ -65,8 +63,8 @@ export default function GoogleMapsParishHeatMapSimple({
 
   // Get color based on metric value
   const getMarkerColor = (value: number): string => {
-    const maxValue = Math.max(...parishStats.map(p => getMetricValue(p.parishName)));
-    const ratio = maxValue > 0 ? value / maxValue : 0;
+    const maxValue = Math.max(...parishStats.map(p => getMetricValue(p.parishName)), 1);
+    const ratio = value / maxValue;
     
     if (selectedMetric === "incidents" || selectedMetric === "critical") {
       // Red scale for incidents/critical (more = worse)
@@ -83,77 +81,100 @@ export default function GoogleMapsParishHeatMapSimple({
     }
   };
 
-  // Initialize Google Maps
-  // 1) Fetch the API key once when the component mounts
+  // Cloud-optimized Google Maps initialization
   useEffect(() => {
-    console.log('[PARISH MAPS DEBUG] Component mounted, starting API key fetch');
+    console.log('[PARISH MAPS] Starting cloud-optimized Google Maps initialization');
     
-    const fetchApiKey = async () => {
-      // Check environment variable first
-      const envApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      console.log('[PARISH MAPS DEBUG] Environment API key check:', envApiKey ? 'Found' : 'Not found');
-      
-      if (envApiKey) {
-        console.log('[PARISH MAPS DEBUG] Using environment variable for Google Maps API key');
-        setApiKey(envApiKey);
-        return;
-      }
-
+    let retryCount = 0;
+    const maxRetries = 30;
+    let timeoutId: NodeJS.Timeout;
+    
+    const initializeGoogleMaps = async () => {
       try {
-        console.log('[PARISH MAPS DEBUG] Fetching API key from server...');
-        setApiKeyLoading(true);
+        console.log('[PARISH MAPS] Fetching API key from server...');
+        
+        // Get API key from server
         const response = await fetch('/api/settings/google-maps-api');
-        console.log('[PARISH MAPS DEBUG] Server response status:', response.status);
+        if (!response.ok) {
+          throw new Error(`API key fetch failed: ${response.status}`);
+        }
         
-        if (!response.ok) throw new Error('Failed to fetch API key');
         const data = await response.json();
-        console.log('[PARISH MAPS DEBUG] Server response data:', data);
+        console.log('[PARISH MAPS] API key response:', data);
         
-        if (data.hasKey && data.apiKey) {
-          console.log('[PARISH MAPS DEBUG] Using server-provided Google Maps API key');
-          setApiKey(data.apiKey);
-        } else {
-          console.error('[PARISH MAPS DEBUG] No API key available from server');
-          setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');
-        }
-      } catch (error) {
-        console.error('[PARISH MAPS DEBUG] Error fetching Google Maps API key:', error);
-        setApiKeyError('Failed to load Google Maps API configuration.');
-      } finally {
-        setApiKeyLoading(false);
-      }
-    };
-
-    fetchApiKey();
-  }, []);
-
-  // 2) Once we have a valid API key, load the Google Maps script *once*
-  useEffect(() => {
-    console.log('[PARISH MAPS DEBUG] API key effect triggered');
-    console.log('[PARISH MAPS DEBUG] API key exists:', !!apiKey);
-    console.log('[PARISH MAPS DEBUG] mapRef.current exists:', !!mapRef.current);
-    
-    if (!apiKey || !mapRef.current) {
-      console.log('[PARISH MAPS DEBUG] Missing requirements - apiKey:', !!apiKey, 'mapRef:', !!mapRef.current);
-      return;
-    }
-
-    const initMap = () => {
-      console.log('[PARISH MAPS DEBUG] initMap called');
-      console.log('[PARISH MAPS DEBUG] google object available:', typeof google !== 'undefined');
-      console.log('[PARISH MAPS DEBUG] google.maps available:', typeof google !== 'undefined' && !!google.maps);
-      
-      // Use a timeout to ensure DOM is ready
-      const attemptInitialization = () => {
-        if (!mapRef.current) {
-          console.error('[PARISH MAPS DEBUG] mapRef.current is null - retrying in 100ms');
-          setTimeout(attemptInitialization, 100);
-          return;
+        if (!data.configured || !data.apiKey) {
+          throw new Error('Google Maps API key not configured');
         }
         
-        try {
-          console.log('[PARISH MAPS DEBUG] Creating Google Maps instance...');
-          const mapInstance = new google.maps.Map(mapRef.current!, {
+        const apiKey = data.apiKey;
+        console.log('[PARISH MAPS] API key obtained successfully');
+        
+        // Load Google Maps script if not already loaded
+        const loadMapsScript = () => {
+          return new Promise<void>((resolve, reject) => {
+            // Check if already loaded
+            if (typeof google !== 'undefined' && google.maps) {
+              console.log('[PARISH MAPS] Google Maps already loaded');
+              resolve();
+              return;
+            }
+            
+            // Check for existing script
+            const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+            if (existingScript) {
+              console.log('[PARISH MAPS] Script exists, waiting for load...');
+              existingScript.addEventListener('load', () => resolve());
+              existingScript.addEventListener('error', () => reject(new Error('Script load failed')));
+              return;
+            }
+            
+            // Create new script
+            console.log('[PARISH MAPS] Creating Google Maps script');
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
+            script.async = true;
+            script.defer = true;
+            
+            script.onload = () => {
+              console.log('[PARISH MAPS] Google Maps script loaded successfully');
+              resolve();
+            };
+            
+            script.onerror = () => {
+              console.error('[PARISH MAPS] Failed to load Google Maps script');
+              reject(new Error('Google Maps script failed to load'));
+            };
+            
+            document.head.appendChild(script);
+          });
+        };
+        
+        // Load the script
+        await loadMapsScript();
+        console.log('[PARISH MAPS] Script loading complete, attempting map initialization');
+        
+        // Initialize map with retry logic
+        const initializeMap = () => {
+          console.log(`[PARISH MAPS] Map initialization attempt ${retryCount + 1}/${maxRetries}`);
+          
+          if (!mapRef.current) {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              console.log('[PARISH MAPS] DOM not ready, retrying in 200ms...');
+              timeoutId = setTimeout(initializeMap, 200);
+              return;
+            } else {
+              throw new Error('Map container never became available');
+            }
+          }
+          
+          if (typeof google === 'undefined' || !google.maps) {
+            throw new Error('Google Maps API not available after script load');
+          }
+          
+          console.log('[PARISH MAPS] Creating map instance...');
+          
+          const mapInstance = new google.maps.Map(mapRef.current, {
             zoom: 9,
             center: { lat: 18.1096, lng: -77.2975 }, // Jamaica center
             mapTypeId: google.maps.MapTypeId.ROADMAP,
@@ -167,212 +188,170 @@ export default function GoogleMapsParishHeatMapSimple({
                 featureType: "landscape",
                 elementType: "geometry",
                 stylers: [{ color: "#f5f5f5" }]
+              },
+              {
+                featureType: "road",
+                elementType: "geometry",
+                stylers: [{ color: "#ffffff" }]
               }
             ]
           });
-
-          console.log('[PARISH MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
+          
+          console.log('[PARISH MAPS] ✅ Map created successfully!');
           setMap(mapInstance);
-          console.log('[PARISH MAPS DEBUG] Map state set, initialization complete');
-        } catch (error) {
-          console.error('[PARISH MAPS DEBUG] Error initializing Google Maps:', error);
-        }
-      };
-      
-      // Start initialization attempt
-      attemptInitialization();
-    };
-
-    // If Maps already loaded, initialise immediately
-    if (typeof google !== 'undefined' && google.maps) {
-      console.log('[PARISH MAPS DEBUG] Google Maps already loaded, initializing immediately');
-      initMap();
-      return;
-    }
-
-    console.log('[PARISH MAPS DEBUG] Google Maps not loaded, creating script');
-
-    // Otherwise, inject the script (prevent duplicates)
-    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
-    if (existingScript) {
-      console.log('[PARISH MAPS DEBUG] Script already exists, adding load listener');
-      existingScript.addEventListener('load', initMap);
-      return;
-    }
-
-    console.log('[PARISH MAPS DEBUG] Creating new script tag');
-    const script = document.createElement('script');
-    const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
-    console.log('[PARISH MAPS DEBUG] Script URL:', scriptUrl);
-    
-    script.src = scriptUrl;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      console.log('[PARISH MAPS DEBUG] Google Maps script loaded successfully');
-      initMap();
-    };
-    script.onerror = (error) => {
-      console.error('[PARISH MAPS DEBUG] Failed to load Google Maps API:', error);
+          setIsLoading(false);
+          setApiError(null);
+        };
+        
+        // Start map initialization
+        initializeMap();
+        
+      } catch (error) {
+        console.error('[PARISH MAPS] ❌ Initialization failed:', error);
+        setApiError(error instanceof Error ? error.message : 'Failed to initialize Google Maps');
+        setIsLoading(false);
+      }
     };
     
-    console.log('[PARISH MAPS DEBUG] Adding script to document head');
-    document.head.appendChild(script);
-
-    // Cleanup: remove listener if component unmounts before load
+    // Start the initialization process
+    initializeGoogleMaps();
+    
+    // Cleanup function
     return () => {
-      script.removeEventListener('load', initMap);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [apiKey]);
-  
-  // Update parish markers
-  useEffect(() => {
-    if (!map) return;
+  }, []);
 
+  // Update parish markers when map or data changes
+  useEffect(() => {
+    if (!map || typeof google === 'undefined') return;
+    
+    console.log('[PARISH MAPS] Updating parish markers');
+    
     // Clear existing markers
     markers.forEach(marker => marker.setMap(null));
     const newMarkers: google.maps.Marker[] = [];
-
+    
     // Create markers for each parish
     Object.entries(PARISH_COORDINATES).forEach(([parishName, coords]) => {
       const value = getMetricValue(parishName);
       const color = getMarkerColor(value);
-      console.log('[DEBUG] Creating marker:', { parishName, coords, value, color });
       
-      // Create custom icon
+      // Create custom marker icon
       const icon = {
         path: google.maps.SymbolPath.CIRCLE,
         fillColor: color,
         fillOpacity: 0.8,
         stroke: selectedParish === parishName ? '#000000' : '#ffffff',
         strokeWeight: selectedParish === parishName ? 3 : 2,
-        scale: selectedParish === parishName ? 15 : 12
+        scale: selectedParish === parishName ? 16 : 12
       };
-
-      try {
-        const marker = new google.maps.Marker({
-          position: coords,
-          map: map,
-          title: parishName,
-          icon: icon
-        });
-
-        // Info window content
-        const parish = parishStats.find(p => p.parishName === parishName);
-        const infoContent = parish ? `
-          <div style="padding: 8px; min-width: 200px;">
-            <h3 style="margin: 0 0 8px 0; color: #1f2937;">${parishName}</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">
-              <div><strong>Incidents:</strong> ${parish.incidents}</div>
-              <div><strong>Turnout:</strong> ${parish.turnout}%</div>
-              <div><strong>Observers:</strong> ${parish.observers}</div>
-              <div><strong>Critical:</strong> ${parish.critical}</div>
-            </div>
-          </div>
-        ` : `<div style="padding: 8px;"><h3>${parishName}</h3><p>No data available</p></div>`;
-
-        const infoWindow = new google.maps.InfoWindow({
-          content: infoContent
-        });
-
-        marker.addListener('click', () => {
-          onParishSelect(parishName);
-          infoWindow.open(map, marker);
-        });
-
-        newMarkers.push(marker);
-      } catch (markerError) {
-        console.error('[DEBUG] Error creating marker for', parishName, markerError);
-      }
+      
+      const marker = new google.maps.Marker({
+        position: coords,
+        map: map,
+        icon: icon,
+        title: `${parishName}: ${value} ${selectedMetric}`
+      });
+      
+      // Add click listener
+      marker.addListener('click', () => {
+        onParishSelect(parishName);
+      });
+      
+      newMarkers.push(marker);
     });
-
+    
     setMarkers(newMarkers);
+    console.log('[PARISH MAPS] Parish markers updated');
   }, [map, parishStats, selectedMetric, selectedParish, onParishSelect]);
 
-  if (apiKeyLoading) {
+  if (apiError) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading Google Maps...</p>
+      <div className="flex items-center justify-center h-[400px] border rounded-lg bg-red-50 dark:bg-red-950/20">
+        <div className="text-center p-6">
+          <div className="text-red-600 dark:text-red-400 mb-2">
+            ❌ Google Maps Error
+          </div>
+          <div className="text-sm text-red-500 dark:text-red-400">
+            {apiError}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            Please check your Google Maps API configuration
+          </div>
         </div>
       </div>
     );
   }
 
-  if (apiKeyError || !apiKey) {
+  if (isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <div className="text-center p-4">
-          <p className="text-red-600 dark:text-red-400">{apiKeyError || 'Google Maps API key not available'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!map) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading Jamaica Geography...</p>
+      <div className="flex items-center justify-center h-[400px] border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+        <div className="text-center p-6">
+          <div className="animate-spin text-2xl mb-2">🗺️</div>
+          <div className="text-blue-600 dark:text-blue-400 mb-2">
+            Loading Jamaica Parish Map
+          </div>
+          <div className="text-sm text-blue-500 dark:text-blue-400">
+            Initializing Google Maps...
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="space-y-4">
+      {/* Map Container */}
       <div 
         ref={mapRef} 
-        className="w-full h-full rounded-lg overflow-hidden"
+        className="w-full h-[400px] border rounded-lg shadow-sm"
         style={{ minHeight: '400px' }}
       />
       
-      {/* Map UI Elements - Only show when map is loaded */}
-      {map && (
-        <>
-          {/* Metric indicator */}
-          <div className="absolute top-4 right-4 z-10">
-            <Badge variant="secondary" className="bg-white/90 text-gray-800 shadow-lg">
-              {selectedMetric === "incidents" && "Incident Count"}
-              {selectedMetric === "turnout" && "Voter Turnout (%)"}
-              {selectedMetric === "observers" && "Active Observers"}
-              {selectedMetric === "critical" && "Critical Incidents"}
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-4">
+          {selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)} Level:
+        </div>
+        <Badge variant="outline" className="text-xs">
+          <div className="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
+          No Data
+        </Badge>
+        {selectedMetric === "incidents" || selectedMetric === "critical" ? (
+          <>
+            <Badge variant="outline" className="text-xs">
+              <div className="w-3 h-3 rounded-full bg-red-100 mr-2"></div>
+              Low
             </Badge>
-          </div>
-
-          {/* Instructions */}
-          <div className="absolute bottom-4 left-4 z-10">
-            <div className="bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg max-w-xs">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                Click on any parish marker to view detailed statistics and select it for analysis.
-              </p>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-gray-800/90 p-3 rounded-lg shadow-lg">
-            <h4 className="text-sm font-semibold mb-2">Heat Map Legend</h4>
-            <div className="space-y-1">
-              {[
-                { label: "High", color: selectedMetric === "incidents" ? "#dc2626" : selectedMetric === "turnout" ? "#16a34a" : selectedMetric === "observers" ? "#2563eb" : "#ea580c" },
-                { label: "Medium", color: selectedMetric === "incidents" ? "#f87171" : selectedMetric === "turnout" ? "#4ade80" : selectedMetric === "observers" ? "#60a5fa" : "#fb923c" },
-                { label: "Low", color: selectedMetric === "incidents" ? "#fecaca" : selectedMetric === "turnout" ? "#bbf7d0" : selectedMetric === "observers" ? "#bfdbfe" : "#fed7aa" },
-                { label: "None", color: "#94a3b8" }
-              ].map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div 
-                    className="w-4 h-4 rounded-full border border-gray-300"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+            <Badge variant="outline" className="text-xs">
+              <div className="w-3 h-3 rounded-full bg-red-300 mr-2"></div>
+              Medium
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              <div className="w-3 h-3 rounded-full bg-red-600 mr-2"></div>
+              High
+            </Badge>
+          </>
+        ) : (
+          <>
+            <Badge variant="outline" className="text-xs">
+              <div className="w-3 h-3 rounded-full bg-green-100 mr-2"></div>
+              Low
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              <div className="w-3 h-3 rounded-full bg-green-300 mr-2"></div>
+              Medium
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              <div className="w-3 h-3 rounded-full bg-green-600 mr-2"></div>
+              High
+            </Badge>
+          </>
+        )}
+      </div>
     </div>
   );
 }
