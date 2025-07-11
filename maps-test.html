@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps Test</title>
+    <style>
+        #map { height: 400px; width: 100%; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Google Maps API Test for CAFFE Platform</h2>
+    <div id="status"></div>
+    <div id="map"></div>
+    
+    <script>
+        const API_KEY = 'AIzaSyC6wiaSjNtmasGrZ9hamKqjavBsbng3zow';
+        
+        function initMap() {
+            document.getElementById('status').innerHTML = '✅ Google Maps loaded successfully!';
+            
+            const map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 9,
+                center: { lat: 18.1096, lng: -77.2975 }, // Jamaica center
+                mapTypeId: 'roadmap'
+            });
+            
+            // Add marker for Kingston
+            new google.maps.Marker({
+                position: { lat: 17.9771, lng: -76.7674 },
+                map: map,
+                title: 'Kingston, Jamaica'
+            });
+        }
+        
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap`;
+            script.onerror = function() {
+                document.getElementById('status').innerHTML = '❌ Failed to load Google Maps API';
+            };
+            document.head.appendChild(script);
+        }
+        
+        document.getElementById('status').innerHTML = '⏳ Loading Google Maps...';
+        loadGoogleMaps();
+    </script>
+</body>
+</html>
