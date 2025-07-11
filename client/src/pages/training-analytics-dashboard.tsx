@@ -34,11 +34,6 @@ export default function TrainingAnalyticsDashboard() {
   // Fetch training dashboard data
   const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ['/api/training/dashboard'],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
-      return response.json();
-    },
     refetchInterval: 30000,
     retry: 2
   });
@@ -46,11 +41,6 @@ export default function TrainingAnalyticsDashboard() {
   // Fetch user certificates
   const { data: certificates, isLoading: certificatesLoading } = useQuery({
     queryKey: ['/api/certificates/user'],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error('Failed to fetch certificates');
-      return response.json();
-    },
     retry: 2
   });
 
@@ -286,7 +276,7 @@ export default function TrainingAnalyticsDashboard() {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Average Grade</span>
-                          <span className="font-medium">{analytics.averageGrade?.toFixed(1) || 0}%</span>
+                          <span className="font-medium">{typeof analytics.averageGrade === 'number' ? analytics.averageGrade.toFixed(1) : 0}%</span>
                         </div>
                         <Progress value={analytics.averageGrade || 0} className="h-2" />
                       </div>
@@ -294,7 +284,7 @@ export default function TrainingAnalyticsDashboard() {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Training Efficiency</span>
-                          <span className="font-medium">{analytics.trainingEfficiency?.toFixed(1) || 0}%</span>
+                          <span className="font-medium">{typeof analytics.trainingEfficiency === 'number' ? analytics.trainingEfficiency.toFixed(1) : 0}%</span>
                         </div>
                         <Progress value={analytics.trainingEfficiency || 0} className="h-2" />
                       </div>
@@ -304,7 +294,7 @@ export default function TrainingAnalyticsDashboard() {
                           <Clock className="h-4 w-4 text-gray-500" />
                           <span className="text-sm text-gray-600">Study Hours</span>
                         </div>
-                        <span className="font-medium">{analytics.totalStudyHours?.toFixed(1) || 0}h</span>
+                        <span className="font-medium">{typeof analytics.totalStudyHours === 'number' ? analytics.totalStudyHours.toFixed(1) : 0}h</span>
                       </div>
                     </>
                   ) : (
