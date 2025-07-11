@@ -111,7 +111,7 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="status">System Status</TabsTrigger>
           <TabsTrigger value="apis">API Keys</TabsTrigger>
           <TabsTrigger value="didit">Didit KYC</TabsTrigger>
@@ -120,6 +120,7 @@ export default function AdminSettings() {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="chat">Chat Management</TabsTrigger>
+          <TabsTrigger value="mapping">Mapping</TabsTrigger>
         </TabsList>
 
         {/* System Status Dashboard */}
@@ -830,6 +831,125 @@ export default function AdminSettings() {
         {/* Chat Management */}
         <TabsContent value="chat" className="space-y-6">
           <ChatRoomManager />
+        </TabsContent>
+
+        {/* Location & Mapping Settings */}
+        <TabsContent value="mapping" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5" />
+                <span>Location & Mapping Settings</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* GPS Tracking */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">GPS Tracking</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Accuracy Threshold (meters)</Label>
+                    <Input
+                      type="number"
+                      placeholder="50"
+                      defaultValue={getSettingValue('gps_accuracy_threshold')}
+                      onBlur={(e) => handleUpdateSetting('gps_accuracy_threshold', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Update Interval (seconds)</Label>
+                    <Input
+                      type="number"
+                      placeholder="30"
+                      defaultValue={getSettingValue('gps_update_interval')}
+                      onBlur={(e) => handleUpdateSetting('gps_update_interval', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={getSettingValue('gps_tracking_enabled') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('gps_tracking_enabled', checked.toString())}
+                  />
+                  <Label>Enable GPS Tracking</Label>
+                </div>
+              </div>
+              {/* Polling Stations */}
+              <div className="space-y-3 border-t pt-6">
+                <Label className="text-base font-medium">Polling Stations</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Default Map Zoom</Label>
+                    <Input
+                      type="number"
+                      placeholder="12"
+                      defaultValue={getSettingValue('polling_default_zoom')}
+                      onBlur={(e) => handleUpdateSetting('polling_default_zoom', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Auto-Update Source</Label>
+                    <Select 
+                      defaultValue={getSettingValue('polling_update_source') || 'manual'}
+                      onValueChange={(value) => handleUpdateSetting('polling_update_source', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">Manual Upload</SelectItem>
+                        <SelectItem value="api">External API</SelectItem>
+                        <SelectItem value="database">Internal Database</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={getSettingValue('polling_auto_update') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('polling_auto_update', checked.toString())}
+                  />
+                  <Label>Enable Auto-Update</Label>
+                </div>
+              </div>
+              {/* Geographical Features */}
+              <div className="space-y-3 border-t pt-6">
+                <Label className="text-base font-medium">Geographical Features</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={getSettingValue('geo_parish_boundaries') === 'true'}
+                      onCheckedChange={(checked) => handleUpdateSetting('geo_parish_boundaries', checked.toString())}
+                    />
+                    <Label>Show Parish Boundaries</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={getSettingValue('geo_heat_map') === 'true'}
+                      onCheckedChange={(checked) => handleUpdateSetting('geo_heat_map', checked.toString())}
+                    />
+                    <Label>Enable Heat Maps</Label>
+                  </div>
+                </div>
+                <div>
+                  <Label>Heat Map Intensity</Label>
+                  <Select 
+                    defaultValue={getSettingValue('geo_heat_intensity') || 'medium'}
+                    onValueChange={(value) => handleUpdateSetting('geo_heat_intensity', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
