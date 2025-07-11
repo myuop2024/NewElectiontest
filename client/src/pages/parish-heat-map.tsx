@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,7 @@ function GoogleMapsHeatMap({
   selectedMetric: string,
   onParishSelect: (parish: string) => void 
 }) {
+  const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,50 +59,82 @@ function GoogleMapsHeatMap({
   useEffect(() => {
     const loadGoogleMaps = async () => {
       try {
+        console.log('[MAPS DEBUG] Starting Google Maps loading process');
+        
         // Check if already loaded
         if (typeof window.google !== 'undefined' && window.google.maps) {
+          console.log('[MAPS DEBUG] Google Maps already loaded, initializing map');
           initializeMap();
           return;
         }
 
         // Get API key from environment variable
         const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        console.log('[MAPS DEBUG] API key from environment:', apiKey ? 'Found' : 'Not found');
+        
         if (!apiKey) {
           throw new Error('Google Maps API key not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
         }
 
+        // Check if script already exists
+        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (existingScript) {
+          console.log('[MAPS DEBUG] Script already exists, waiting for load');
+          if (typeof window.google !== 'undefined' && window.google.maps) {
+            initializeMap();
+          } else {
+            existingScript.addEventListener('load', initializeMap);
+          }
+          return;
+        }
+
         // Load Google Maps script
+        console.log('[MAPS DEBUG] Loading Google Maps script');
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&callback=initGoogleMap`;
         script.async = true;
         script.defer = true;
 
-        script.onload = () => {
+        // Set up global callback
+        (window as any).initGoogleMap = () => {
+          console.log('[MAPS DEBUG] Google Maps callback triggered');
           initializeMap();
         };
 
-        script.onerror = () => {
+        script.onerror = (error) => {
+          console.error('[MAPS DEBUG] Failed to load Google Maps script:', error);
           setError('Failed to load Google Maps API');
           setIsLoading(false);
         };
 
         document.head.appendChild(script);
       } catch (err) {
+        console.error('[MAPS DEBUG] Error in loadGoogleMaps:', err);
         setError(err instanceof Error ? err.message : 'Failed to load Google Maps');
         setIsLoading(false);
       }
     };
 
     const initializeMap = () => {
-      const mapElement = document.getElementById('google-map');
-      if (!mapElement) {
-        setError('Map container not found');
-        setIsLoading(false);
+      console.log('[MAPS DEBUG] initializeMap called');
+      console.log('[MAPS DEBUG] mapRef.current:', mapRef.current);
+      console.log('[MAPS DEBUG] window.google:', typeof window.google);
+      
+      if (!mapRef.current) {
+        console.error('[MAPS DEBUG] mapRef.current is null, retrying in 100ms');
+        setTimeout(initializeMap, 100);
+        return;
+      }
+
+      if (typeof window.google === 'undefined' || !window.google.maps) {
+        console.error('[MAPS DEBUG] Google Maps API not available, retrying in 100ms');
+        setTimeout(initializeMap, 100);
         return;
       }
 
       try {
-        const mapInstance = new google.maps.Map(mapElement, {
+        console.log('[MAPS DEBUG] Creating Google Maps instance');
+        const mapInstance = new google.maps.Map(mapRef.current, {
           zoom: 9,
           center: { lat: 18.1096, lng: -77.2975 }, // Jamaica center
           mapTypeId: google.maps.MapTypeId.ROADMAP,
@@ -119,16 +152,21 @@ function GoogleMapsHeatMap({
           ]
         });
 
+        console.log('[MAPS DEBUG] Google Maps instance created successfully');
         setMap(mapInstance);
         setIsLoading(false);
         setError(null);
       } catch (err) {
-        setError('Failed to initialize map');
+        console.error('[MAPS DEBUG] Error creating Google Maps instance:', err);
+        setError('Failed to initialize map: ' + (err instanceof Error ? err.message : 'Unknown error'));
         setIsLoading(false);
       }
     };
 
-    loadGoogleMaps();
+    // Add a small delay to ensure DOM is ready
+    setTimeout(() => {
+      loadGoogleMaps();
+    }, 100);
   }, []);
 
   // Create markers when map or data changes
@@ -251,7 +289,7 @@ function GoogleMapsHeatMap({
   return (
     <div className="relative w-full h-full">
       <div 
-        id="google-map"
+        ref={mapRef}
         className="w-full h-full rounded-lg overflow-hidden"
         style={{ minHeight: '500px' }}
       />
