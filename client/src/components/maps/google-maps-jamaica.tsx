@@ -99,57 +99,62 @@ export default function GoogleMapsJamaica({
       console.log('[MAPS DEBUG] Final check - mapRef.current:', !!mapRef.current);
       console.log('[MAPS DEBUG] Final check - window.google:', typeof window.google !== 'undefined');
       
-      if (!mapRef.current) {
-        console.error('[MAPS DEBUG] mapRef.current is null - cannot initialize map');
-        setApiError('Map container not found');
-        setIsLoading(false);
-        return;
-      }
-      
-      if (!window.google) {
-        console.error('[MAPS DEBUG] window.google is not available - cannot initialize map');
-        setApiError('Google Maps API not loaded');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        console.log('[MAPS DEBUG] Creating Google Maps instance...');
+      // Use a timeout to ensure DOM is ready
+      const attemptInitialization = () => {
+        if (!mapRef.current) {
+          console.error('[MAPS DEBUG] mapRef.current is null - retrying in 100ms');
+          setTimeout(attemptInitialization, 100);
+          return;
+        }
         
-        const mapInstance = new window.google.maps.Map(mapRef.current, {
-          zoom: 9,
-          center: { lat: 18.1096, lng: -77.2975 }, // Center of Jamaica
-          mapTypeId: window.google.maps.MapTypeId.ROADMAP,
-          styles: [
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#4a90e2" }]
-            },
-            {
-              featureType: "landscape",
-              elementType: "geometry",
-              stylers: [{ color: "#f5f5f5" }]
-            },
-            {
-              featureType: "road",
-              elementType: "geometry",
-              stylers: [{ color: "#ffffff" }]
-            }
-          ]
-        });
+        if (!window.google) {
+          console.error('[MAPS DEBUG] window.google is not available - cannot initialize map');
+          setApiError('Google Maps API not loaded');
+          setIsLoading(false);
+          return;
+        }
 
-        console.log('[MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
-        console.log('[MAPS DEBUG] Setting map state and clearing loading...');
-        setMap(mapInstance);
-        setIsLoading(false);
-        console.log('[MAPS DEBUG] Map initialization completed');
-      } catch (error) {
-        console.error('[MAPS DEBUG] Error initializing Google Maps:', error);
-        console.error('[MAPS DEBUG] Error details:', error instanceof Error ? error.message : 'Unknown error');
-        setApiError('Failed to initialize map: ' + (error instanceof Error ? error.message : 'Unknown error'));
-        setIsLoading(false);
-      }
+        try {
+          console.log('[MAPS DEBUG] Creating Google Maps instance...');
+          
+          const mapInstance = new window.google.maps.Map(mapRef.current, {
+            zoom: 9,
+            center: { lat: 18.1096, lng: -77.2975 }, // Center of Jamaica
+            mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+            styles: [
+              {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#4a90e2" }]
+              },
+              {
+                featureType: "landscape",
+                elementType: "geometry",
+                stylers: [{ color: "#f5f5f5" }]
+              },
+              {
+                featureType: "road",
+                elementType: "geometry",
+                stylers: [{ color: "#ffffff" }]
+              }
+            ]
+          });
+
+          console.log('[MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
+          console.log('[MAPS DEBUG] Setting map state and clearing loading...');
+          setMap(mapInstance);
+          setIsLoading(false);
+          console.log('[MAPS DEBUG] Map initialization completed');
+        } catch (error) {
+          console.error('[MAPS DEBUG] Error initializing Google Maps:', error);
+          console.error('[MAPS DEBUG] Error details:', error instanceof Error ? error.message : 'Unknown error');
+          setApiError('Failed to initialize map: ' + (error instanceof Error ? error.message : 'Unknown error'));
+          setIsLoading(false);
+        }
+      };
+      
+      // Start initialization attempt
+      attemptInitialization();
     };
 
     // Load Google Maps API if not already loaded

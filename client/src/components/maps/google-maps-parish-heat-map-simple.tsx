@@ -143,32 +143,44 @@ export default function GoogleMapsParishHeatMapSimple({
       console.log('[PARISH MAPS DEBUG] google object available:', typeof google !== 'undefined');
       console.log('[PARISH MAPS DEBUG] google.maps available:', typeof google !== 'undefined' && !!google.maps);
       
-      try {
-        console.log('[PARISH MAPS DEBUG] Creating Google Maps instance...');
-        const mapInstance = new google.maps.Map(mapRef.current!, {
-          zoom: 9,
-          center: { lat: 18.1096, lng: -77.2975 }, // Jamaica center
-          mapTypeId: google.maps.MapTypeId.ROADMAP,
-          styles: [
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#4a90e2" }]
-            },
-            {
-              featureType: "landscape",
-              elementType: "geometry",
-              stylers: [{ color: "#f5f5f5" }]
-            }
-          ]
-        });
+      // Use a timeout to ensure DOM is ready
+      const attemptInitialization = () => {
+        if (!mapRef.current) {
+          console.error('[PARISH MAPS DEBUG] mapRef.current is null - retrying in 100ms');
+          setTimeout(attemptInitialization, 100);
+          return;
+        }
+        
+        try {
+          console.log('[PARISH MAPS DEBUG] Creating Google Maps instance...');
+          const mapInstance = new google.maps.Map(mapRef.current!, {
+            zoom: 9,
+            center: { lat: 18.1096, lng: -77.2975 }, // Jamaica center
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            styles: [
+              {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#4a90e2" }]
+              },
+              {
+                featureType: "landscape",
+                elementType: "geometry",
+                stylers: [{ color: "#f5f5f5" }]
+              }
+            ]
+          });
 
-        console.log('[PARISH MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
-        setMap(mapInstance);
-        console.log('[PARISH MAPS DEBUG] Map state set, initialization complete');
-      } catch (error) {
-        console.error('[PARISH MAPS DEBUG] Error initializing Google Maps:', error);
-      }
+          console.log('[PARISH MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
+          setMap(mapInstance);
+          console.log('[PARISH MAPS DEBUG] Map state set, initialization complete');
+        } catch (error) {
+          console.error('[PARISH MAPS DEBUG] Error initializing Google Maps:', error);
+        }
+      };
+      
+      // Start initialization attempt
+      attemptInitialization();
     };
 
     // If Maps already loaded, initialise immediately
