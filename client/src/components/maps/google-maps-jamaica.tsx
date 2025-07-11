@@ -89,26 +89,39 @@ export default function GoogleMapsJamaica({
 
   // Initialize Google Maps
   useEffect(() => {
-    console.log('[MAPS DEBUG] useEffect triggered - starting Google Maps initialization');
+    console.log('[MAPS DEBUG] Component mounted - starting Google Maps initialization');
     console.log('[MAPS DEBUG] mapRef.current exists:', !!mapRef.current);
     console.log('[MAPS DEBUG] window.google exists:', typeof window.google !== 'undefined');
     console.log('[MAPS DEBUG] window.google.maps exists:', typeof window.google !== 'undefined' && !!window.google.maps);
     
+    let retryCount = 0;
+    const maxRetries = 50; // Maximum 5 seconds of retries
+    
     const initializeMap = () => {
-      console.log('[MAPS DEBUG] initializeMap called');
-      console.log('[MAPS DEBUG] Final check - mapRef.current:', !!mapRef.current);
-      console.log('[MAPS DEBUG] Final check - window.google:', typeof window.google !== 'undefined');
+      console.log('[MAPS DEBUG] Starting map initialization process');
       
-      // Use a timeout to ensure DOM is ready
+      // Robust initialization with retry logic
       const attemptInitialization = () => {
+        console.log(`[MAPS DEBUG] Initialization attempt #${retryCount + 1}`);
+        console.log('[MAPS DEBUG] mapRef.current:', !!mapRef.current);
+        console.log('[MAPS DEBUG] window.google:', typeof window.google !== 'undefined');
+        
         if (!mapRef.current) {
-          console.error('[MAPS DEBUG] mapRef.current is null - retrying in 100ms');
-          setTimeout(attemptInitialization, 100);
-          return;
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`[MAPS DEBUG] DOM not ready, retrying in 100ms (attempt ${retryCount}/${maxRetries})`);
+            setTimeout(attemptInitialization, 100);
+            return;
+          } else {
+            console.error('[MAPS DEBUG] Max retries reached - DOM element never became available');
+            setApiError('Map container failed to initialize');
+            setIsLoading(false);
+            return;
+          }
         }
         
-        if (!window.google) {
-          console.error('[MAPS DEBUG] window.google is not available - cannot initialize map');
+        if (!window.google || !window.google.maps) {
+          console.error('[MAPS DEBUG] Google Maps API not available - cannot initialize map');
           setApiError('Google Maps API not loaded');
           setIsLoading(false);
           return;
@@ -140,14 +153,13 @@ export default function GoogleMapsJamaica({
             ]
           });
 
-          console.log('[MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
-          console.log('[MAPS DEBUG] Setting map state and clearing loading...');
+          console.log('[MAPS DEBUG] ✅ Google Maps instance created successfully!');
           setMap(mapInstance);
           setIsLoading(false);
-          console.log('[MAPS DEBUG] Map initialization completed');
+          setApiError(null);
+          console.log('[MAPS DEBUG] ✅ Map initialization completed successfully');
         } catch (error) {
-          console.error('[MAPS DEBUG] Error initializing Google Maps:', error);
-          console.error('[MAPS DEBUG] Error details:', error instanceof Error ? error.message : 'Unknown error');
+          console.error('[MAPS DEBUG] ❌ Error creating Google Maps instance:', error);
           setApiError('Failed to initialize map: ' + (error instanceof Error ? error.message : 'Unknown error'));
           setIsLoading(false);
         }
