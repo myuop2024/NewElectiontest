@@ -13,12 +13,22 @@ export default function ParishHeatMapPage() {
   // Fetch parish comparison data
   const { data: comparison } = useQuery({
     queryKey: ["/api/analytics/parish-comparison"],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/parish-comparison');
+      if (!response.ok) throw new Error('Failed to fetch comparison data');
+      return response.json();
+    },
     refetchInterval: 60000,
   });
 
   // Fetch total statistics
   const { data: totals } = useQuery({
     queryKey: ["/api/analytics/parish-totals"],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/parish-totals');
+      if (!response.ok) throw new Error('Failed to fetch totals data');
+      return response.json();
+    },
     refetchInterval: 30000,
   });
 

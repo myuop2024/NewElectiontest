@@ -5,6 +5,11 @@ import { Building2, Users, FileText, AlertTriangle, TrendingUp } from "lucide-re
 export default function QuickStats() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
+    queryFn: async () => {
+      const response = await fetch('/api/dashboard/stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    },
   });
 
   const statCards = [
