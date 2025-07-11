@@ -29,7 +29,8 @@ import {
   checkIns,
   reports,
   documents,
-  messages
+  messages,
+  notifications
 } from "@shared/schema";
 import { classroomService } from "./lib/google-classroom-service.js";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -1543,6 +1544,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to aggregate Jamaica news sources",
         details: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Notification Routes
+  app.post("/api/notifications/send", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { userId, message, type, data } = req.body;
+      const notification = await db.insert(schema.notifications).values({
+        userId: parseInt(userId),
+        message,
+        type,
+        data: JSON.stringify(data),
+        isRead: false
+      }).returning();
+      res.json(notification[0]);
+    } catch (error) {
+      console.error("Send notification error:", error);
+      res.status(500).json({ message: "Failed to send notification" });
+    }
+  });
+
+  // Get user notifications
+  app.get("/api/notifications", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const notifications = await db.select().from(schema.notifications)
+        .where(eq(schema.notifications.userId, req.user!.id))
+        .orderBy(desc(schema.notifications.createdAt))
+        .limit(50);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  // Get unread notifications count
+  app.get("/api/notifications/unread-count", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const [countResult] = await db.select({ count: sql`count(*)` })
+        .from(schema.notifications)
+        .where(and(
+          eq(schema.notifications.userId, req.user!.id),
+          eq(schema.notifications.isRead, false)
+        ));
+      res.json({ count: countResult ? countResult.count : 0 });
+    } catch (error) {
+      console.error("Get unread count error:", error);
+      res.status(500).json({ count: 0 });
+    }
+  });
+
+  // Mark all unread as read
+  app.patch("/api/notifications/mark-read", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      await db.update(schema.notifications)
+        .set({ isRead: true })
+        .where(and(
+          eq(schema.notifications.userId, req.user!.id),
+          eq(schema.notifications.isRead, false)
+        ));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Mark read error:", error);
+      res.status(500).json({ message: "Failed to mark as read" });
     }
   });
 

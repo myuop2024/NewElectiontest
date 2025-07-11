@@ -4,11 +4,44 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 
 export default function Header() {
   const { user, logout } = useAuth();
   const { isConnected } = useWebSocket();
+  const queryClient = useQueryClient();
+  const markReadMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/notifications/mark-read', { method: 'PATCH' });
+      if (!response.ok) throw new Error('Failed to mark as read');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+    },
+  });
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['/api/notifications'],
+    queryFn: async () => {
+      const response = await fetch('/api/notifications');
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      return response.json();
+    },
+    enabled: !!user,
+  });
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['/api/notifications/unread-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/notifications/unread-count');
+      if (!response.ok) throw new Error('Failed to fetch unread count');
+      const data = await response.json();
+      return data.count;
+    },
+    enabled: !!user,
+  });
 
   return (
     <header className="government-header sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -40,12 +73,31 @@ export default function Header() {
             
             {/* Notifications */}
             <div className="relative">
-              <Button variant="ghost" size="sm" className="p-2">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <Badge className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                  3
-                </Badge>
-              </Button>
+              <DropdownMenu onOpenChange={(open) => { if (open && unreadCount > 0) markReadMutation.mutate(); }}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1 py-2">
+                        <div className="font-medium">{notif.title}</div>
+                        <div className="text-sm text-muted-foreground">{notif.message}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(notif.createdAt).toLocaleString()}</div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem className="text-muted-foreground">No notifications</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             {/* User Profile */}
