@@ -1012,45 +1012,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (req.user?.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ message: "Admin access required" });
       }
-      
-      const settings = await storage.getSettings();
-      res.json(settings);
+      const allSettings = await db.select().from(settings);
+      res.json(allSettings);
     } catch (error) {
-      console.error("Error fetching settings:", error);
-      res.status(500).json({ error: "Failed to fetch settings" });
+      console.error("Get settings error:", error);
+      res.status(500).json({ message: "Failed to get settings" });
     }
   });
 
   app.post("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (req.user?.role !== 'admin') {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ message: "Admin access required" });
       }
-      
       const { key, value } = req.body;
-      
       if (!key || value === undefined) {
-        return res.status(400).json({ error: "Key and value are required" });
+        return res.status(400).json({ message: "Key and value are required" });
       }
-
-      console.log(`Updating setting: ${key} = ${value}`);
-
-      // Use storage layer for reliability
-      try {
-        const setting = await storage.updateSetting(key, value.toString(), req.user?.id);
-        console.log(`Successfully updated setting: ${key}`);
-        res.json(setting);
-        
-      } catch (dbError) {
-        console.error("Database error updating setting:", dbError);
-        res.status(500).json({ error: "Database error updating setting" });
-      }
-      
+      await db.insert(settings).values({ key, value, updatedBy: req.user.id, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: settings.key, set: { value, updatedBy: req.user.id, updatedAt: new Date() } });
+      res.json({ message: "Setting updated successfully" });
     } catch (error) {
-      console.error("Error in settings route:", error);
-      res.status(500).json({ error: "Failed to update setting" });
+      console.error("Update setting error:", error);
+      res.status(500).json({ message: "Failed to update setting" });
     }
   });
 

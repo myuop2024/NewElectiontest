@@ -229,6 +229,44 @@ export default function AdminSettings() {
                 </div>
               </div>
 
+              {/* Google Maps API */}
+              <div className="space-y-3 border-t pt-6">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Google Maps API</Label>
+                  <Badge variant={getSettingValue('GOOGLE_MAPS_ENABLED') === 'true' ? 'default' : 'secondary'}>
+                    {getSettingValue('GOOGLE_MAPS_ENABLED') === 'true' ? 'Enabled' : 'Disabled'}
+                  </Badge>
+                </div>
+                <div>
+                  <Label>Google Maps API Key</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      placeholder="your-google-maps-api-key"
+                      type={showSecrets['google_maps_key'] ? 'text' : 'password'}
+                      defaultValue={getSettingValue('GOOGLE_MAPS_API_KEY')}
+                      onBlur={(e) => handleUpdateSetting('GOOGLE_MAPS_API_KEY', e.target.value)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleShowSecret('google_maps_key')}
+                    >
+                      {showSecrets['google_maps_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Get your API key from <a href="https://developers.google.com/maps" target="_blank" className="text-blue-500 hover:underline">Google Maps Platform</a>
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={getSettingValue('GOOGLE_MAPS_ENABLED') === 'true'}
+                    onCheckedChange={(checked) => handleUpdateSetting('GOOGLE_MAPS_ENABLED', checked.toString())}
+                  />
+                  <Label>Enable Google Maps Integration</Label>
+                </div>
+              </div>
+
               {/* Twilio Communications */}
               <div className="space-y-3 border-t pt-6">
                 <div className="flex items-center justify-between">
