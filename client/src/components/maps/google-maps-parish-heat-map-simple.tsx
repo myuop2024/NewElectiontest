@@ -49,7 +49,7 @@ export default function GoogleMapsParishHeatMapSimple({
   console.log('[PARISH MAPS DEBUG] Component mounted with props:', { parishStats, selectedMetric, selectedParish });
   
   // Test mode indicator
-  const isTestMode = import.meta.env.DEV && !import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const isTestMode = false; // Always use production mode
   
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -234,13 +234,8 @@ export default function GoogleMapsParishHeatMapSimple({
           return;
         }
 
-        // Development fallback - only for testing
-        if (import.meta.env.DEV) {
-          console.log('[PARISH MAPS DEBUG] Development mode detected, using fallback API key for testing');
-          setApiKey('AIzaSyB41DRuKWuJdqpD6Gxbe4VkH0qAEpjXhVc'); // Development test key
-          setApiKeyLoading(false);
-          return;
-        }
+        // No environment variable found, attempt server fallback
+        console.log('[PARISH MAPS DEBUG] No environment variable found, attempting server fallback');
 
         // Fallback to server API
         console.log('[PARISH MAPS DEBUG] Fetching API key from server...');
