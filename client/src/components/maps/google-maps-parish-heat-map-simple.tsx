@@ -86,28 +86,38 @@ export default function GoogleMapsParishHeatMapSimple({
   // Initialize Google Maps
   // 1) Fetch the API key once when the component mounts
   useEffect(() => {
+    console.log('[PARISH MAPS DEBUG] Component mounted, starting API key fetch');
+    
     const fetchApiKey = async () => {
       // Check environment variable first
       const envApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      console.log('[PARISH MAPS DEBUG] Environment API key check:', envApiKey ? 'Found' : 'Not found');
+      
       if (envApiKey) {
-        console.log('[DEBUG] Using environment variable for Google Maps API key');
+        console.log('[PARISH MAPS DEBUG] Using environment variable for Google Maps API key');
         setApiKey(envApiKey);
         return;
       }
 
       try {
+        console.log('[PARISH MAPS DEBUG] Fetching API key from server...');
         setApiKeyLoading(true);
         const response = await fetch('/api/settings/google-maps-api');
+        console.log('[PARISH MAPS DEBUG] Server response status:', response.status);
+        
         if (!response.ok) throw new Error('Failed to fetch API key');
         const data = await response.json();
+        console.log('[PARISH MAPS DEBUG] Server response data:', data);
+        
         if (data.hasKey && data.apiKey) {
-          console.log('[DEBUG] Using server-provided Google Maps API key');
+          console.log('[PARISH MAPS DEBUG] Using server-provided Google Maps API key');
           setApiKey(data.apiKey);
         } else {
+          console.error('[PARISH MAPS DEBUG] No API key available from server');
           setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');
         }
       } catch (error) {
-        console.error('Error fetching Google Maps API key:', error);
+        console.error('[PARISH MAPS DEBUG] Error fetching Google Maps API key:', error);
         setApiKeyError('Failed to load Google Maps API configuration.');
       } finally {
         setApiKeyLoading(false);
@@ -119,10 +129,22 @@ export default function GoogleMapsParishHeatMapSimple({
 
   // 2) Once we have a valid API key, load the Google Maps script *once*
   useEffect(() => {
-    if (!apiKey || !mapRef.current) return;
+    console.log('[PARISH MAPS DEBUG] API key effect triggered');
+    console.log('[PARISH MAPS DEBUG] API key exists:', !!apiKey);
+    console.log('[PARISH MAPS DEBUG] mapRef.current exists:', !!mapRef.current);
+    
+    if (!apiKey || !mapRef.current) {
+      console.log('[PARISH MAPS DEBUG] Missing requirements - apiKey:', !!apiKey, 'mapRef:', !!mapRef.current);
+      return;
+    }
 
     const initMap = () => {
+      console.log('[PARISH MAPS DEBUG] initMap called');
+      console.log('[PARISH MAPS DEBUG] google object available:', typeof google !== 'undefined');
+      console.log('[PARISH MAPS DEBUG] google.maps available:', typeof google !== 'undefined' && !!google.maps);
+      
       try {
+        console.log('[PARISH MAPS DEBUG] Creating Google Maps instance...');
         const mapInstance = new google.maps.Map(mapRef.current!, {
           zoom: 9,
           center: { lat: 18.1096, lng: -77.2975 }, // Jamaica center
@@ -141,32 +163,48 @@ export default function GoogleMapsParishHeatMapSimple({
           ]
         });
 
-        console.log('[DEBUG] Google Maps initialized successfully');
+        console.log('[PARISH MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
         setMap(mapInstance);
+        console.log('[PARISH MAPS DEBUG] Map state set, initialization complete');
       } catch (error) {
-        console.error('[DEBUG] Error initializing Google Maps:', error);
+        console.error('[PARISH MAPS DEBUG] Error initializing Google Maps:', error);
       }
     };
 
     // If Maps already loaded, initialise immediately
     if (typeof google !== 'undefined' && google.maps) {
+      console.log('[PARISH MAPS DEBUG] Google Maps already loaded, initializing immediately');
       initMap();
       return;
     }
 
+    console.log('[PARISH MAPS DEBUG] Google Maps not loaded, creating script');
+
     // Otherwise, inject the script (prevent duplicates)
     const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
     if (existingScript) {
+      console.log('[PARISH MAPS DEBUG] Script already exists, adding load listener');
       existingScript.addEventListener('load', initMap);
       return;
     }
 
+    console.log('[PARISH MAPS DEBUG] Creating new script tag');
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
+    const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
+    console.log('[PARISH MAPS DEBUG] Script URL:', scriptUrl);
+    
+    script.src = scriptUrl;
     script.async = true;
     script.defer = true;
-    script.onload = initMap;
-    script.onerror = () => console.error('[DEBUG] Failed to load Google Maps API');
+    script.onload = () => {
+      console.log('[PARISH MAPS DEBUG] Google Maps script loaded successfully');
+      initMap();
+    };
+    script.onerror = (error) => {
+      console.error('[PARISH MAPS DEBUG] Failed to load Google Maps API:', error);
+    };
+    
+    console.log('[PARISH MAPS DEBUG] Adding script to document head');
     document.head.appendChild(script);
 
     // Cleanup: remove listener if component unmounts before load

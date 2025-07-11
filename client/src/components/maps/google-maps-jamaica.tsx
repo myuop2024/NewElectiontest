@@ -89,11 +89,32 @@ export default function GoogleMapsJamaica({
 
   // Initialize Google Maps
   useEffect(() => {
+    console.log('[MAPS DEBUG] useEffect triggered - starting Google Maps initialization');
+    console.log('[MAPS DEBUG] mapRef.current exists:', !!mapRef.current);
+    console.log('[MAPS DEBUG] window.google exists:', typeof window.google !== 'undefined');
+    console.log('[MAPS DEBUG] window.google.maps exists:', typeof window.google !== 'undefined' && !!window.google.maps);
+    
     const initializeMap = () => {
-      if (!mapRef.current || !window.google) return;
+      console.log('[MAPS DEBUG] initializeMap called');
+      console.log('[MAPS DEBUG] Final check - mapRef.current:', !!mapRef.current);
+      console.log('[MAPS DEBUG] Final check - window.google:', typeof window.google !== 'undefined');
+      
+      if (!mapRef.current) {
+        console.error('[MAPS DEBUG] mapRef.current is null - cannot initialize map');
+        setApiError('Map container not found');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!window.google) {
+        console.error('[MAPS DEBUG] window.google is not available - cannot initialize map');
+        setApiError('Google Maps API not loaded');
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        console.log('Initializing Google Maps for Jamaica');
+        console.log('[MAPS DEBUG] Creating Google Maps instance...');
         
         const mapInstance = new window.google.maps.Map(mapRef.current, {
           zoom: 9,
@@ -118,57 +139,81 @@ export default function GoogleMapsJamaica({
           ]
         });
 
-        console.log('Google Maps initialized successfully');
+        console.log('[MAPS DEBUG] Google Maps instance created successfully:', mapInstance);
+        console.log('[MAPS DEBUG] Setting map state and clearing loading...');
         setMap(mapInstance);
         setIsLoading(false);
+        console.log('[MAPS DEBUG] Map initialization completed');
       } catch (error) {
-        console.error('Error initializing Google Maps:', error);
+        console.error('[MAPS DEBUG] Error initializing Google Maps:', error);
+        console.error('[MAPS DEBUG] Error details:', error instanceof Error ? error.message : 'Unknown error');
+        setApiError('Failed to initialize map: ' + (error instanceof Error ? error.message : 'Unknown error'));
         setIsLoading(false);
       }
     };
 
     // Load Google Maps API if not already loaded
     if (typeof window.google !== 'undefined' && window.google.maps) {
+      console.log('[MAPS DEBUG] Google Maps API already loaded, initializing map immediately');
       initializeMap();
     } else {
+      console.log('[MAPS DEBUG] Google Maps API not loaded, fetching API key and loading script');
+      
       // Create async function to handle API key fetching
       const loadGoogleMaps = async () => {
+        console.log('[MAPS DEBUG] Starting API key fetching process');
         const script = document.createElement('script');
         let apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
         
+        console.log('[MAPS DEBUG] Environment API key:', apiKey ? 'Found' : 'Not found');
+        
         // Fallback to fetch from server if not in environment
         if (!apiKey) {
+          console.log('[MAPS DEBUG] Fetching API key from server...');
           try {
             const response = await fetch('/api/settings/google-maps-api');
+            console.log('[MAPS DEBUG] Server response status:', response.status);
             const data = await response.json();
+            console.log('[MAPS DEBUG] Server response data:', data);
             if (data.configured && data.apiKey) {
               apiKey = data.apiKey;
+              console.log('[MAPS DEBUG] API key retrieved from server successfully');
             }
           } catch (error) {
-            console.error('Failed to fetch Google Maps API key from server');
+            console.error('[MAPS DEBUG] Failed to fetch Google Maps API key from server:', error);
           }
         }
         
         if (!apiKey) {
-          console.error('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY environment variable.');
+          console.error('[MAPS DEBUG] No API key available - cannot load Google Maps');
           setIsLoading(false);
           setApiError('Google Maps API key is not configured. Please contact your administrator.');
           return;
         }
         
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&loading=async`;
+        const scriptUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&loading=async`;
+        console.log('[MAPS DEBUG] Loading Google Maps script from:', scriptUrl);
+        
+        script.src = scriptUrl;
         script.async = true;
         script.defer = true;
-        script.onload = initializeMap;
-        script.onerror = () => {
-          console.error('Failed to load Google Maps API');
+        script.onload = () => {
+          console.log('[MAPS DEBUG] Google Maps script loaded successfully');
+          initializeMap();
+        };
+        script.onerror = (error) => {
+          console.error('[MAPS DEBUG] Failed to load Google Maps API script:', error);
           setIsLoading(false);
+          setApiError('Failed to load Google Maps API');
         };
         
         // Avoid duplicate script loading
-        if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (!existingScript) {
+          console.log('[MAPS DEBUG] Adding script to document head');
           document.head.appendChild(script);
         } else {
+          console.log('[MAPS DEBUG] Script already exists, attempting to initialize');
           initializeMap();
         }
       };
