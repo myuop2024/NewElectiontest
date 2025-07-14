@@ -45,9 +45,13 @@ export default function CentralAIHub() {
     retry: 1, // Only retry once
   });
 
-  // Disable expensive Jamaica news data to prevent spinning
-  const jamaicaNews = { success: false, message: "Disabled to save credits" };
-  const newsLoading = false;
+  // Get Jamaica news data (now with proper API keys)
+  const { data: jamaicaNews, isLoading: newsLoading } = useQuery({
+    queryKey: ["/api/news/jamaica-aggregated"],
+    refetchInterval: 1800000, // 30 minutes
+    staleTime: 900000, // 15 minutes cache
+    retry: 2,
+  });
 
   // Get parish data for heat map (simple, no excessive calls)
   const { data: parishData, isLoading: parishLoading } = useQuery({

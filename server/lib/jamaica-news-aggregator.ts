@@ -194,7 +194,7 @@ export class JamaicaNewsAggregator {
           'User-Agent': 'CAFFE Electoral Observer Bot 1.0',
           'Accept': 'application/rss+xml, application/xml, text/xml'
         },
-        timeout: 10000
+        signal: AbortSignal.timeout(15000) // 15 second timeout
       });
 
       if (!response.ok) {

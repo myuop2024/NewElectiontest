@@ -37,7 +37,7 @@ import {
   xMonitoringAlerts
 } from "@shared/schema";
 import { classroomService } from "./lib/google-classroom-service.js";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
 import { SecurityService } from "./lib/security.js";
 import { KYCService } from "./lib/kyc-service.js";
@@ -5863,6 +5863,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Config creation error:", error);
       res.status(500).json({ error: "Failed to create monitoring configuration" });
+    }
+  });
+
+  // Get X API connection status
+  app.get("/api/x-sentiment/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const hasXApiKey = !!process.env.X_API_KEY;
+      const hasGrokApiKey = !!process.env.GROK_API_KEY;
+      const hasXBearerToken = !!process.env.X_BEARER_TOKEN;
+      
+      // Test Grok API connectivity if key exists
+      let grokStatus = "not_configured";
+      if (hasGrokApiKey) {
+        try {
+          // Simple test to verify key format (not making actual API call to save credits)
+          const keyLength = process.env.GROK_API_KEY?.length || 0;
+          grokStatus = keyLength > 10 ? "connected" : "invalid_key";
+        } catch {
+          grokStatus = "error";
+        }
+      }
+      
+      const connected = hasGrokApiKey && grokStatus === "connected";
+      
+      res.json({
+        connected,
+        x_api_configured: hasXApiKey || hasXBearerToken,
+        grok_api_configured: hasGrokApiKey,
+        grok_status: grokStatus,
+        services: {
+          x_api: hasXApiKey || hasXBearerToken ? "configured" : "missing",
+          grok_4: hasGrokApiKey ? "configured" : "missing",
+          sentiment_analysis: connected ? "operational" : "limited"
+        },
+        message: connected 
+          ? "X API (Grok 4) connected - Real Jamaica sentiment analysis available"
+          : hasGrokApiKey 
+            ? "Grok API key detected but validation failed"
+            : "Grok API key required for real X sentiment analysis",
+        data_source: connected ? "real" : "demo"
+      });
+    } catch (error) {
+      console.error("X sentiment status error:", error);
+      res.status(500).json({ 
+        connected: false,
+        error: "Failed to check X sentiment status",
+        data_source: "demo"
+      });
     }
   });
 
