@@ -222,6 +222,16 @@ The system analyzes traffic conditions for their impact on electoral activities:
 - `/api/traffic/route` - Route analysis between two points with traffic data
 - `/api/traffic/alerts/:lat/:lng` - Traffic incident alerts and recommendations
 
+## User Login Information
+**Admin Access Required**: To access the X sentiment dashboard and Central AI Hub, you must be logged in as an admin.
+
+**Login Credentials**:
+- Email: admin@caffe.org.jm
+- Password: password
+- Access the login page at: `/login`
+
+**Access Control**: The X sentiment monitoring, historical import, and Central AI Hub features require admin authentication.
+
 ## Changelog
 - July 14, 2025: X API (Grok 4) Social Media Sentiment Analysis Implementation
   - **MAJOR FEATURE**: Complete X (Twitter) API integration with Grok 4 AI for real-time sentiment analysis
