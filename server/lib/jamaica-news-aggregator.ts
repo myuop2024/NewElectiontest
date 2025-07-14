@@ -636,7 +636,7 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       `;
 
       const response = await genAI.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash-exp',
         contents: prompt
       });
 

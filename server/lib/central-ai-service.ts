@@ -43,7 +43,7 @@ export class CentralAIService {
       throw new Error("Gemini API key is required");
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
   }
 
   static getInstance(apiKey?: string): CentralAIService {

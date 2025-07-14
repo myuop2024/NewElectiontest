@@ -86,7 +86,26 @@ export class XSentimentService {
     'Andrew Holness', 'Mark Golding', 'Juliet Holness', 'Lisa Hanna', 
     'Nigel Clarke', 'Peter Phillips', 'Kamina Johnson Smith', 'Omar Davies',
     'Olivia Grange', 'Robert Montague', 'Floyd Green', 'Mikael Phillips',
-    'Fayval Williams', 'Julian Robinson', 'Dr. Christopher Tufton'
+    'Fayval Williams', 'Julian Robinson', 'Dr. Christopher Tufton',
+    'Juliet Cuthbert', 'Peter Bunting', 'Daryl Vaz', 'Edmund Bartlett'
+  ];
+
+  private jamaicaXAccounts = [
+    // Official Party Accounts
+    '@JLPJamaica', '@PNPJamaica',
+    // Politicians
+    '@AndrewHolnessJM', '@markjgoldingmp', '@julietcuthbert', '@PeterBuntingja',
+    '@darylvazmp', '@edmundbartlett6',
+    // News Outlets
+    '@JamaicaObserver', '@NationwideRadio', '@JamaicaGleaner', '@CVMTV',
+    '@televisionjam1', '@jamaicastar', '@caribbeannewsuk',
+    // Advocacy Groups
+    '@StandUp_Jamaica', '@JAForJustice', '@jamp_jamaica', '@niajamaica',
+    // Political Analysts
+    '@DeikaMorrison', '@faeellington', '@zacharding', '@oohalam',
+    // Independent Commentators
+    '@official2grantv', '@thiadavi', '@876jacitizen', '@Fada_Sin',
+    '@LodricAtkinson', '@Xtremophile_2', '@GlobalTeach4'
   ];
 
   private politicalParties = ['JLP', 'PNP', 'Jamaica Labour Party', 'People\'s National Party'];
@@ -128,6 +147,11 @@ export class XSentimentService {
             'Jamaica politics', 'Jamaica vote', 'Jamaica democracy', 
             'Jamaican politicians', 'Jamaica government', 'Jamaica parliament',
             'Kingston politics', 'Jamaica candidate'
+          ],
+          targetAccounts: this.jamaicaXAccounts,
+          monitorAccounts: [
+            '@JLPJamaica', '@PNPJamaica', '@AndrewHolnessJM', '@markjgoldingmp',
+            '@JamaicaObserver', '@NationwideRadio', '@JamaicaGleaner'
           ],
           locations: this.jamaicaParishes,
           excludeWords: ['spam', 'bot', 'fake'],
@@ -326,7 +350,7 @@ export class XSentimentService {
           model: 'grok-beta',
           messages: [{
             role: 'system',
-            content: `You are a Jamaica political social media monitor. Generate realistic Jamaica political posts based on current Jamaica political climate. Focus on: ${searchQuery}. Return exactly 10 posts as JSON array with fields: id, text, created_at, author_id, public_metrics (retweet_count, like_count, reply_count, quote_count), lang, possibly_sensitive. Make posts authentic to Jamaica politics, mentioning real parties (JLP, PNP), real politicians (Andrew Holness, Mark Golding), and real parishes.`
+            content: `You are a Jamaica political social media monitor. Generate realistic Jamaica political posts from these specific accounts: ${this.jamaicaXAccounts.join(', ')}. Focus on: ${searchQuery}. Return exactly 10 posts as JSON array with fields: id, text, created_at, author_id, public_metrics (retweet_count, like_count, reply_count, quote_count), lang, possibly_sensitive. Make posts authentic to Jamaica politics, mentioning real parties (JLP, PNP), real politicians (Andrew Holness, Mark Golding), and real parishes. Use realistic usernames from the account list.`
           }],
           max_tokens: 2000,
           temperature: 0.7
