@@ -242,6 +242,55 @@ export class SocialMonitoringService {
     return alerts;
   }
 
+  // Analyze content sentiment using AI
+  async analyzeContentSentiment(content: string, contentType: string = 'news'): Promise<any> {
+    try {
+      const prompt = `As a Jamaican electoral monitoring specialist, analyze this ${contentType} content for political sentiment and risk assessment:
+
+CONTENT: "${content}"
+
+Provide analysis in JSON format:
+{
+  "sentiment": "positive|negative|neutral",
+  "confidence": 0.85,
+  "riskLevel": "low|medium|high|critical",
+  "politicalContext": "brief analysis",
+  "keyTopics": ["topic1", "topic2"],
+  "threatIndicators": ["indicator1", "indicator2"],
+  "recommendations": ["action1", "action2"]
+}`;
+
+      const analysis = await this.centralAI.analyzeSocialSentiment([{
+        content: content,
+        platform: contentType,
+        location: 'Jamaica',
+        engagement: 1,
+        timestamp: new Date()
+      }]);
+
+      return {
+        sentiment: analysis.overall_sentiment || 'neutral',
+        confidence: analysis.confidence || 0.5,
+        riskLevel: analysis.risk_level || 'low',
+        politicalContext: analysis.analysis || 'Standard content analysis',
+        keyTopics: analysis.key_topics || [],
+        threatIndicators: analysis.threat_indicators || [],
+        recommendations: analysis.recommendations || []
+      };
+    } catch (error) {
+      console.error('Content sentiment analysis error:', error);
+      return {
+        sentiment: 'neutral',
+        confidence: 0.5,
+        riskLevel: 'low',
+        politicalContext: 'Analysis unavailable',
+        keyTopics: [],
+        threatIndicators: [],
+        recommendations: []
+      };
+    }
+  }
+
   private async assessRiskPattern(data: any, pattern: any): Promise<any> {
     // Use AI to assess risk patterns
     const prompt = `Analyze this Jamaica election monitoring data for ${pattern.type} risks:
