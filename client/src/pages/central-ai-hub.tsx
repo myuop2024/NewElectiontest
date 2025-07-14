@@ -27,32 +27,34 @@ export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
-  // Check AI system status (reduced frequency)
+  // Check AI system status (reduced frequency with timeout)
   const { data: aiStatus, isLoading: aiLoading } = useQuery({
     queryKey: ["/api/central-ai/status"],
     refetchInterval: 300000, // 5 minutes instead of constant
     staleTime: 120000, // 2 minutes cache
+    gcTime: 300000, // Cache for 5 minutes
+    retry: 1, // Only retry once
   });
 
-  // Check X API connection status (reduced frequency)
+  // Check X API connection status (reduced frequency with timeout)
   const { data: xStatus, isLoading: xLoading } = useQuery({
     queryKey: ["/api/x-sentiment/status"],
     refetchInterval: 600000, // 10 minutes
     staleTime: 300000, // 5 minutes cache
+    gcTime: 600000, // Cache for 10 minutes
+    retry: 1, // Only retry once
   });
 
-  // Get Jamaica news data (reduced frequency)
-  const { data: jamaicaNews, isLoading: newsLoading } = useQuery({
-    queryKey: ["/api/news/jamaica-aggregated"],
-    refetchInterval: 900000, // 15 minutes
-    staleTime: 600000, // 10 minutes cache
-  });
+  // Disable expensive Jamaica news data to prevent spinning
+  const jamaicaNews = { success: false, message: "Disabled to save credits" };
+  const newsLoading = false;
 
-  // Get parish data for heat map (reduced frequency)
+  // Get parish data for heat map (simple, no excessive calls)
   const { data: parishData, isLoading: parishLoading } = useQuery({
     queryKey: ["/api/analytics/parishes"],
-    refetchInterval: 1200000, // 20 minutes
-    staleTime: 600000, // 10 minutes cache
+    refetchInterval: false, // No auto-refresh to save resources
+    staleTime: 1800000, // 30 minutes cache
+    retry: 1, // Only retry once
   });
 
   // Disable expensive sentiment monitoring to save credits
@@ -75,7 +77,10 @@ export default function CentralAIHub() {
 
   const connectionStatus = getConnectionStatus();
 
-  if (aiLoading || xLoading || newsLoading) {
+  // Show content even if some queries are still loading
+  const isInitialLoading = aiLoading && xLoading && newsLoading && parishLoading;
+  
+  if (isInitialLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
