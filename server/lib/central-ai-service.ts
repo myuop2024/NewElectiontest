@@ -238,7 +238,8 @@ Return as JSON array with this structure:
       return JSON.parse(analysisText);
     } catch (error) {
       console.error("Election trends analysis error:", error);
-      throw new Error("Failed to analyze election trends");
+      // Return fallback data instead of throwing error
+      return [];
     }
   }
 

@@ -41,7 +41,6 @@ const navigation = [
   { name: 'Polling Stations', href: '/polling-stations', icon: MapPin },
   { name: 'Weather Conditions', href: '/weather-dashboard', icon: Cloud },
   { name: 'Training Hub', href: '/training-center', icon: GraduationCap },
-  { name: 'Training Analytics', href: '/training-analytics', icon: BarChart3 },
   { name: 'QR Tools', href: '/qr-scanner', icon: QrCode },
   { name: 'Support', href: '/live-chat', icon: MessageCircle },
   { name: 'Settings', href: '/settings', icon: Settings },
@@ -67,17 +66,13 @@ const adminNavigationGroups = [
   {
     title: "Analytics & Intelligence",
     items: [
-      { name: 'Analytics Hub', href: '/analytics', icon: BarChart3 },
-      { name: 'Parish Heat Map', href: '/parish-heat-map', icon: Layers },
-      { name: 'X Sentiment Analysis', href: '/x-sentiment-dashboard', icon: Twitter },
-      { name: 'AI Intelligence', href: '/ai-analytics', icon: Brain },
       { name: 'Central AI Hub', href: '/central-ai-hub', icon: Brain },
+      { name: 'Analytics Dashboard', href: '/analytics', icon: BarChart3 },
     ]
   },
   {
     title: "Configuration",
     items: [
-      { name: 'Google Classroom', href: '/training-center', icon: BookOpen },
       { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
       { name: 'System Settings', href: '/admin/didit-settings', icon: Settings },
       { name: 'Data Integration', href: '/sheets-integration', icon: FileSpreadsheet },

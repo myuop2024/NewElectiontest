@@ -27,30 +27,37 @@ export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
-  // Check AI system status
+  // Check AI system status (reduced frequency)
   const { data: aiStatus, isLoading: aiLoading } = useQuery({
     queryKey: ["/api/central-ai/status"],
+    refetchInterval: 300000, // 5 minutes instead of constant
+    staleTime: 120000, // 2 minutes cache
   });
 
-  // Check X API connection status
+  // Check X API connection status (reduced frequency)
   const { data: xStatus, isLoading: xLoading } = useQuery({
     queryKey: ["/api/x-sentiment/status"],
+    refetchInterval: 600000, // 10 minutes
+    staleTime: 300000, // 5 minutes cache
   });
 
-  // Get Jamaica news data
+  // Get Jamaica news data (reduced frequency)
   const { data: jamaicaNews, isLoading: newsLoading } = useQuery({
     queryKey: ["/api/news/jamaica-aggregated"],
+    refetchInterval: 900000, // 15 minutes
+    staleTime: 600000, // 10 minutes cache
   });
 
-  // Get parish data for heat map
+  // Get parish data for heat map (reduced frequency)
   const { data: parishData, isLoading: parishLoading } = useQuery({
     queryKey: ["/api/analytics/parishes"],
+    refetchInterval: 1200000, // 20 minutes
+    staleTime: 600000, // 10 minutes cache
   });
 
-  // Get real-time sentiment data
-  const { data: sentimentData, isLoading: sentimentLoading } = useQuery({
-    queryKey: ["/api/social-monitoring/sentiment"],
-  });
+  // Disable expensive sentiment monitoring to save credits
+  const sentimentData = null;
+  const sentimentLoading = false;
 
   const getConnectionStatus = () => {
     const xConnected = xStatus?.connected === true;
