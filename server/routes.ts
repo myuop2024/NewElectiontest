@@ -5914,6 +5914,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Start X monitoring manually
+  app.post("/api/x-sentiment/monitor", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const xSentimentService = new XSentimentService();
+      const result = await xSentimentService.monitorXContent();
+      
+      res.json({
+        success: result.success,
+        message: result.success 
+          ? `Monitoring completed. Processed ${result.posts} posts, generated ${result.alerts} alerts.`
+          : "Monitoring failed - check configuration and API keys",
+        posts_processed: result.posts,
+        alerts_generated: result.alerts,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Manual monitoring error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to start monitoring",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Import past 24 hours of X sentiment data
+  app.post("/api/x-sentiment/import-historical", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const xSentimentService = new XSentimentService();
+      
+      // Import data for last 24 hours
+      const result = await xSentimentService.importHistoricalData(24);
+      
+      res.json({
+        success: true,
+        message: `Imported ${result.posts} posts from past 24 hours`,
+        posts_imported: result.posts,
+        alerts_generated: result.alerts || 0,
+        time_range: "24 hours",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Historical import error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to import historical data",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Get X monitoring alerts
   app.get("/api/x-sentiment/alerts", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

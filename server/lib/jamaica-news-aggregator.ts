@@ -35,7 +35,19 @@ interface ProcessedArticle {
 }
 
 export class JamaicaNewsAggregator {
+  private newsApiKey = process.env.NEWS_API_KEY;
+
   private sources: NewsSource[] = [
+    // NewsAPI - Primary real news source
+    {
+      id: 'newsapi_jamaica',
+      name: 'NewsAPI Jamaica',
+      type: 'website',
+      url: 'https://newsapi.org/v2/everything?q=Jamaica+AND+(election+OR+politics+OR+government)&language=en&sortBy=publishedAt',
+      isActive: true,
+      priority: 5,
+      electionRelevance: 10
+    },
     // Primary Jamaica News Sources
     {
       id: 'gleaner_main',
@@ -43,7 +55,7 @@ export class JamaicaNewsAggregator {
       type: 'rss',
       url: 'https://jamaica-gleaner.com/feed',
       isActive: true,
-      priority: 5,
+      priority: 4,
       electionRelevance: 9
     },
     {
@@ -258,6 +270,11 @@ export class JamaicaNewsAggregator {
 
   private async fetchFromWebsiteSource(source: NewsSource): Promise<ProcessedArticle[]> {
     console.log(`Fetching website content from ${source.name}...`);
+    
+    // Handle NewsAPI specially
+    if (source.id === 'newsapi_jamaica' && this.newsApiKey) {
+      return await this.fetchFromNewsAPI();
+    }
     
     try {
       const response = await fetch(source.url, {
@@ -507,5 +524,70 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       criticalAlerts: this.getHighPriorityAlerts().length
     };
     return stats;
+  }
+
+  // Fetch from NewsAPI for real Jamaica news
+  private async fetchFromNewsAPI(): Promise<ProcessedArticle[]> {
+    if (!this.newsApiKey) {
+      console.log('NewsAPI key not available, using RSS sources only');
+      return [];
+    }
+
+    try {
+      const url = `https://newsapi.org/v2/everything?q=Jamaica AND (election OR politics OR government OR democracy OR vote OR candidate)&language=en&sortBy=publishedAt&pageSize=50&apiKey=${this.newsApiKey}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
+        },
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`NewsAPI error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const articles: ProcessedArticle[] = [];
+
+      if (data.articles) {
+        for (const article of data.articles.slice(0, 20)) {
+          if (article.title && article.url && !article.title.includes('[Removed]')) {
+            const processedArticle: ProcessedArticle = {
+              id: this.generateArticleId(article.title, 'newsapi'),
+              title: this.cleanText(article.title),
+              content: this.cleanText(article.description || article.content || ''),
+              source: article.source?.name || 'NewsAPI',
+              url: article.url,
+              publishedAt: new Date(article.publishedAt),
+              extractedAt: new Date(),
+              isDuplicate: false,
+              relevanceScore: 0,
+              electionKeywords: [],
+              parishMentions: [],
+              sentimentAnalysis: {
+                sentiment: 'neutral',
+                confidence: 0,
+                riskLevel: 'low'
+              }
+            };
+            
+            // Score article relevance
+            processedArticle.relevanceScore = this.scoreArticleRelevance(processedArticle);
+            processedArticle.electionKeywords = this.extractElectionKeywords(processedArticle.title + ' ' + processedArticle.content);
+            processedArticle.parishMentions = this.extractParishMentions(processedArticle.title + ' ' + processedArticle.content);
+            
+            articles.push(processedArticle);
+          }
+        }
+      }
+
+      console.log(`NewsAPI returned ${articles.length} Jamaica articles`);
+      return articles;
+
+    } catch (error) {
+      console.error('NewsAPI fetch failed:', error);
+      return [];
+    }
   }
 }

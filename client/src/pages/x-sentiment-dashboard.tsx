@@ -179,6 +179,27 @@ export default function XSentimentDashboard() {
     }
   });
 
+  // Import historical data mutation
+  const importHistoricalMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("/api/x-sentiment/import-historical", "POST", {}),
+    onSuccess: (data) => {
+      toast({
+        title: "Historical Import Complete",
+        description: `Imported ${data.posts_imported} posts from past 24 hours`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/x-sentiment/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/x-sentiment/alerts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Import Failed",
+        description: error.message || "Failed to import historical data",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Batch analysis mutation
   const batchAnalysisMutation = useMutation({
     mutationFn: (limit: number) =>
@@ -210,6 +231,10 @@ export default function XSentimentDashboard() {
       locations: newConfig.locations.split(',').map(l => l.trim())
     };
     createConfigMutation.mutate(configData);
+  };
+
+  const handleImportHistorical = () => {
+    importHistoricalMutation.mutate();
   };
 
   const handleBatchAnalysis = () => {
@@ -255,9 +280,21 @@ export default function XSentimentDashboard() {
         </div>
         <div className="flex space-x-2">
           <Button 
+            onClick={handleImportHistorical}
+            disabled={importHistoricalMutation.isPending}
+            className="btn-caffe-primary"
+          >
+            {importHistoricalMutation.isPending ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Import Past 24h
+          </Button>
+          <Button 
             onClick={handleManualMonitor}
             disabled={monitorMutation.isPending}
-            className="btn-caffe-primary"
+            variant="outline"
           >
             {monitorMutation.isPending ? (
               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
