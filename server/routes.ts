@@ -5697,5 +5697,273 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Social Media Sentiment Analysis Routes with Grok API 4
+  app.get("/api/sentiment/live-analysis", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { analyzeTweetSentiment, batchAnalyzeTweets } = await import("./services/grok-sentiment.js");
+      
+      const { parish, hours = 24, limit = 100 } = req.query;
+      
+      // Mock Twitter/X data for demonstration - in production, this would connect to Twitter API
+      const mockTweets = [
+        {
+          id: '1',
+          text: 'Great turnout at the polling station in Kingston today! Democracy in action 🗳️ #JamaicaElections',
+          author: '@JamaicaVoter1',
+          location: 'Kingston, Jamaica',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          text: 'Concerned about long lines at polling stations in St. Andrew. Hope everyone gets to vote! #VoteJamaica',
+          author: '@ConcernedCitizen',
+          location: 'St. Andrew, Jamaica',
+          created_at: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: '3',
+          text: 'Peaceful election day in Portland. Proud to be Jamaican! 🇯🇲 #ElectionDay',
+          author: '@PortlandPride',
+          location: 'Portland, Jamaica',
+          created_at: new Date(Date.now() - 7200000).toISOString()
+        },
+        {
+          id: '4',
+          text: 'Issues with ballot machines in Clarendon causing delays. Officials working to resolve. #JamaicaElections',
+          author: '@NewsReporter',
+          location: 'Clarendon, Jamaica',
+          created_at: new Date(Date.now() - 1800000).toISOString()
+        },
+        {
+          id: '5',
+          text: 'Amazing organization at the St. Catherine polling station! Quick and efficient voting process.',
+          author: '@HappyVoter',
+          location: 'St. Catherine, Jamaica',
+          created_at: new Date(Date.now() - 5400000).toISOString()
+        }
+      ];
+
+      let tweets = mockTweets;
+      
+      // Filter by parish if specified
+      if (parish && typeof parish === 'string') {
+        tweets = tweets.filter(tweet => 
+          tweet.location?.toLowerCase().includes(parish.toLowerCase()) ||
+          tweet.text.toLowerCase().includes(parish.toLowerCase())
+        );
+      }
+      
+      // Limit results
+      tweets = tweets.slice(0, Number(limit));
+      
+      // Analyze tweets with Grok API
+      const analyses = await batchAnalyzeTweets(
+        tweets.map(tweet => ({
+          text: tweet.text,
+          author: tweet.author,
+          location: tweet.location
+        }))
+      );
+      
+      // Combine tweet data with analysis
+      const results = tweets.map((tweet, index) => ({
+        id: tweet.id,
+        text: tweet.text,
+        author: tweet.author,
+        location: tweet.location,
+        createdAt: tweet.created_at,
+        ...analyses[index]
+      }));
+      
+      res.json({
+        success: true,
+        data: results,
+        total: results.length,
+        filters: { parish, hours }
+      });
+    } catch (error) {
+      console.error('Error in live sentiment analysis:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to analyze social media sentiment' 
+      });
+    }
+  });
+
+  app.get("/api/sentiment/report", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { generateSentimentReport } = await import("./services/grok-sentiment.js");
+      
+      const { parish, hours = 24 } = req.query;
+      
+      // Mock analysis data for demonstration
+      const mockAnalyses = [
+        {
+          sentiment: 'positive' as const,
+          confidence: 0.85,
+          relevanceScore: 8.2,
+          topics: ['Election', 'Democracy', 'Voting'],
+          parish: 'Kingston',
+          analysis: {
+            summary: 'Positive sentiment about election process',
+            keyPoints: ['High turnout', 'Smooth process', 'Democratic participation'],
+            riskLevel: 'low' as const,
+            actionable: false
+          }
+        },
+        {
+          sentiment: 'negative' as const,
+          confidence: 0.75,
+          relevanceScore: 7.5,
+          topics: ['Delays', 'Concerns', 'Voting'],
+          parish: 'St. Andrew',
+          analysis: {
+            summary: 'Concerns about voting delays',
+            keyPoints: ['Long lines', 'Waiting times', 'Voter inconvenience'],
+            riskLevel: 'medium' as const,
+            actionable: true
+          }
+        }
+      ];
+      
+      // Generate comprehensive report using Grok
+      const report = await generateSentimentReport(mockAnalyses);
+      
+      res.json({
+        success: true,
+        report,
+        sampleSize: mockAnalyses.length,
+        timeframe: `${hours} hours`,
+        parish: parish || 'All parishes'
+      });
+    } catch (error) {
+      console.error('Error generating sentiment report:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to generate sentiment report' 
+      });
+    }
+  });
+
+  app.post("/api/sentiment/analyze", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { analyzeTweetSentiment } = await import("./services/grok-sentiment.js");
+      
+      const { text, author, location } = req.body;
+      
+      if (!text || !author) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Text and author are required' 
+        });
+      }
+      
+      const analysis = await analyzeTweetSentiment(text, author, location);
+      
+      res.json({
+        success: true,
+        analysis
+      });
+    } catch (error) {
+      console.error('Error analyzing single tweet:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to analyze tweet' 
+      });
+    }
+  });
+
+  app.get("/api/sentiment/parish-overview", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { hours = 24 } = req.query;
+      
+      // Mock parish sentiment data
+      const parishData = [
+        {
+          parish: 'Kingston',
+          totalPosts: 25,
+          avgSentiment: 0.3,
+          avgConfidence: 0.82,
+          avgRelevance: 8.1,
+          highRiskCount: 1,
+          mediumRiskCount: 3,
+          lowRiskCount: 21
+        },
+        {
+          parish: 'St. Andrew',
+          totalPosts: 18,
+          avgSentiment: -0.1,
+          avgConfidence: 0.78,
+          avgRelevance: 7.6,
+          highRiskCount: 2,
+          mediumRiskCount: 4,
+          lowRiskCount: 12
+        },
+        {
+          parish: 'St. Catherine',
+          totalPosts: 22,
+          avgSentiment: 0.5,
+          avgConfidence: 0.85,
+          avgRelevance: 8.4,
+          highRiskCount: 0,
+          mediumRiskCount: 2,
+          lowRiskCount: 20
+        }
+      ];
+      
+      res.json({
+        success: true,
+        data: parishData,
+        timeframe: `${hours} hours`
+      });
+    } catch (error) {
+      console.error('Error fetching parish overview:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch parish overview' 
+      });
+    }
+  });
+
+  app.get("/api/sentiment/alerts", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { parish, hours = 24 } = req.query;
+      
+      // Mock high-risk alerts
+      const alerts = [
+        {
+          id: '1',
+          postId: 'alert_1',
+          platform: 'twitter',
+          author: '@ConcernedVoter',
+          content: 'Serious issues at polling station in Spanish Town. Machines not working properly! #JamaicaElections',
+          location: 'St. Catherine, Jamaica',
+          createdAt: new Date(Date.now() - 1800000).toISOString(),
+          sentiment: 'negative',
+          confidence: 0.92,
+          riskLevel: 'high',
+          summary: 'Technical issues at polling station causing voter concerns',
+          keyPoints: ['Machine malfunction', 'Voter inconvenience', 'Potential disenfranchisement'],
+          parish: 'St. Catherine',
+          topics: ['Technical Issues', 'Voting Problems', 'Elections']
+        }
+      ];
+      
+      res.json({
+        success: true,
+        alerts,
+        total: alerts.length,
+        timeframe: `${hours} hours`,
+        parish: parish || 'All parishes'
+      });
+    } catch (error) {
+      console.error('Error fetching sentiment alerts:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch sentiment alerts' 
+      });
+    }
+  });
+
   return httpServer;
 }
