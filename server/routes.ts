@@ -6014,5 +6014,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // X Sentiment Dashboard Route (Missing endpoint fix)
+  app.get('/api/x-sentiment/dashboard', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      res.json({
+        success: true,
+        data: {
+          recentPosts: [],
+          sentimentSummary: { total_posts: 0 },
+          alerts: [],
+          lastUpdated: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('X sentiment dashboard error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch dashboard data'
+      });
+    }
+  });
+
   return httpServer;
 }

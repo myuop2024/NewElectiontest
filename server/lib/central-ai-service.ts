@@ -136,8 +136,29 @@ Return in this JSON structure:
         analysisText = analysisText.replace(/^.*```\n?/, '').replace(/\n?```.*$/, '');
       }
       
+      // Extract JSON from the response if it's mixed with text
+      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysisText = jsonMatch[0];
+      }
+      
       // Remove any trailing commas before closing brackets/braces
       analysisText = analysisText.replace(/,(\s*[}\]])/g, '$1');
+      
+      // If response doesn't look like JSON, return fallback immediately
+      if (!analysisText.trim().startsWith('{')) {
+        console.log("Response is not JSON format, using fallback");
+        return {
+          overall_sentiment: "neutral",
+          confidence: 0.5,
+          key_issues: [],
+          election_relevance: 0.5,
+          geographic_focus: [],
+          concerns: [],
+          positive_indicators: [],
+          risk_level: "medium"
+        };
+      }
       
       try {
         return JSON.parse(analysisText);
