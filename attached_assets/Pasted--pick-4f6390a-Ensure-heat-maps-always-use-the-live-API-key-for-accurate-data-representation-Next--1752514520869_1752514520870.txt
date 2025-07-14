@@ -1,0 +1,66 @@
+   pick 4f6390a Ensure heat maps always use the live API key for accurate data representation
+Next commands to do (7 remaining commands):
+   pick b64ce99 Rebuild parish heat map page and properly integrate interactive maps
+   pick 1674737 Improve map loading and initialization process for heat map display
+  (use "git rebase --edit-todo" to view and edit)
+You are currently rebasing branch 'main' on '29c34e2'.
+  (fix conflicts and then run "git rebase --continue")
+  (use "git rebase --skip" to skip this patch)
+  (use "git rebase --abort" to check out the original branch)
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+    both modified:   client/src/components/maps/google-maps-parish-heat-map-simple.tsx
+
+no changes added to commit (use "git add" and/or "git commit -a")
+~/workspace$ ^C
+~/workspace$ ~/workspace$ rm -f .git/index.lock
+~/workspace$ git status
+interactive rebase in progress; onto 29c34e2
+Last command done (1 command done):
+   pick 4f6390a Ensure heat maps always use the live API key for accurate data representation
+Next commands to do (7 remaining commands):
+   pick b64ce99 Rebuild parish heat map page and properly integrate interactive maps
+   pick 1674737 Improve map loading and initialization process for heat map display
+  (use "git rebase --edit-todo" to view and edit)
+You are currently rebasing branch 'main' on '29c34e2'.
+  (fix conflicts and then run "git rebase --continue")
+  (use "git rebase --skip" to skip this patch)
+  (use "git rebase --abort" to check out the original branch)
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+    both modified:   client/src/components/maps/google-maps-parish-heat-map-simple.tsx
+
+no changes added to commit (use "git add" and/or "git commit -a")
+~/workspace$ ^C
+~/workspace$ 
+
+bash: /home/runner/workspace$: No such file or directory
+bash: /home/runner/workspace$: No such file or directory
+bash: interactive: command not found
+bash: onto: command not found
+bash: syntax error near unexpected token `('
+pick: command not installed. Multiple versions of this command were found in Nix.
+Select one to run (or press Ctrl-C to cancel):
+pick  4.0.0                Fuzzy text selection utility
+Adding pick to .replit
+usage: pick [-dKoSXx] [-q query]
+bash: syntax error near unexpected token `('
+usage: pick [-dKoSXx] [-q query]ate.....
+usage: pick [-dKoSXx] [-q query]
+bash: use: command not found
+bash: You: command not found
+bash: fix: command not found
+bash: use: command not found
+bash: use: command not found
+bash: Unmerged: command not found
+bash: use: command not found
+bash: use: command not found
+bash: both: command not found
+bash: syntax error near unexpected token `('
+bash: /home/runner/workspace$: No such file or directory
+bash: /home/runner/workspace$: No such file or directory
+~/workspace$ 

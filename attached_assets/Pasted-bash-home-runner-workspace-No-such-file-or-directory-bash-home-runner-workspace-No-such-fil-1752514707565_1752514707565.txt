@@ -1,0 +1,87 @@
+bash: /home/runner/workspace$: No such file or directory
+bash: /home/runner/workspace$: No such file or directory
+bash: interactive: command not found
+bash: onto: command not found
+bash: syntax error near unexpected token `('
+pick: command not installed. Multiple versions of this command were found in Nix.
+Select one to run (or press Ctrl-C to cancel):
+pick  4.0.0                Fuzzy text selection utility
+Adding pick to .replit
+usage: pick [-dKoSXx] [-q query]
+bash: syntax error near unexpected token `('
+usage: pick [-dKoSXx] [-q query]ate.....
+usage: pick [-dKoSXx] [-q query]
+bash: use: command not found
+bash: You: command not found
+bash: fix: command not found
+bash: use: command not found
+bash: use: command not found
+bash: Unmerged: command not found
+bash: use: command not found
+bash: use: command not found
+bash: both: command not found
+bash: syntax error near unexpected token `('
+bash: /home/runner/workspace$: No such file or directory
+bash: /home/runner/workspace$: No such file or directory
+~/workspace$ git add client/src/components/maps/google-maps-parish-heat-map-simple.tsx
+~/workspace$ git rebase --continue
+You must edit all merge conflicts and then
+mark them as resolved using git add
+~/workspace$ git status
+git log --oneline
+interactive rebase in progress; onto 29c34e2
+Last command done (1 command done):
+   pick 4f6390a Ensure heat maps always use the live API key for accurate data representation
+Next commands to do (7 remaining commands):
+   pick b64ce99 Rebuild parish heat map page and properly integrate interactive maps
+   pick 1674737 Improve map loading and initialization process for heat map display
+  (use "git rebase --edit-todo" to view and edit)
+You are currently rebasing branch 'main' on '29c34e2'.
+  (all conflicts fixed: run "git rebase --continue")
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+    deleted:    client/src/components/maps/google-maps-parish-heat-map-simple.tsx
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+    modified:   .replit
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+    attached_assets/Pasted--pick-4f6390a-Ensure-heat-maps-always-use-the-live-API-key-for-accurate-data-representation-Next--1752514520869_1752514520870.txt
+
+29c34e2 (HEAD, origin/main, origin/HEAD) Merge pull request #8 from myuop2024/codex/fix-didit-verification-flow-errors
+efd397d Merge pull request #10 from myuop2024/fix/parish-heat-map-api-error
+2ae9cc6 (origin/fix/parish-heat-map-api-error) Fix(maps): Resolve map API error in parish heat map
+71b24b7 Merge pull request #9 from myuop2024/fix/parish-heat-map-api-error
+789ae49 Fix(maps): Resolve map API error in parish heat map
+3a4c4a5 Saved your changes before starting work
+beb8ee4 fix
+15f1e2b Ensure the parish heat map loads correctly on the cloud platform
+eb7de55 Improve loading of maps on the platform with more reliable API access
+ac9c80e Improve map loading reliability ensuring maps appear correctly for users
+5eca518 Add detailed logging to diagnose map loading issues effectively
+c5c6c3e Improve the way the platform loads Google Maps ensuring API key availability
+a979156 Fix
+69a176b Add automated system status checks and Google Maps API test page
+35f2313 Improve notification handling by ensuring proper data retrieval and updates
+fdecff7 (origin/codex/fix-didit-verification-flow-errors) fix didit api key fallback
+a90f3f3 Maps
+1872d5a fix
+9bb2fd1 Fix maps
+7c9be49 Fix
+8acf980 Improve the display of training statistics on the analytics dashboard
+0b113a2 Fix
+04d6bd2 Fix
+eb8ce99 Fix
+7e8eb02 Fix Google Maps
+3b68c0f Fixed Training Analytics
+d81322c Improve loading and error handling on the training analytics dashboard
+ee2ed84 Improve data sorting and filtering when viewing training progress
+765d0ec Introduce new training analytics and certificate management system
+47a52bc Enable simpler Google Classroom access for users on the training platform
+abf3043 Ensure each user only connects one Google Classroom account at a time
+5f7be56 Confirm successful Google Classroom connection and OAuth authentication
+:
