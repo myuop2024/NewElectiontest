@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
+import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -197,13 +198,19 @@ export default function PollingStations() {
                     </div>
                   )}
 
-                  {/* Traffic & Weather Status - only show if station has GPS coordinates */}
+                  {/* Traffic, Weather & X Sentiment Status - only show if station has GPS coordinates */}
                   {station.latitude && station.longitude && (
                     <div className="border-t pt-3 space-y-2">
                       <StationTrafficStatus stationId={station.id} compact={true} />
                       {station.parish && (
                         <StationWeatherStatus parish={station.parish} compact={true} />
                       )}
+                      <StationXSentiment 
+                        stationId={station.id} 
+                        stationName={station.name}
+                        parish={station.parish}
+                        compact={true} 
+                      />
                     </div>
                   )}
 
@@ -336,6 +343,15 @@ export default function PollingStations() {
                       <StationWeatherStatus parish={selectedStation.parish} compact={false} />
                     </div>
                   )}
+                  <div>
+                    <h4 className="font-semibold mb-3">X Social Media Sentiment</h4>
+                    <StationXSentiment 
+                      stationId={selectedStation.id} 
+                      stationName={selectedStation.name}
+                      parish={selectedStation.parish}
+                      compact={false} 
+                    />
+                  </div>
                 </div>
               )}
 

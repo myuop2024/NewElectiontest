@@ -523,6 +523,100 @@ export const smsMessages = pgTable("sms_messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// X (Twitter) Social Media Posts for Sentiment Analysis
+export const xSocialPosts = pgTable("x_social_posts", {
+  id: serial("id").primaryKey(),
+  postId: text("post_id").notNull().unique(), // X/Twitter post ID
+  userId: text("user_id").notNull(), // X/Twitter user ID
+  username: text("username").notNull(),
+  displayName: text("display_name").notNull(),
+  content: text("content").notNull(),
+  url: text("url"),
+  publishedAt: timestamp("published_at").notNull(),
+  metrics: json("metrics"), // likes, retweets, replies, views
+  location: text("location"), // Geo location if available
+  parish: text("parish"), // Jamaica parish if detected
+  pollingStationId: integer("polling_station_id"), // Reference to polling station if relevant
+  platform: text("platform").notNull().default("x"), // x, twitter, threads
+  language: text("language").default("en"),
+  isVerified: boolean("is_verified").default(false),
+  followerCount: integer("follower_count"),
+  sourceCredibility: decimal("source_credibility", { precision: 3, scale: 2 }).default('0.50'), // 0-1 credibility score
+  processingStatus: text("processing_status").notNull().default("pending"), // pending, processed, failed
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// X Social Media Sentiment Analysis Results
+export const xSentimentAnalysis = pgTable("x_sentiment_analysis", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => xSocialPosts.id, { onDelete: "cascade" }),
+  overallSentiment: text("overall_sentiment").notNull(), // positive, negative, neutral
+  sentimentScore: decimal("sentiment_score", { precision: 4, scale: 3 }).notNull(), // -1.0 to 1.0
+  confidence: decimal("confidence", { precision: 4, scale: 3 }).notNull(), // 0.0 to 1.0
+  emotions: json("emotions"), // fear, anger, joy, trust, anticipation, disgust, sadness, surprise
+  politicalTopics: json("political_topics"), // election, voting, democracy, corruption, candidates
+  mentionedParties: json("mentioned_parties"), // JLP, PNP, other political parties
+  mentionedPoliticians: json("mentioned_politicians"), // Names of politicians mentioned
+  electionKeywords: json("election_keywords"), // voting, ballot, polling station, etc.
+  threatLevel: text("threat_level").notNull().default("low"), // low, medium, high, critical
+  riskFactors: json("risk_factors"), // violence threats, misinformation, fraud allegations
+  credibilityAssessment: json("credibility_assessment"), // source verification, fact-check status
+  parishRelevance: decimal("parish_relevance", { precision: 3, scale: 2 }), // 0-1 relevance to parish
+  stationRelevance: decimal("station_relevance", { precision: 3, scale: 2 }), // 0-1 relevance to polling station
+  aiModel: text("ai_model").notNull().default("grok-4"), // AI model used for analysis
+  analysisMetadata: json("analysis_metadata"), // processing details, context, reasoning
+  qualityScore: decimal("quality_score", { precision: 3, scale: 2 }), // 0-1 analysis quality
+  reviewStatus: text("review_status").notNull().default("auto"), // auto, manual_review, verified
+  analyzedAt: timestamp("analyzed_at").notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: integer("reviewed_by"), // Reference to users table
+});
+
+// X Social Media Monitoring Configuration
+export const xMonitoringConfig = pgTable("x_monitoring_config", {
+  id: serial("id").primaryKey(),
+  configName: text("config_name").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  monitoringFrequency: integer("monitoring_frequency").notNull().default(15), // minutes
+  maxPostsPerSession: integer("max_posts_per_session").notNull().default(100),
+  keywords: json("keywords").notNull(), // Array of keywords to monitor
+  locations: json("locations").notNull(), // Array of Jamaica parishes/locations
+  excludeWords: json("exclude_words"), // Words to exclude from monitoring
+  credibilityThreshold: decimal("credibility_threshold", { precision: 3, scale: 2 }).default('0.30'),
+  sentimentThreshold: decimal("sentiment_threshold", { precision: 3, scale: 2 }).default('0.75'),
+  alertCriteria: json("alert_criteria"), // Conditions that trigger alerts
+  parishes: json("parishes"), // Specific parishes to monitor
+  pollingStations: json("polling_stations"), // Specific polling stations to monitor
+  apiRateLimit: integer("api_rate_limit").default(300), // API calls per 15 minutes
+  lastExecuted: timestamp("last_executed"),
+  nextExecution: timestamp("next_execution"),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// X Social Media Monitoring Alerts
+export const xMonitoringAlerts = pgTable("x_monitoring_alerts", {
+  id: serial("id").primaryKey(),
+  alertType: text("alert_type").notNull(), // sentiment_shift, viral_content, threat_detected, misinformation
+  severity: text("severity").notNull(), // low, medium, high, critical
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  parish: text("parish"),
+  pollingStationId: integer("polling_station_id"),
+  relatedPostIds: json("related_post_ids"), // Array of post IDs that triggered alert
+  sentimentData: json("sentiment_data"), // Aggregated sentiment information
+  recommendations: json("recommendations"), // Array of recommended actions
+  triggerConditions: json("trigger_conditions"), // What caused the alert
+  isResolved: boolean("is_resolved").notNull().default(false),
+  resolvedBy: integer("resolved_by"),
+  resolvedAt: timestamp("resolved_at"),
+  notificationsSent: json("notifications_sent"), // Track which notifications were sent
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const emails = pgTable("emails", {
   id: serial("id").primaryKey(),
   userId: integer("user_id"),
@@ -786,6 +880,12 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
 export const insertIntegrationSchema = createInsertSchema(integrations);
 export const insertSyncLogSchema = createInsertSchema(syncLogs);
 
+// X Social Media Insert Schemas
+export const insertXSocialPostSchema = createInsertSchema(xSocialPosts);
+export const insertXSentimentAnalysisSchema = createInsertSchema(xSentimentAnalysis);
+export const insertXMonitoringConfigSchema = createInsertSchema(xMonitoringConfig);
+export const insertXMonitoringAlertSchema = createInsertSchema(xMonitoringAlerts);
+
 // NEW Zod schemas for Assignments
 export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments);
 export const selectCourseAssignmentSchema = createSelectSchema(courseAssignments); // Added select
@@ -831,6 +931,12 @@ export type Email = typeof emails.$inferSelect;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type Integration = typeof integrations.$inferSelect;
 export type SyncLog = typeof syncLogs.$inferSelect;
+
+// X Social Media Types
+export type XSocialPost = typeof xSocialPosts.$inferSelect;
+export type XSentimentAnalysis = typeof xSentimentAnalysis.$inferSelect;
+export type XMonitoringConfig = typeof xMonitoringConfig.$inferSelect;
+export type XMonitoringAlert = typeof xMonitoringAlerts.$inferSelect;
 export type ChatRoom = typeof chatRooms.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type OnlineUser = typeof onlineUsers.$inferSelect;

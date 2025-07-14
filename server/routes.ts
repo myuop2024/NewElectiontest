@@ -30,7 +30,11 @@ import {
   reports,
   documents,
   messages,
-  notifications
+  notifications,
+  xSocialPosts,
+  xSentimentAnalysis,
+  xMonitoringConfig,
+  xMonitoringAlerts
 } from "@shared/schema";
 import { classroomService } from "./lib/google-classroom-service.js";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -54,6 +58,7 @@ import { SocialMonitoringService } from "./lib/social-monitoring-service.js";
 import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator.js";
 import { getWeatherService } from "./lib/weather-service.js";
 import { parishAnalyticsService } from "./lib/parish-analytics-service.js";
+import { XSentimentService } from "./lib/x-sentiment-service.js";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service.js";
 
@@ -5694,6 +5699,318 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching training overview:", error);
       res.status(500).json({ error: "Failed to fetch training overview" });
+    }
+  });
+
+  // ==============================================
+  // X (TWITTER) SENTIMENT ANALYSIS API ENDPOINTS
+  // ==============================================
+
+  // Initialize X Sentiment Service
+  const xSentimentService = new XSentimentService();
+
+  // Monitor X for Jamaica election content
+  app.post("/api/x-sentiment/monitor", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { configId } = req.body;
+      const result = await xSentimentService.monitorXContent(configId);
+      
+      res.json({
+        success: result.success,
+        posts_processed: result.posts,
+        alerts_generated: result.alerts,
+        timestamp: new Date(),
+        message: result.success 
+          ? `Successfully processed ${result.posts} posts and generated ${result.alerts} alerts`
+          : "Monitoring failed - check configuration and API credentials"
+      });
+    } catch (error) {
+      console.error("X monitoring error:", error);
+      res.status(500).json({ 
+        error: "Failed to monitor X content",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get parish sentiment analysis from X data
+  app.get("/api/x-sentiment/parish/:parish", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { parish } = req.params;
+      const { hours = 24 } = req.query;
+      
+      const analysis = await xSentimentService.getParishSentimentAnalysis(
+        parish, 
+        parseInt(hours as string)
+      );
+      
+      if (!analysis) {
+        return res.status(404).json({ message: "No sentiment data found for parish" });
+      }
+
+      res.json({
+        parish,
+        sentiment_analysis: analysis,
+        generated_at: new Date(),
+        data_source: "x_social_media"
+      });
+    } catch (error) {
+      console.error("Parish sentiment analysis error:", error);
+      res.status(500).json({ error: "Failed to get parish sentiment analysis" });
+    }
+  });
+
+  // Get polling station sentiment analysis from X data
+  app.get("/api/x-sentiment/station/:stationId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const stationId = parseInt(req.params.stationId);
+      const { hours = 24 } = req.query;
+      
+      const analysis = await xSentimentService.getPollingStationSentimentAnalysis(
+        stationId, 
+        parseInt(hours as string)
+      );
+      
+      if (!analysis) {
+        return res.status(404).json({ message: "No sentiment data found for polling station" });
+      }
+
+      res.json({
+        station_id: stationId,
+        sentiment_analysis: analysis,
+        generated_at: new Date(),
+        data_source: "x_social_media"
+      });
+    } catch (error) {
+      console.error("Station sentiment analysis error:", error);
+      res.status(500).json({ error: "Failed to get station sentiment analysis" });
+    }
+  });
+
+  // Get X monitoring configuration
+  app.get("/api/x-sentiment/config", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const configs = await db.select().from(xMonitoringConfig)
+        .orderBy(desc(xMonitoringConfig.createdAt))
+        .execute();
+
+      res.json({
+        configurations: configs,
+        total: configs.length
+      });
+    } catch (error) {
+      console.error("Config fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch monitoring configurations" });
+    }
+  });
+
+  // Create/Update X monitoring configuration
+  app.post("/api/x-sentiment/config", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const {
+        configName,
+        isActive = true,
+        monitoringFrequency = 15,
+        maxPostsPerSession = 100,
+        keywords = ["election", "vote", "democracy", "Jamaica"],
+        locations = ["Kingston", "St. Andrew", "St. Catherine"],
+        excludeWords = [],
+        credibilityThreshold = 0.3,
+        sentimentThreshold = 0.75,
+        alertCriteria = {},
+        parishes = [],
+        pollingStations = [],
+        apiRateLimit = 300
+      } = req.body;
+
+      const configData = {
+        configName,
+        isActive,
+        monitoringFrequency,
+        maxPostsPerSession,
+        keywords,
+        locations,
+        excludeWords,
+        credibilityThreshold,
+        sentimentThreshold,
+        alertCriteria,
+        parishes,
+        pollingStations,
+        apiRateLimit,
+        nextExecution: new Date(Date.now() + monitoringFrequency * 60 * 1000),
+        createdBy: req.user!.id
+      };
+
+      const result = await db.insert(xMonitoringConfig).values(configData).returning().execute();
+
+      res.json({
+        success: true,
+        configuration: result[0],
+        message: "X monitoring configuration created successfully"
+      });
+    } catch (error) {
+      console.error("Config creation error:", error);
+      res.status(500).json({ error: "Failed to create monitoring configuration" });
+    }
+  });
+
+  // Get X monitoring alerts
+  app.get("/api/x-sentiment/alerts", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { severity, parish, resolved, limit = 50 } = req.query;
+      
+      let query = db.select().from(xMonitoringAlerts);
+      
+      const conditions = [];
+      if (severity) conditions.push(eq(xMonitoringAlerts.severity, severity as string));
+      if (parish) conditions.push(eq(xMonitoringAlerts.parish, parish as string));
+      if (resolved !== undefined) conditions.push(eq(xMonitoringAlerts.isResolved, resolved === 'true'));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const alerts = await query
+        .orderBy(desc(xMonitoringAlerts.createdAt))
+        .limit(parseInt(limit as string))
+        .execute();
+
+      res.json({
+        alerts,
+        total: alerts.length,
+        filters: { severity, parish, resolved }
+      });
+    } catch (error) {
+      console.error("Alerts fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch X monitoring alerts" });
+    }
+  });
+
+  // Get X sentiment dashboard data
+  app.get("/api/x-sentiment/dashboard", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { parish, hours = 24 } = req.query;
+      
+      // Get summary statistics
+      const timeThreshold = new Date(Date.now() - parseInt(hours as string) * 60 * 60 * 1000);
+      
+      const totalPosts = await db.select({ count: sql`count(*)` })
+        .from(xSocialPosts)
+        .where(gte(xSocialPosts.createdAt, timeThreshold))
+        .execute();
+
+      const processedPosts = await db.select({ count: sql`count(*)` })
+        .from(xSocialPosts)
+        .where(and(
+          gte(xSocialPosts.createdAt, timeThreshold),
+          eq(xSocialPosts.processingStatus, 'processed')
+        ))
+        .execute();
+
+      const activeAlerts = await db.select({ count: sql`count(*)` })
+        .from(xMonitoringAlerts)
+        .where(and(
+          gte(xMonitoringAlerts.createdAt, timeThreshold),
+          eq(xMonitoringAlerts.isResolved, false)
+        ))
+        .execute();
+
+      // Get sentiment distribution
+      const sentimentStats = await db.select({
+        sentiment: xSentimentAnalysis.overallSentiment,
+        count: sql`count(*)`
+      })
+      .from(xSentimentAnalysis)
+      .leftJoin(xSocialPosts, eq(xSentimentAnalysis.postId, xSocialPosts.id))
+      .where(gte(xSocialPosts.createdAt, timeThreshold))
+      .groupBy(xSentimentAnalysis.overallSentiment)
+      .execute();
+
+      // Get threat level distribution
+      const threatStats = await db.select({
+        threatLevel: xSentimentAnalysis.threatLevel,
+        count: sql`count(*)`
+      })
+      .from(xSentimentAnalysis)
+      .leftJoin(xSocialPosts, eq(xSentimentAnalysis.postId, xSocialPosts.id))
+      .where(gte(xSocialPosts.createdAt, timeThreshold))
+      .groupBy(xSentimentAnalysis.threatLevel)
+      .execute();
+
+      res.json({
+        summary: {
+          total_posts: totalPosts[0]?.count || 0,
+          processed_posts: processedPosts[0]?.count || 0,
+          active_alerts: activeAlerts[0]?.count || 0,
+          processing_rate: totalPosts[0]?.count > 0 ? 
+            ((processedPosts[0]?.count || 0) / totalPosts[0].count * 100).toFixed(1) : 0
+        },
+        sentiment_distribution: sentimentStats,
+        threat_distribution: threatStats,
+        period_hours: parseInt(hours as string),
+        generated_at: new Date()
+      });
+    } catch (error) {
+      console.error("Dashboard data error:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Manually trigger sentiment analysis for unprocessed posts
+  app.post("/api/x-sentiment/analyze/batch", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { limit = 50 } = req.body;
+      
+      // Get unprocessed posts
+      const unprocessedPosts = await db.select()
+        .from(xSocialPosts)
+        .where(eq(xSocialPosts.processingStatus, 'pending'))
+        .limit(limit)
+        .execute();
+
+      let processed = 0;
+      const errors = [];
+
+      for (const post of unprocessedPosts) {
+        try {
+          const analysis = await xSentimentService.analyzePostSentiment(post.id);
+          if (analysis) {
+            processed++;
+          }
+        } catch (error) {
+          errors.push({
+            post_id: post.id,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        total_found: unprocessedPosts.length,
+        successfully_processed: processed,
+        errors: errors.length,
+        error_details: errors.slice(0, 5) // Limit error details
+      });
+    } catch (error) {
+      console.error("Batch analysis error:", error);
+      res.status(500).json({ error: "Failed to perform batch analysis" });
     }
   });
 
