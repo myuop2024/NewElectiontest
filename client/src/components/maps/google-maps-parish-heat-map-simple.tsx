@@ -46,10 +46,8 @@ export default function GoogleMapsParishHeatMapSimple({
   onParishSelect,
   selectedParish
 }: GoogleMapsParishHeatMapProps) {
-  console.log('[PARISH MAPS DEBUG] Component mounted with props:', { parishStats, selectedMetric, selectedParish });
-  
   // Test mode indicator
-  const isTestMode = false; // Always use production mode
+  const isTestMode = import.meta.env.DEV && !import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -216,8 +214,6 @@ export default function GoogleMapsParishHeatMapSimple({
 
   // 1) Fetch the API key once when the component mounts
   useEffect(() => {
-    console.log('[PARISH MAPS DEBUG] Component mounted, starting API key fetch');
-    
     const fetchApiKey = async () => {
       try {
         setApiKeyLoading(true);
@@ -225,37 +221,33 @@ export default function GoogleMapsParishHeatMapSimple({
         
         // Check environment variable first
         const envApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        console.log('[PARISH MAPS DEBUG] Environment API key check:', envApiKey ? 'Found' : 'Not found');
         
         if (envApiKey) {
-          console.log('[PARISH MAPS DEBUG] Using environment variable for Google Maps API key');
           setApiKey(envApiKey);
           setApiKeyLoading(false);
           return;
         }
 
-        // No environment variable found, attempt server fallback
-        console.log('[PARISH MAPS DEBUG] No environment variable found, attempting server fallback');
+        // Development fallback - only for testing
+        if (import.meta.env.DEV) {
+          setApiKey('AIzaSyB41DRuKWuJdqpD6Gxbe4VkH0qAEpjXhVc'); // Development test key
+          setApiKeyLoading(false);
+          return;
+        }
 
         // Fallback to server API
-        console.log('[PARISH MAPS DEBUG] Fetching API key from server...');
         const response = await fetch('/api/settings/google-maps-api');
-        console.log('[PARISH MAPS DEBUG] Server response status:', response.status);
         
         if (!response.ok) throw new Error(`Server responded with ${response.status}`);
         
         const data = await response.json();
-        console.log('[PARISH MAPS DEBUG] Server response data:', data);
         
         if (data.hasKey && data.apiKey) {
-          console.log('[PARISH MAPS DEBUG] Using server-provided Google Maps API key');
           setApiKey(data.apiKey);
         } else {
-          console.error('[PARISH MAPS DEBUG] No API key available from server');
           setApiKeyError('Google Maps API key is not configured. Please contact your administrator.');
         }
       } catch (error) {
-        console.error('[PARISH MAPS DEBUG] Error fetching Google Maps API key:', error);
         setApiKeyError('Failed to load Google Maps API configuration.');
       } finally {
         setApiKeyLoading(false);
@@ -267,33 +259,16 @@ export default function GoogleMapsParishHeatMapSimple({
 
   // 2) Once we have a valid API key, load the Google Maps script
   useEffect(() => {
-    console.log('[PARISH MAPS DEBUG] API key effect triggered');
-    console.log('[PARISH MAPS DEBUG] API key exists:', !!apiKey);
-    console.log('[PARISH MAPS DEBUG] mapRef.current exists:', !!mapRef.current);
-    
-    if (!apiKey) {
-      console.log('[PARISH MAPS DEBUG] No API key available yet');
-      return;
+    if (apiKey && mapRef.current) {
+      loadGoogleMapsAPI(apiKey);
     }
-
-    if (!mapRef.current) {
-      console.log('[PARISH MAPS DEBUG] Map ref not ready, will retry');
-      return;
-    }
-
-    console.log('[PARISH MAPS DEBUG] Starting Google Maps API load');
-    loadGoogleMapsAPI(apiKey);
-  }, [apiKey]);
+  }, [apiKey, mapRef]);
 
   // Update parish markers when map or data changes
   useEffect(() => {
     if (!map || !google.maps) {
-      console.log('[PARISH MAPS DEBUG] Map or Google Maps not ready for markers');
       return;
     }
-
-    console.log('[PARISH MAPS DEBUG] Updating parish markers');
-    console.log('[PARISH MAPS DEBUG] Parish stats:', parishStats);
 
     // Clear existing markers
     markers.forEach(marker => marker.setMap(null));
@@ -303,7 +278,6 @@ export default function GoogleMapsParishHeatMapSimple({
     Object.entries(PARISH_COORDINATES).forEach(([parishName, coords]) => {
       const value = getMetricValue(parishName);
       const color = getMarkerColor(value);
-      console.log('[PARISH MAPS DEBUG] Creating marker:', { parishName, coords, value, color });
       
       // Create custom icon
       const icon = {
@@ -348,12 +322,11 @@ export default function GoogleMapsParishHeatMapSimple({
 
         newMarkers.push(marker);
       } catch (markerError) {
-        console.error('[PARISH MAPS DEBUG] Error creating marker for', parishName, markerError);
+        console.error('Error creating marker for', parishName, markerError);
       }
     });
 
     setMarkers(newMarkers);
-    console.log('[PARISH MAPS DEBUG] Markers updated:', newMarkers.length);
   }, [map, parishStats, selectedMetric, selectedParish, onParishSelect]);
 
   // Loading states

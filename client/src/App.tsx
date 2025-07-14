@@ -45,7 +45,6 @@ import CentralAIIntelligence from "@/pages/central-ai-intelligence";
 import WeatherDashboard from "@/pages/weather-dashboard";
 import TrafficMonitoring from "@/pages/traffic-monitoring";
 import ParishHeatMapNew from "@/pages/parish-heat-map-new";
-import SocialSentiment from "@/pages/social-sentiment";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -248,11 +247,6 @@ function Router() {
       <Route path="/parish-heat-map">
         <ProtectedLayout>
           <ParishHeatMapNew />
-        </ProtectedLayout>
-      </Route>
-      <Route path="/social-sentiment">
-        <ProtectedLayout>
-          <SocialSentiment />
         </ProtectedLayout>
       </Route>
       <Route path="/emergency-management">

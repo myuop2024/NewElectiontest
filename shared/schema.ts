@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, decimal, varchar, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, decimal, varchar } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"; // Added createSelectSchema
 import { z } from "zod";
@@ -959,49 +959,6 @@ export type TrainingCompletion = typeof trainingCompletions.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type ClassroomProgress = typeof classroomProgress.$inferSelect;
 export type TrainingAnalytics = typeof trainingAnalytics.$inferSelect;
-
-// Social Media Posts table for storing X/Twitter posts
-export const socialMediaPosts = pgTable('social_media_posts', {
-  id: serial('id').primaryKey(),
-  platform: text('platform').notNull().default('twitter'), // 'twitter', 'facebook', 'instagram', etc.
-  postId: text('post_id').notNull().unique(), // Original post ID from the platform
-  author: text('author').notNull(), // Username or handle
-  content: text('content').notNull(), // Post content/text
-  location: text('location'), // Geographic location if available
-  mediaUrls: text('media_urls').array(), // URLs to images/videos
-  hashtags: text('hashtags').array(), // Hashtags used
-  mentions: text('mentions').array(), // User mentions
-  retweets: integer('retweets').default(0),
-  likes: integer('likes').default(0),
-  replies: integer('replies').default(0),
-  createdAt: timestamp('created_at').notNull(), // Original post timestamp
-  updatedAt: timestamp('updated_at').defaultNow().notNull() // When we last updated this record
-});
-
-// Sentiment Analysis table for storing Grok API 4 analysis results
-export const sentimentAnalysis = pgTable('sentiment_analysis', {
-  id: serial('id').primaryKey(),
-  postId: text('post_id').notNull().references(() => socialMediaPosts.postId, { onDelete: 'cascade' }),
-  sentiment: text('sentiment').notNull(), // 'positive', 'negative', 'neutral'
-  confidence: real('confidence').notNull(), // 0.0 to 1.0
-  relevanceScore: real('relevance_score').notNull(), // 0.0 to 10.0
-  topics: text('topics').array(), // Extracted topics/themes
-  parish: text('parish'), // Jamaica parish if detected
-  riskLevel: text('risk_level').notNull(), // 'low', 'medium', 'high'
-  summary: text('summary'), // AI-generated summary
-  keyPoints: text('key_points').array(), // Key points from analysis
-  isActionable: boolean('is_actionable').default(false), // Whether this requires action
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
-});
-
-// Social Media schemas
-export const insertSocialMediaPostSchema = createInsertSchema(socialMediaPosts).omit({ id: true, updatedAt: true });
-export const insertSentimentAnalysisSchema = createInsertSchema(sentimentAnalysis).omit({ id: true, createdAt: true, updatedAt: true });
-
-// Social Media types
-export type SocialMediaPost = typeof socialMediaPosts.$inferSelect;
-export type SentimentAnalysis = typeof sentimentAnalysis.$inferSelect;
 
 // Re-exporting Zod for use in other files if needed, or can be imported directly
 export { z as zod };
