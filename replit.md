@@ -222,7 +222,56 @@ The system analyzes traffic conditions for their impact on electoral activities:
 - `/api/traffic/route` - Route analysis between two points with traffic data
 - `/api/traffic/alerts/:lat/:lng` - Traffic incident alerts and recommendations
 
+## Social Media Sentiment Analysis System
+
+The platform now includes comprehensive social media sentiment analysis capabilities powered by Grok API 4, providing real-time monitoring of X (Twitter) content related to Jamaica elections.
+
+### Sentiment Analysis Features
+- **Real-Time Analysis**: Live monitoring of social media posts with automatic sentiment classification
+- **Confidence Scoring**: AI-powered confidence levels (0-100%) for each sentiment analysis
+- **Relevance Rating**: Smart content relevance scoring (0-10) for election-related content
+- **Risk Assessment**: Automated risk level classification (low/medium/high) for actionable insights
+- **Parish Filtering**: Geographic content filtering for all 14 Jamaica parishes
+- **Topic Extraction**: Automatic identification of key topics and themes in social content
+- **Custom Analysis**: Real-time analysis of user-submitted text content using Grok API 4
+
+### Sentiment Data Sources
+- **X (Twitter) API Integration** - Real-time social media monitoring with advanced filtering
+- **Grok API 4** (api.x.ai) - Professional-grade sentiment analysis and natural language processing
+  - Advanced sentiment classification with contextual understanding
+  - Real-time content analysis with election-specific keyword detection
+  - High-accuracy confidence scoring and relevance assessment
+- **Mock Data Fallback**: Demonstration data for testing and development when live feeds are unavailable
+
+### Electoral Sentiment Impact Features
+The system analyzes social media content for electoral implications:
+- **Sentiment Distribution**: Comprehensive breakdown of positive, negative, and neutral sentiment
+- **Risk Identification**: Automated detection of high-risk content requiring immediate attention
+- **Parish-Specific Analysis**: Geographic sentiment mapping across all Jamaica parishes
+- **Actionable Insights**: AI-generated recommendations for electoral monitoring teams
+- **Real-Time Alerts**: Instant notifications for critical sentiment shifts or concerning content
+
+### Sentiment API Endpoints
+- `/api/sentiment/live-analysis` - Real-time social media sentiment analysis with parish filtering
+- `/api/sentiment/report` - Comprehensive sentiment report with AI-generated insights
+- `/api/sentiment/alerts` - High-risk content alerts requiring immediate attention
+- `/api/sentiment/parish-overview` - Parish-specific sentiment statistics and trends
+- `/api/sentiment/analyze` - Custom text analysis using Grok API 4
+
 ## Changelog
+- July 14, 2025: Grok API 4 Social Media Sentiment Analysis Integration
+  - **MAJOR BREAKTHROUGH**: Complete integration of Grok API 4 for live social media sentiment analysis
+  - **NEW FEATURE**: Real-time X (Twitter) sentiment monitoring for Jamaica elections
+  - **COMPREHENSIVE BACKEND**: 5 specialized API endpoints for sentiment analysis, reports, alerts, and parish data
+  - **MODERN FRONTEND**: Multi-tab interface with Live Analysis, AI Reports, Risk Alerts, Parish View, and Custom Analysis
+  - **REAL-TIME MONITORING**: Auto-refreshing sentiment data with 30-second intervals for live content
+  - **ADVANCED ANALYTICS**: Confidence scoring, relevance ratings (0-10), and AI-powered risk assessments
+  - **PARISH FILTERING**: Geographic content filtering for all 14 Jamaica parishes
+  - **GROK SERVICE**: Dedicated sentiment analysis service using XAI_API_KEY environment variable
+  - **NAVIGATION INTEGRATION**: Added "Social Sentiment" to Analytics & Intelligence navigation menu
+  - **PRODUCTION READY**: Complete API authentication, error handling, and responsive design
+  - **INTELLIGENT ANALYSIS**: Sentiment classification, topic extraction, and actionable insights
+  - **RISK MANAGEMENT**: Automated alert system for high-risk social media content
 - July 11, 2025: Complete Parish Heat Map Page Rebuild
   - **COMPLETE REBUILD**: Gutted and rebuilt parish heat map page from scratch with logical architecture
   - **WORKING GOOGLE MAPS**: Direct Google Maps API integration using VITE_GOOGLE_MAPS_API_KEY environment variable
