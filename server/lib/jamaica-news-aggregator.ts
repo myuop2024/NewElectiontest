@@ -526,11 +526,10 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
     return stats;
   }
 
-  // Fetch from NewsAPI for real Jamaica news
+  // Fetch from NewsAPI for real Jamaica news with Gemini AI categorization
   private async fetchFromNewsAPI(): Promise<ProcessedArticle[]> {
     if (!this.newsApiKey) {
-      console.log('NewsAPI key not available, using RSS sources only');
-      return [];
+      throw new Error('NEWS_API_KEY is required for real Jamaica news data');
     }
 
     try {
@@ -572,22 +571,94 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
               }
             };
             
-            // Score article relevance
-            processedArticle.relevanceScore = this.scoreArticleRelevance(processedArticle);
-            processedArticle.electionKeywords = this.extractElectionKeywords(processedArticle.title + ' ' + processedArticle.content);
-            processedArticle.parishMentions = this.extractParishMentions(processedArticle.title + ' ' + processedArticle.content);
+            // Use Gemini AI for enhanced categorization and analysis
+            const geminiAnalysis = await this.analyzeWithGemini(processedArticle);
+            if (geminiAnalysis) {
+              processedArticle.relevanceScore = geminiAnalysis.relevanceScore;
+              processedArticle.electionKeywords = geminiAnalysis.electionKeywords;
+              processedArticle.parishMentions = geminiAnalysis.parishMentions;
+              processedArticle.sentimentAnalysis = geminiAnalysis.sentimentAnalysis;
+            } else {
+              // Basic analysis as fallback
+              processedArticle.relevanceScore = this.scoreArticleRelevance(processedArticle);
+              processedArticle.electionKeywords = this.extractElectionKeywords(processedArticle.title + ' ' + processedArticle.content);
+              processedArticle.parishMentions = this.extractParishMentions(processedArticle.title + ' ' + processedArticle.content);
+            }
             
             articles.push(processedArticle);
           }
         }
       }
 
-      console.log(`NewsAPI returned ${articles.length} Jamaica articles`);
+      console.log(`NewsAPI returned ${articles.length} Jamaica articles with Gemini AI analysis`);
       return articles;
 
     } catch (error) {
       console.error('NewsAPI fetch failed:', error);
-      return [];
+      throw error; // Don't fallback to empty data
+    }
+  }
+
+  // Analyze article with Gemini AI
+  private async analyzeWithGemini(article: ProcessedArticle): Promise<any> {
+    if (!process.env.GEMINI_API_KEY) {
+      return null;
+    }
+
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+      const prompt = `
+      Analyze this Jamaica news article for electoral relevance and provide detailed categorization:
+
+      TITLE: ${article.title}
+      CONTENT: ${article.content}
+      SOURCE: ${article.source}
+
+      Please provide a JSON response with:
+      {
+        "relevanceScore": 1-10 (how relevant to Jamaica elections),
+        "electionKeywords": ["array of election-related terms found"],
+        "parishMentions": ["array of Jamaica parishes mentioned"],
+        "sentimentAnalysis": {
+          "sentiment": "positive|negative|neutral",
+          "confidence": 0.0-1.0,
+          "riskLevel": "low|medium|high|critical"
+        },
+        "politicalEntities": ["politicians, parties, organizations mentioned"],
+        "topicsClassification": ["main topics covered"],
+        "criticalityAssessment": "assessment of article importance for electoral monitoring"
+      }
+
+      Jamaica Parishes: ${this.jamaicanParishes.join(', ')}
+      Election Keywords: ${this.electionKeywords.join(', ')}
+      `;
+
+      const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+      });
+
+      const analysisText = response.text;
+      if (analysisText) {
+        // Parse JSON response
+        try {
+          return JSON.parse(analysisText);
+        } catch (parseError) {
+          // Extract JSON from response if wrapped in markdown
+          const jsonMatch = analysisText.match(/```json\s*(.*?)\s*```/s);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[1]);
+          }
+        }
+      }
+
+      return null;
+
+    } catch (error) {
+      console.error('Gemini analysis error:', error);
+      return null;
     }
   }
 }

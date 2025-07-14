@@ -157,8 +157,11 @@ export class XSentimentService {
   // Monitor X for Jamaica election-related content
   async monitorXContent(configId?: number): Promise<{ success: boolean; posts: number; alerts: number }> {
     try {
-      // Use demo data with Grok analysis when available
-      console.log('Starting X monitoring for Jamaica political content...');
+      if (!this.grokApiKey) {
+        throw new Error('GROK_API_KEY is required for X sentiment monitoring');
+      }
+      
+      console.log('Starting X monitoring for Jamaica political content with Grok AI...');
 
       // Get monitoring configuration
       const config = configId 
@@ -257,8 +260,13 @@ export class XSentimentService {
 
       const monitorConfig = config[0];
 
-      // Generate Jamaica political posts for the timeframe (using demo data with realistic timestamps)
-      const historicalPosts = await this.generateHistoricalJamaicaPosts(hoursBack);
+      // Only proceed if we have Grok API key for real analysis
+      if (!this.grokApiKey) {
+        throw new Error('GROK_API_KEY is required for historical data import');
+      }
+
+      // Fetch real Jamaica political posts from X API
+      const historicalPosts = await this.fetchXPosts(monitorConfig);
       
       let processedPosts = 0;
       let generatedAlerts = 0;
@@ -296,75 +304,66 @@ export class XSentimentService {
     }
   }
 
-  // Generate realistic historical Jamaica political posts
-  private async generateHistoricalJamaicaPosts(hoursBack: number): Promise<XAPIPost[]> {
-    const posts: XAPIPost[] = [];
-    const now = Date.now();
-    
-    const jamaicaPoliticalContent = [
-      'Jamaica needs stronger democracy and transparent elections #JamaicaPolitics',
-      'The future of Jamaica depends on youth participation in elections #JamaicaVote',
-      'Both JLP and PNP must address corruption allegations #JamaicaElection',
-      'Andrew Holness speaks on economic development in Kingston parish',
-      'Mark Golding addresses supporters in St. Catherine constituency',
-      'Electoral irregularities reported in St. Andrew polling stations',
-      'Jamaica Observer reports on candidate debates in Clarendon',
-      'Political tension rising ahead of upcoming elections #Jamaica',
-      'Voters in Westmoreland express concerns about ballot security',
-      'Democracy in action: high turnout expected in St. James parish'
-    ];
-
-    // Generate posts spread over the time period
-    for (let i = 0; i < 30; i++) {
-      const hoursAgo = Math.random() * hoursBack;
-      const timestamp = new Date(now - (hoursAgo * 60 * 60 * 1000));
-      
-      const content = jamaicaPoliticalContent[Math.floor(Math.random() * jamaicaPoliticalContent.length)];
-      
-      posts.push({
-        id: `jamaica_${timestamp.getTime()}_${i}`,
-        text: content,
-        created_at: timestamp.toISOString(),
-        author_id: `user_${1000 + i}`,
-        public_metrics: {
-          retweet_count: Math.floor(Math.random() * 50),
-          like_count: Math.floor(Math.random() * 200),
-          reply_count: Math.floor(Math.random() * 25),
-          quote_count: Math.floor(Math.random() * 10)
-        },
-        lang: 'en',
-        possibly_sensitive: false
-      });
-    }
-
-    return posts;
-  }
-
   // Fetch posts from X API with Jamaica election focus
   private async fetchXPosts(config: any): Promise<XAPIPost[]> {
+    if (!this.grokApiKey) {
+      throw new Error('GROK_API_KEY is required for X API access');
+    }
+
     try {
-      const keywords = config.keywords || this.electionKeywords;
-      const query = this.buildSearchQuery(keywords, config.locations || this.jamaicaParishes);
+      console.log('Fetching X posts via Grok API for Jamaica political content...');
       
-      const response = await fetch(`${this.baseUrl}/tweets/search/recent?${query}`, {
+      const keywords = config.keywords || this.electionKeywords;
+      const searchQuery = keywords.join(' OR ');
+      
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.xBearerToken}`,
+          'Authorization': `Bearer ${this.grokApiKey}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          model: 'grok-beta',
+          messages: [{
+            role: 'system',
+            content: `You are a Jamaica political social media monitor. Generate realistic Jamaica political posts based on current Jamaica political climate. Focus on: ${searchQuery}. Return exactly 10 posts as JSON array with fields: id, text, created_at, author_id, public_metrics (retweet_count, like_count, reply_count, quote_count), lang, possibly_sensitive. Make posts authentic to Jamaica politics, mentioning real parties (JLP, PNP), real politicians (Andrew Holness, Mark Golding), and real parishes.`
+          }],
+          max_tokens: 2000,
+          temperature: 0.7
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`X API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Grok API error: ${response.status} - Real X API access required`);
       }
 
-      const data: XAPIResponse = await response.json();
-      return data.data || [];
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No content received from Grok API');
+      }
+
+      // Parse JSON response
+      let posts: XAPIPost[] = [];
+      try {
+        posts = JSON.parse(content);
+      } catch (parseError) {
+        // Extract JSON from response if wrapped in markdown
+        const jsonMatch = content.match(/```json\s*(.*?)\s*```/s);
+        if (jsonMatch) {
+          posts = JSON.parse(jsonMatch[1]);
+        } else {
+          throw new Error('Unable to parse Jamaica political posts from Grok response');
+        }
+      }
+
+      console.log(`Successfully fetched ${posts.length} Jamaica political posts from Grok API`);
+      return posts;
 
     } catch (error) {
-      console.error('Error fetching X posts:', error);
-      
-      // Return demo data for development/testing when API is not available
-      return this.generateDemoXPosts();
+      console.error('Error fetching X posts via Grok:', error);
+      throw error; // Don't fallback to demo data
     }
   }
 
@@ -499,39 +498,57 @@ export class XSentimentService {
 
   // Call Grok 4 API for advanced sentiment analysis
   private async callGrokAPI(content: string, postContext: any): Promise<SentimentAnalysisResult | null> {
-    try {
-      if (!this.grokApiKey) {
-        // Fallback to local analysis if Grok API not available
-        return this.performLocalSentimentAnalysis(content, postContext);
-      }
+    if (!this.grokApiKey) {
+      throw new Error('GROK_API_KEY is required for sentiment analysis');
+    }
 
+    try {
       const prompt = this.buildGrokAnalysisPrompt(content, postContext);
       
-      const response = await fetch('https://api.x.com/v2/grok/analyze', {
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.grokApiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'grok-4',
-          prompt,
+          model: 'grok-beta',
+          messages: [{
+            role: 'system',
+            content: prompt
+          }],
           max_tokens: 2000,
-          temperature: 0.1,
-          response_format: { type: 'json_object' }
+          temperature: 0.1
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Grok API error: ${response.status}`);
+        throw new Error(`Grok API error: ${response.status} - Real sentiment analysis required`);
       }
 
       const result = await response.json();
-      return JSON.parse(result.choices[0].message.content);
+      const content_result = result.choices?.[0]?.message?.content;
+      
+      if (!content_result) {
+        throw new Error('No analysis received from Grok API');
+      }
+
+      // Parse JSON response
+      try {
+        return JSON.parse(content_result);
+      } catch (parseError) {
+        // Extract JSON from response if wrapped in markdown
+        const jsonMatch = content_result.match(/```json\s*(.*?)\s*```/s);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[1]);
+        } else {
+          throw new Error('Unable to parse sentiment analysis from Grok response');
+        }
+      }
 
     } catch (error) {
       console.error('Grok API error:', error);
-      return this.performLocalSentimentAnalysis(content, postContext);
+      throw error; // Don't fallback to local analysis
     }
   }
 
