@@ -1,4 +1,4 @@
-import { SocialMonitoringService } from './social-monitoring-service.js';
+import { SocialMonitoringService } from './social-monitoring-service';
 
 interface NewsSource {
   id: string;

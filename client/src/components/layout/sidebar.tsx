@@ -71,7 +71,7 @@ const adminNavigationGroups = [
       { name: 'Parish Heat Map', href: '/parish-heat-map', icon: Layers },
       { name: 'X Sentiment Analysis', href: '/x-sentiment-dashboard', icon: Twitter },
       { name: 'AI Intelligence', href: '/ai-analytics', icon: Brain },
-      { name: 'Central AI Hub', href: '/central-ai-intelligence', icon: Brain },
+      { name: 'Central AI Hub', href: '/central-ai-hub', icon: Brain },
     ]
   },
   {

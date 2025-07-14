@@ -721,6 +721,23 @@ export const certificateTemplates = pgTable("certificate_templates", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// X API Connection Status and Health Monitoring for Real Data Verification
+export const xApiStatus = pgTable("x_api_status", {
+  id: serial("id").primaryKey(),
+  isConnected: boolean("is_connected").notNull().default(false),
+  connectionType: text("connection_type").notNull().default('demo'), // 'real', 'demo', 'offline'
+  lastSuccessfulRequest: timestamp("last_successful_request"),
+  lastFailedRequest: timestamp("last_failed_request"),
+  dailyRequestCount: integer("daily_request_count").notNull().default(0),
+  rateLimitRemaining: integer("rate_limit_remaining"),
+  errorMessage: text("error_message"),
+  grokApiConnected: boolean("grok_api_connected").notNull().default(false),
+  jamaicaContentFiltered: boolean("jamaica_content_filtered").notNull().default(true),
+  realDataConfirmed: boolean("real_data_confirmed").notNull().default(false),
+  lastHealthCheck: timestamp("last_health_check").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignments: many(assignments),
