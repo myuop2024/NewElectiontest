@@ -47,6 +47,7 @@ import TrafficMonitoring from "@/pages/traffic-monitoring";
 import ParishHeatMapNew from "@/pages/parish-heat-map-new";
 import XSentimentDashboard from "@/pages/x-sentiment-dashboard";
 import CentralAIHub from "@/pages/central-ai-hub";
+import MonitoringConfig from "@/pages/monitoring-config";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -259,6 +260,11 @@ function Router() {
       <Route path="/central-ai-hub">
         <ProtectedLayout>
           <CentralAIHub />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/monitoring-config">
+        <ProtectedLayout>
+          <MonitoringConfig />
         </ProtectedLayout>
       </Route>
       <Route path="/emergency-management">

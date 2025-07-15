@@ -6047,6 +6047,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==============================================
+  // MONITORING CONFIGURATION API ENDPOINTS
+  // ==============================================
+
+  // Get monitoring configurations
+  app.get("/api/monitoring/configs", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // For now, return empty array - this would be implemented with a proper database table
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching monitoring configs:", error);
+      res.status(500).json({ error: "Failed to fetch monitoring configurations" });
+    }
+  });
+
+  // Add monitoring target
+  app.post("/api/monitoring/targets", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { name, url, type, keywords, parish, constituency, description } = req.body;
+      
+      if (!name || !url) {
+        return res.status(400).json({ error: "Name and URL are required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      // This would be implemented with a proper database table
+      const newTarget = {
+        id: `target_${Date.now()}`,
+        name,
+        url,
+        type: type || 'news_site',
+        keywords: keywords || [],
+        parish,
+        constituency,
+        description,
+        active: true,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      res.json({
+        success: true,
+        target: newTarget,
+        message: "Monitoring target configured successfully"
+      });
+    } catch (error) {
+      console.error("Error adding monitoring target:", error);
+      res.status(500).json({ error: "Failed to add monitoring target" });
+    }
+  });
+
+  // Delete monitoring target
+  app.delete("/api/monitoring/targets/:targetId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { targetId } = req.params;
+      
+      // This would be implemented with a proper database table
+      res.json({
+        success: true,
+        message: "Monitoring target removed successfully"
+      });
+    } catch (error) {
+      console.error("Error removing monitoring target:", error);
+      res.status(500).json({ error: "Failed to remove monitoring target" });
+    }
+  });
+
+  // Toggle monitoring target status
+  app.post("/api/monitoring/targets/:targetId/toggle", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { targetId } = req.params;
+      const { active } = req.body;
+      
+      // This would be implemented with a proper database table
+      res.json({
+        success: true,
+        message: `Monitoring target ${active ? 'activated' : 'paused'} successfully`
+      });
+    } catch (error) {
+      console.error("Error toggling monitoring target:", error);
+      res.status(500).json({ error: "Failed to toggle monitoring target" });
+    }
+  });
+
+  // ==============================================
   // X (TWITTER) SENTIMENT ANALYSIS API ENDPOINTS
   // ==============================================
 

@@ -87,7 +87,22 @@ export class CentralAIService {
           cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
         }
         
-        const analysis = JSON.parse(cleanText);
+        let analysis;
+        try {
+          analysis = JSON.parse(cleanText);
+        } catch (parseError) {
+          console.error("JSON parsing failed, AI returned non-JSON text:", cleanText.substring(0, 100));
+          // Return fallback analysis structure
+          analysis = {
+            sentiment: 'neutral',
+            confidence: 0.1,
+            riskLevel: 'low',
+            analysis: 'AI parsing error - rate limits or service issues',
+            location: location || 'Jamaica',
+            relevance: 0.1,
+            error: 'JSON parsing failed'
+          };
+        }
         
         // Track successful usage
         this.creditManager.trackUsage('gemini', 'processDataFlow', tokensUsed, true);

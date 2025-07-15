@@ -68,6 +68,7 @@ const adminNavigationGroups = [
     items: [
       { name: 'Central AI Hub', href: '/central-ai-hub', icon: Brain },
       { name: 'Analytics Dashboard', href: '/analytics', icon: BarChart3 },
+      { name: 'Monitoring Config', href: '/monitoring-config', icon: Activity },
     ]
   },
   {

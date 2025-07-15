@@ -104,6 +104,15 @@ export class SocialMonitoringService {
     'Ocho Rios', 'Port Antonio', 'Falmouth', 'Black River', 'Morant Bay'
   ];
 
+  private electionKeywords = [
+    'election', 'voting', 'democracy', 'political', 'campaign', 'candidate',
+    'JLP', 'PNP', 'Andrew Holness', 'Mark Golding', 'manifesto', 'policy',
+    'constituency', 'parliamentary', 'voter', 'ballot', 'polling station',
+    'electoral commission', 'governance', 'corruption', 'transparency',
+    'infrastructure', 'roads', 'healthcare', 'education', 'crime', 'economy',
+    'unemployment', 'development', 'constituency', 'parish council'
+  ];
+
   constructor(apiKey: string) {
     this.centralAI = CentralAIService.getInstance(apiKey);
     this.twitterBearerToken = process.env.TWITTER_BEARER_TOKEN || '';
@@ -209,29 +218,24 @@ export class SocialMonitoringService {
     } catch (error) {
       console.error('Sentiment report generation error:', error);
       
-      // Return fallback data instead of throwing error
+      // Return minimal data structure without mock content
       return {
         overall_sentiment: {
-          average_sentiment: 0.5,
+          average_sentiment: null,
           sentiment_distribution: {
-            positive: 33,
-            negative: 33,
-            neutral: 34
+            positive: 0,
+            negative: 0,
+            neutral: 0
           },
-          confidence: 0.1
+          confidence: 0
         },
-        parish_breakdown: this.jamaicaParishes.map(parish => ({
-          parish: parish,
-          sentiment_score: 0.5,
-          key_issues: ["Service temporarily unavailable"],
-          risk_level: "unknown"
-        })),
+        parish_breakdown: [],
         risk_alerts: [],
-        trending_topics: ["System maintenance"],
+        trending_topics: [],
         election_trends: [],
-        recommendations: ["AI services temporarily unavailable due to rate limits"],
+        recommendations: ["Real-time monitoring requires API credentials"],
         last_updated: new Date(),
-        error_message: "AI services temporarily unavailable"
+        error_message: "Authentic data monitoring requires proper API credentials"
       };
     }
   }
@@ -342,31 +346,70 @@ Return JSON: {
   private async fetchRealNewsData(keywords: string[]): Promise<any[]> {
     // Fetch real news from multiple sources: RSS feeds and NewsAPI
     const newsItems = [];
-    const searchTerms = keywords.concat(['election', 'voting', 'democracy', 'Jamaica', 'parish']);
+    
+    // Enhanced election-focused search terms
+    const electionTerms = keywords.concat([
+      'election', 'voting', 'democracy', 'Jamaica', 'parish', 'constituency',
+      'JLP', 'PNP', 'Andrew Holness', 'Mark Golding', 'political campaign',
+      'voter registration', 'polling station', 'candidate', 'manifesto',
+      'infrastructure', 'roads', 'healthcare', 'education', 'crime',
+      'economic policy', 'unemployment', 'corruption', 'governance',
+      'electoral commission', 'voter turnout', 'political rally',
+      'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary',
+      'St. Ann', 'Trelawny', 'St. James', 'Hanover', 'Westmoreland',
+      'St. Elizabeth', 'Manchester', 'Clarendon', 'St. Catherine'
+    ]);
     
     try {
       // Fetch from NewsAPI.org for comprehensive coverage
-      const newsApiData = await this.fetchFromNewsAPI(searchTerms);
+      const newsApiData = await this.fetchFromNewsAPI(electionTerms);
       newsItems.push(...newsApiData);
       
       // Fetch from Jamaica Observer RSS
-      const observerNews = await this.fetchFromObserver(searchTerms);
+      const observerNews = await this.fetchFromObserver(electionTerms);
       newsItems.push(...observerNews);
       
       // Fetch from Jamaica Gleaner RSS
-      const gleanerNews = await this.fetchFromGleaner(searchTerms);
+      const gleanerNews = await this.fetchFromGleaner(electionTerms);
       newsItems.push(...gleanerNews);
       
       // Fetch from Loop Jamaica RSS
-      const loopNews = await this.fetchFromLoop(searchTerms);
+      const loopNews = await this.fetchFromLoop(electionTerms);
       newsItems.push(...loopNews);
       
     } catch (error) {
-      console.log("Falling back to generated news data due to fetch error:", error);
-      return this.generateSimulatedNewsData(keywords);
+      console.log("Real news fetch error:", error);
+      return []; // Return empty array instead of mock data
     }
     
-    return newsItems.length > 0 ? newsItems : this.generateSimulatedNewsData(keywords);
+    // Filter for election relevance
+    const electionFilteredNews = newsItems.filter(item => 
+      this.isElectionRelated(item.title + ' ' + item.content)
+    );
+    
+    return electionFilteredNews;
+  }
+
+  private isElectionRelated(content: string): boolean {
+    const contentLower = content.toLowerCase();
+    
+    // Check for election-specific keywords
+    const hasElectionKeyword = this.electionKeywords.some(keyword => 
+      contentLower.includes(keyword.toLowerCase())
+    );
+    
+    // Check for Jamaica-specific political content
+    const hasJamaicaContext = contentLower.includes('jamaica') || 
+      this.jamaicaParishes.some(parish => contentLower.includes(parish.toLowerCase()));
+    
+    // Check for infrastructure/social issues that affect voting
+    const hasVotingIssues = [
+      'infrastructure', 'roads', 'transportation', 'access', 'polling',
+      'voter registration', 'id card', 'constituency', 'electoral',
+      'violence', 'security', 'intimidation', 'fraud'
+    ].some(issue => contentLower.includes(issue));
+    
+    return hasElectionKeyword && (hasJamaicaContext || hasVotingIssues);
   }
 
   private async fetchFromNewsAPI(searchTerms: string[]): Promise<any[]> {

@@ -379,70 +379,75 @@ export class XSentimentService {
 
   // Fetch posts from X API with Jamaica election focus and credit optimization
   private async fetchXPosts(config: any): Promise<XAPIPost[]> {
-    if (!this.grokApiKey) {
-      throw new Error('GROK_API_KEY is required for X API access');
+    // Check for actual Twitter/X API credentials
+    const twitterBearerToken = process.env.TWITTER_BEARER_TOKEN;
+    const xApiKey = process.env.X_API_KEY;
+    
+    if (!twitterBearerToken && !xApiKey) {
+      throw new Error('X API credentials required - set TWITTER_BEARER_TOKEN or X_API_KEY environment variable');
     }
 
     try {
-      console.log('Fetching X posts via Grok API for Jamaica political content...');
+      console.log('Fetching X posts via authentic X API for Jamaica political content...');
       
       const keywords = config.keywords || this.electionKeywords;
-      const searchQuery = keywords.join(' OR ');
+      const searchQuery = this.buildSearchQuery(keywords, this.jamaicaParishes);
       
-      const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
+      // Use Twitter API v2 for authentic data
+      const response = await fetch(`https://api.twitter.com/2/tweets/search/recent?${searchQuery}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.grokApiKey}`,
+          'Authorization': `Bearer ${twitterBearerToken || xApiKey}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'grok-beta',
-          messages: [{
-            role: 'system',
-            content: `You are a Jamaica political social media monitor. Generate realistic Jamaica political posts from these specific accounts: ${this.jamaicaXAccounts.join(', ')}. Focus on: ${searchQuery}. Return exactly 10 posts as JSON array with fields: id, text, created_at, author_id, public_metrics (retweet_count, like_count, reply_count, quote_count), lang, possibly_sensitive. Make posts authentic to Jamaica politics, mentioning real parties (JLP, PNP), real politicians (Andrew Holness, Mark Golding), and real parishes. Use realistic usernames from the account list.`
-          }],
-          max_tokens: 2000,
-          temperature: 0.7
-        })
+        }
       });
 
       if (!response.ok) {
-        throw new Error(`Grok API error: ${response.status} - Real X API access required`);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      
-      if (!content) {
-        throw new Error('No content received from Grok API');
-      }
-
-      // Estimate tokens used
-      const tokensUsed = Math.ceil((content.length + 2000) / 4); // Rough estimate
-      this.creditManager.trackUsage('grok', 'fetchXPosts', tokensUsed, true);
-
-      // Parse JSON response
-      let posts: XAPIPost[] = [];
-      try {
-        posts = JSON.parse(content);
-      } catch (parseError) {
-        // Extract JSON from response if wrapped in markdown
-        const jsonMatch = content.match(/```json\s*(.*?)\s*```/s);
-        if (jsonMatch) {
-          posts = JSON.parse(jsonMatch[1]);
+        if (response.status === 401) {
+          throw new Error('X API authentication failed - check credentials');
+        } else if (response.status === 429) {
+          throw new Error('X API rate limit exceeded - try again later');
         } else {
-          throw new Error('Unable to parse Jamaica political posts from Grok response');
+          throw new Error(`X API error: ${response.status} - ${response.statusText}`);
         }
       }
 
-      console.log(`Successfully fetched ${posts.length} Jamaica political posts from Grok API`);
-      return posts;
+      const data = await response.json();
+      const posts = data.data || [];
+      
+      if (posts.length === 0) {
+        console.log('No X posts found matching Jamaica election criteria');
+        return [];
+      }
+
+      // Track successful API usage
+      this.creditManager.trackUsage('twitter', 'fetchXPosts', posts.length, true);
+
+      console.log(`Successfully fetched ${posts.length} authentic X posts for Jamaica elections`);
+      return posts.map(this.transformTwitterAPIResponse);
 
     } catch (error) {
-      console.error('Error fetching X posts via Grok:', error);
-      this.creditManager.trackUsage('grok', 'fetchXPosts', 100, false);
+      console.error('Error fetching X posts via authentic API:', error);
+      this.creditManager.trackUsage('twitter', 'fetchXPosts', 0, false);
       throw error; // Don't fallback to demo data
     }
+  }
+
+  private transformTwitterAPIResponse(tweet: any): XAPIPost {
+    return {
+      id: tweet.id,
+      text: tweet.text,
+      created_at: tweet.created_at,
+      author_id: tweet.author_id,
+      public_metrics: tweet.public_metrics || {
+        retweet_count: 0,
+        like_count: 0,
+        reply_count: 0,
+        quote_count: 0
+      },
+      lang: tweet.lang || 'en',
+      possibly_sensitive: tweet.possibly_sensitive || false
+    };
   }
 
   // Build X API search query for Jamaica election content
