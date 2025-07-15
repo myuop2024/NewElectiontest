@@ -422,10 +422,13 @@ Return JSON: {
     try {
       const items = [];
       
-      // Search for Jamaica-specific election news
+      // Search for Jamaica-specific election news with extended time range
       const jamaicaQuery = `Jamaica AND (${searchTerms.slice(0, 5).join(' OR ')})`;
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
       const jamaicaResponse = await fetch(
-        `https://newsapi.org/v2/everything?q=${encodeURIComponent(jamaicaQuery)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${newsApiKey}`,
+        `https://newsapi.org/v2/everything?q=${encodeURIComponent(jamaicaQuery)}&language=en&sortBy=publishedAt&pageSize=50&from=${thirtyDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
         {
           headers: {
             'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
@@ -440,15 +443,35 @@ Return JSON: {
         }
       }
 
-      // Search Caribbean news sources for Jamaica election coverage
+      // Search Caribbean news sources for Jamaica election coverage with broader terms
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
       const caribbeanResponse = await fetch(
-        `https://newsapi.org/v2/everything?q=Jamaica election&domains=jamaica-gleaner.com,jamaicaobserver.com,loopjamaica.com&language=en&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`,
+        `https://newsapi.org/v2/everything?q=Jamaica AND (election OR politics OR government OR JLP OR PNP OR voting OR democracy OR parliament OR constituency OR campaign)&domains=jamaica-gleaner.com,jamaicaobserver.com,loopjamaica.com&language=en&sortBy=publishedAt&pageSize=30&from=${sevenDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
         {
           headers: {
             'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
           }
         }
       );
+      
+      // Additional search for broader political and social issues
+      const broadResponse = await fetch(
+        `https://newsapi.org/v2/everything?q=Jamaica AND (infrastructure OR roads OR healthcare OR education OR crime OR economy OR unemployment OR corruption OR governance)&language=en&sortBy=publishedAt&pageSize=20&from=${sevenDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
+        {
+          headers: {
+            'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
+          }
+        }
+      );
+      
+      if (broadResponse.ok) {
+        const broadData = await broadResponse.json();
+        if (broadData.articles) {
+          items.push(...this.processNewsAPIArticles(broadData.articles, 'NewsAPI Broad'));
+        }
+      }
 
       if (caribbeanResponse.ok) {
         const caribbeanData = await caribbeanResponse.json();
@@ -574,17 +597,18 @@ Return JSON: {
       const linkMatches = rssText.match(/<link>(.*?)<\/link>/g) || [];
       const dateMatches = rssText.match(/<pubDate>(.*?)<\/pubDate>/g) || [];
       
-      for (let i = 0; i < Math.min(titleMatches.length, 10); i++) {
+      for (let i = 0; i < Math.min(titleMatches.length, 25); i++) {
         const title = titleMatches[i]?.replace(/<title><!\[CDATA\[/, '').replace(/\]\]><\/title>/, '') || '';
         const description = descMatches[i]?.replace(/<description><!\[CDATA\[/, '').replace(/\]\]><\/description>/, '') || '';
         const link = linkMatches[i]?.replace(/<link>/, '').replace(/<\/link>/, '') || '';
         const pubDate = dateMatches[i]?.replace(/<pubDate>/, '').replace(/<\/pubDate>/, '') || '';
         
-        // Check if content is election-related
+        // Check if content is election-related using comprehensive filtering
         const content = `${title} ${description}`.toLowerCase();
-        const isElectionRelated = searchTerms.some(term => content.includes(term.toLowerCase()));
+        const isElectionRelated = this.isElectionRelated(content) || 
+          searchTerms.some(term => content.includes(term.toLowerCase()));
         
-        if (isElectionRelated) {
+        if (isElectionRelated && title.length > 5) {
           // Detect parish mentions
           const detectedParish = this.jamaicaParishes.find(parish => 
             content.includes(parish.toLowerCase())
@@ -1024,5 +1048,34 @@ Return JSON: {
       'Monitor social media for early detection of misinformation campaigns',
       'Prepare rapid response teams for emerging issues'
     ];
+  }
+
+  async getHistoricalNewsData(daysBack: number = 30): Promise<any[]> {
+    try {
+      // Enhanced search terms for broader coverage
+      const enhancedSearchTerms = [
+        ...this.electionKeywords,
+        'Andrew Holness', 'Mark Golding', 'Olivia Grange', 'Peter Phillips',
+        'Daryl Vaz', 'Nigel Clarke', 'Fayval Williams', 'Horace Chang',
+        'budget', 'taxation', 'inflation', 'cost of living', 'minimum wage',
+        'violence', 'crime rate', 'security', 'police', 'community safety',
+        'water supply', 'electricity', 'JUTC', 'public transport', 'housing',
+        'hospital', 'clinic', 'school', 'university', 'student loan',
+        'farmer', 'agriculture', 'tourism', 'bauxite', 'mining'
+      ];
+
+      console.log(`Fetching ${daysBack} days of historical Jamaica news data...`);
+      const historicalNews = await this.fetchRealNewsData(enhancedSearchTerms);
+      
+      // Sort by date and return more comprehensive results
+      return historicalNews
+        .filter(item => item.title && item.content)
+        .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+        .slice(0, 150); // Return up to 150 articles
+        
+    } catch (error) {
+      console.error('Error fetching historical news:', error);
+      return [];
+    }
   }
 }

@@ -249,6 +249,14 @@ The system analyzes traffic conditions for their impact on electoral activities:
   - **USER EXPERIENCE**: Clear error messages when authentic data sources are unavailable
   - **SECURITY**: Proper authentication required for all monitoring configuration endpoints
   - **SCALABILITY**: Configurable monitoring targets for custom page monitoring
+  - **HISTORICAL NEWS DATA**: New API endpoint `/api/news/jamaica-historical` for extended news coverage (up to 90 days)
+  - **BROADER SEARCH TERMS**: Enhanced keyword filtering including infrastructure, social issues, and politician names
+  - **IMPROVED RSS PARSING**: Increased article limits from 10 to 25 per source for comprehensive coverage
+  - **EXTENDED TIME RANGES**: NewsAPI searches now cover 30 days instead of recent articles only
+  - **ENHANCED ARTICLE PROCESSING**: Better relevance scoring and parish detection for Jamaica content
+  - **SOCIAL ISSUE MONITORING**: Tracks infrastructure, healthcare, education, and crime issues affecting elections
+  - **POLITICIAN-SPECIFIC TRACKING**: Monitors content related to key Jamaica political figures
+  - **COMPREHENSIVE COVERAGE**: Multiple search queries per source for maximum content retrieval
 - July 15, 2025: Comprehensive Polling Stations Heat Map Integration
   - **MAJOR FEATURE**: Enhanced polling stations page with comprehensive heat map overlay system
   - **X SENTIMENT INTEGRATION**: Real-time X sentiment analysis overlays on polling station locations

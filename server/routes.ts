@@ -1715,6 +1715,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get extended historical Jamaica news data
+  app.get("/api/news/jamaica-historical", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { days = 30 } = req.query;
+      const daysBack = Math.min(parseInt(days as string) || 30, 90); // Max 90 days
+      
+      const socialMonitoringService = new SocialMonitoringService(process.env.GEMINI_API_KEY || '');
+      const historicalNews = await socialMonitoringService.getHistoricalNewsData(daysBack);
+      
+      res.json({
+        success: true,
+        data: historicalNews,
+        period: `${daysBack} days`,
+        count: historicalNews.length,
+        sources: ['Jamaica Observer', 'Jamaica Gleaner', 'Loop Jamaica', 'NewsAPI.org'],
+        search_terms: ['election', 'politics', 'government', 'JLP', 'PNP', 'voting', 'democracy', 'infrastructure', 'crime', 'economy'],
+        last_updated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching historical Jamaica news:", error);
+      res.status(500).json({ error: "Failed to fetch historical Jamaica news" });
+    }
+  });
+
   // Notification Routes
   app.post("/api/notifications/send", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
