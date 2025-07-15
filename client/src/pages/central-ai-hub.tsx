@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import ParishHeatMapNew from "./parish-heat-map-new";
 import XSentimentDashboard from "./x-sentiment-dashboard";
 import JamaicaMonitoringSettings from "@/components/jamaica-monitoring-settings";
+import LoadingProgress, { useLoadingSteps } from "@/components/loading-progress";
 
 interface AIStatus {
   valid: boolean;
@@ -102,7 +103,9 @@ export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isActive, setIsActive] = useState(false);
   const [lastActivation, setLastActivation] = useState<Date | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { toast } = useToast();
+  const { steps, setStepLoading, setStepComplete, setStepError, resetSteps } = useLoadingSteps();
 
   // Track when page becomes active/inactive
   useEffect(() => {
@@ -179,7 +182,14 @@ export default function CentralAIHub() {
     staleTime: 120000,
     gcTime: 300000,
     retry: 1,
-    enabled: isActive // Only enable when page is active
+    enabled: isActive, // Only enable when page is active
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('ai', error.message || 'Failed to load AI status');
+      } else {
+        setStepComplete('ai', 'AI engine connected and operational');
+      }
+    }
   });
 
   const {
@@ -194,7 +204,14 @@ export default function CentralAIHub() {
     staleTime: 300000,
     gcTime: 600000,
     retry: 1,
-    enabled: isActive // Only enable when page is active
+    enabled: isActive, // Only enable when page is active
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('x', error.message || 'Failed to load X sentiment status');
+      } else {
+        setStepComplete('x', 'Social monitoring connected');
+      }
+    }
   });
 
   const {
@@ -208,7 +225,14 @@ export default function CentralAIHub() {
     refetchInterval: isActive ? 1800000 : false, // Only refetch when active
     staleTime: 900000,
     retry: 2,
-    enabled: isActive // Only enable when page is active
+    enabled: isActive, // Only enable when page is active
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('news', error.message || 'Failed to load news data');
+      } else {
+        setStepComplete('news', 'Jamaica news sources connected');
+      }
+    }
   });
 
   const {
@@ -222,7 +246,14 @@ export default function CentralAIHub() {
     refetchInterval: false, // Never auto-refetch parish data
     staleTime: 1800000,
     retry: 1,
-    enabled: isActive // Only enable when page is active
+    enabled: isActive, // Only enable when page is active
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('parish', error.message || 'Failed to load parish data');
+      } else {
+        setStepComplete('parish', 'Parish monitoring data loaded');
+      }
+    }
   });
 
   const {
@@ -236,7 +267,14 @@ export default function CentralAIHub() {
     refetchInterval: isActive ? 600000 : false, // Only refetch when active
     staleTime: 300000,
     retry: 1,
-    enabled: isActive // Only enable when page is active
+    enabled: isActive, // Only enable when page is active
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('sentiment', error.message || 'Failed to load sentiment data');
+      } else {
+        setStepComplete('sentiment', 'Sentiment analysis ready');
+      }
+    }
   });
 
   const getSentimentColor = (sentiment: string | number | undefined) => {
@@ -291,6 +329,7 @@ export default function CentralAIHub() {
 
   const handleRefreshAll = async () => {
     try {
+      resetSteps();
       await Promise.all([
         refetchAI(),
         refetchX(),
@@ -353,16 +392,48 @@ export default function CentralAIHub() {
     }
   }, [aiError, xError, newsError, parishError, sentimentError, toast]);
 
-  const anyLoading = aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading;
+  // Show loading progress on initial load
+  const shouldShowLoadingScreen = isInitialLoad && (aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading);
 
-  if (anyLoading) {
+  // Set loading states when queries start
+  React.useEffect(() => {
+    if (aiLoading) setStepLoading('ai', 'Loading AI engine status...');
+  }, [aiLoading, setStepLoading]);
+
+  React.useEffect(() => {
+    if (xLoading) setStepLoading('x', 'Connecting to social monitoring...');
+  }, [xLoading, setStepLoading]);
+
+  React.useEffect(() => {
+    if (newsLoading) setStepLoading('news', 'Fetching Jamaica news sources...');
+  }, [newsLoading, setStepLoading]);
+
+  React.useEffect(() => {
+    if (parishLoading) setStepLoading('parish', 'Loading parish data...');
+  }, [parishLoading, setStepLoading]);
+
+  React.useEffect(() => {
+    if (sentimentLoading) setStepLoading('sentiment', 'Analyzing sentiment data...');
+  }, [sentimentLoading, setStepLoading]);
+
+  // Check if initial load is complete
+  React.useEffect(() => {
+    const allLoaded = !aiLoading && !xLoading && !newsLoading && !parishLoading && !sentimentLoading;
+    const hasData = aiStatus || xStatus || jamaicaNews || parishData || sentimentData;
+    
+    if (allLoaded && hasData && isInitialLoad) {
+      setIsInitialLoad(false);
+    }
+  }, [aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, isInitialLoad]);
+
+  if (shouldShowLoadingScreen) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
+      <LoadingProgress 
+        steps={steps}
+        title="Central AI Hub Loading"
+        description="Initializing Jamaica Election Intelligence & Monitoring Center..."
+        showDetailedProgress={true}
+      />
     );
   }
 
