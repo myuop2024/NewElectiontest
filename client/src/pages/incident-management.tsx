@@ -71,7 +71,7 @@ export default function IncidentManagement() {
   // Update report status mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ reportId, status }: { reportId: number; status: string }) =>
-      apiRequest(`/api/reports/${reportId}`, "PATCH", { status }),
+      apiRequest("PATCH", `/api/reports/${reportId}`, { status }),
     onSuccess: () => {
       toast({
         title: "Status Updated",

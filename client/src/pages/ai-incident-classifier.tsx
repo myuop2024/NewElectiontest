@@ -72,7 +72,7 @@ export default function AIIncidentClassifier() {
   // Single incident analysis mutation
   const analyzeIncidentMutation = useMutation({
     mutationFn: async (data: { text: string; model: string; reportId?: number }) => {
-      const response = await apiRequest("/api/ai/analyze-incident", "POST", data);
+      const response = await apiRequest("POST", "/api/ai/analyze-incident", data);
       return response as unknown as AnalysisResult;
     },
     onSuccess: (result) => {
@@ -94,7 +94,7 @@ export default function AIIncidentClassifier() {
   // Batch processing mutation
   const batchAnalyzeMutation = useMutation({
     mutationFn: async (data: { model: string; filters?: any }) => {
-      return await apiRequest("/api/ai/batch-analyze", "POST", data);
+      return await apiRequest("POST", "/api/ai/batch-analyze", data);
     },
     onSuccess: (result: any) => {
       toast({

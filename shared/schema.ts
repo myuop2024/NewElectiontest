@@ -959,6 +959,32 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type OnlineUser = typeof onlineUsers.$inferSelect;
 export type CertificateTemplate = typeof certificateTemplates.$inferSelect;
 
+// Insert Types
+export type InsertUser = typeof users.$inferInsert;
+export type InsertParish = typeof parishes.$inferInsert;
+export type InsertPollingStation = typeof pollingStations.$inferInsert;
+export type InsertAssignment = typeof assignments.$inferInsert;
+export type InsertCheckIn = typeof checkIns.$inferInsert;
+export type InsertReport = typeof reports.$inferInsert;
+export type InsertDocument = typeof documents.$inferInsert;
+export type InsertMessage = typeof messages.$inferInsert;
+export type InsertCourse = typeof courses.$inferInsert;
+export type InsertCourseModule = typeof courseModules.$inferInsert;
+export type InsertCourseQuiz = typeof courseQuizzes.$inferInsert;
+export type InsertCourseContest = typeof courseContests.$inferInsert;
+export type InsertCourseMedia = typeof courseMedia.$inferInsert;
+export type InsertCourseLesson = typeof courseLessons.$inferInsert;
+export type InsertUserLessonProgress = typeof userLessonProgress.$inferInsert;
+export type InsertEnrollment = typeof enrollments.$inferInsert;
+export type InsertFAQ = typeof faqs.$inferInsert;
+export type InsertNews = typeof news.$inferInsert;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+export type InsertSetting = typeof settings.$inferInsert;
+export type InsertChatRoom = typeof chatRooms.$inferInsert;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+export type InsertOnlineUser = typeof onlineUsers.$inferInsert;
+export type InsertCertificateTemplate = typeof certificateTemplates.$inferInsert;
+
 // NEW Select types for Assignments
 export type CourseAssignment = typeof courseAssignments.$inferSelect;
 export type AssignmentSubmission = typeof assignmentSubmissions.$inferSelect;

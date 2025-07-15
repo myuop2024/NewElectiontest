@@ -83,7 +83,7 @@ export default function LocationTracking() {
       speed?: number;
       heading?: number;
     }) => {
-      const response = await apiRequest("/api/location/start-tracking", "POST", locationData);
+      const response = await apiRequest("POST", "/api/location/start-tracking", locationData);
       return response as unknown as { sessionId: string };
     },
     onSuccess: (data: { sessionId: string }) => {
@@ -114,14 +114,14 @@ export default function LocationTracking() {
       heading?: number;
       battery?: number;
     }) => {
-      return await apiRequest("/api/location/update", "POST", locationData);
+      return await apiRequest("POST", "/api/location/update", locationData);
     }
   });
 
   // Stop tracking mutation
   const stopTrackingMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/location/stop-tracking", "POST", { sessionId: trackingSession });
+      return await apiRequest("POST", "/api/location/stop-tracking", { sessionId: trackingSession });
     },
     onSuccess: () => {
       setIsTracking(false);

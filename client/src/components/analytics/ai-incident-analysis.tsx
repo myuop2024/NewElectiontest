@@ -65,7 +65,7 @@ export function AIIncidentAnalysis({ incidentData, onAnalysisComplete }: AIIncid
   const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null);
 
   const analyzeIncidentMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/ai/analyze-incident", "POST", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/ai/analyze-incident", data),
     onSuccess: (response: any) => {
       setAnalysis(response.analysis);
       onAnalysisComplete?.(response.analysis);

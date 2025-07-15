@@ -133,8 +133,8 @@ export default function XSentimentDashboard() {
 
   // Monitor X content mutation
   const monitorMutation = useMutation({
-    mutationFn: (configId?: number) => 
-      apiRequest("/api/x-sentiment/monitor", "POST", { configId }),
+    mutationFn: (configId?: number) =>
+      apiRequest("POST", "/api/x-sentiment/monitor", { configId }),
     onSuccess: (data) => {
       toast({
         title: "X Monitoring Complete",
@@ -155,7 +155,7 @@ export default function XSentimentDashboard() {
   // Create monitoring configuration mutation
   const createConfigMutation = useMutation({
     mutationFn: (configData: any) =>
-      apiRequest("/api/x-sentiment/config", "POST", configData),
+      apiRequest("POST", "/api/x-sentiment/config", configData),
     onSuccess: () => {
       toast({
         title: "Configuration Created",
@@ -182,7 +182,7 @@ export default function XSentimentDashboard() {
   // Import historical data mutation
   const importHistoricalMutation = useMutation({
     mutationFn: () =>
-      apiRequest("/api/x-sentiment/import-historical", "POST", {}),
+      apiRequest("POST", "/api/x-sentiment/import-historical", {}),
     onSuccess: (data) => {
       toast({
         title: "Historical Import Complete",
@@ -203,7 +203,7 @@ export default function XSentimentDashboard() {
   // Batch analysis mutation
   const batchAnalysisMutation = useMutation({
     mutationFn: (limit: number) =>
-      apiRequest("/api/x-sentiment/analyze/batch", "POST", { limit }),
+      apiRequest("POST", "/api/x-sentiment/analyze/batch", { limit }),
     onSuccess: (data) => {
       toast({
         title: "Batch Analysis Complete",
