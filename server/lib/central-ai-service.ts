@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { storage } from '../storage';
+import { APICreditManager } from './api-credit-manager';
 
 interface AIAnalysisResult {
   type: 'incident' | 'document' | 'sentiment' | 'election_monitoring' | 'training' | 'security';
@@ -37,6 +38,7 @@ export class CentralAIService {
   private genAI: GoogleGenerativeAI;
   private model: any;
   private static instance: CentralAIService;
+  private creditManager: APICreditManager;
 
   constructor(apiKey?: string) {
     if (!apiKey) {
@@ -44,6 +46,7 @@ export class CentralAIService {
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    this.creditManager = APICreditManager.getInstance();
   }
 
   static getInstance(apiKey?: string): CentralAIService {
@@ -53,48 +56,68 @@ export class CentralAIService {
     return CentralAIService.instance;
   }
 
-  // Central AI data processing hub
+  // Central AI data processing hub with credit optimization
   async processDataFlow(data: any, type: string, source: string): Promise<AIAnalysisResult> {
-    const prompt = this.buildUniversalPrompt(data, type, source);
+    const cacheKey = `dataflow_${type}_${source}_${JSON.stringify(data).slice(0, 100)}`;
     
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = result.response;
-      const analysisText = response.text();
-      
-      // Clean and parse the JSON response
-      let cleanText = analysisText.trim();
-      
-      // Remove markdown code blocks if present
-      if (cleanText.startsWith('```json')) {
-        cleanText = cleanText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      } else if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    return this.creditManager.getCachedOrFetch(cacheKey, async () => {
+      // Check credit limits before making API call
+      if (!(await this.creditManager.canMakeAPICall('gemini', 'processDataFlow'))) {
+        throw new Error('API credit limit reached for data processing');
       }
+
+      const prompt = this.buildUniversalPrompt(data, type, source);
+      const optimizedPrompt = this.creditManager.optimizePrompt(prompt, 800);
       
-      const analysis = JSON.parse(cleanText);
-      
-      return {
-        type: type as any,
-        confidence: analysis.confidence || 0.8,
-        analysis: analysis,
-        timestamp: new Date(),
-        source: source,
-        location: analysis.location || data.location,
-        relevance: analysis.relevance || 0.7
-      };
-    } catch (error) {
-      console.error("Central AI processing error:", error);
-      throw new Error(`Failed to process ${type} data with central AI`);
-    }
+      try {
+        const result = await this.model.generateContent(optimizedPrompt);
+        const response = result.response;
+        const analysisText = response.text();
+        
+        // Estimate tokens used (rough calculation)
+        const tokensUsed = Math.ceil((optimizedPrompt.length + analysisText.length) / 4);
+        
+        // Clean and parse the JSON response
+        let cleanText = analysisText.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanText.startsWith('```json')) {
+          cleanText = cleanText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+        
+        const analysis = JSON.parse(cleanText);
+        
+        // Track successful usage
+        this.creditManager.trackUsage('gemini', 'processDataFlow', tokensUsed, true);
+        
+        return {
+          type: type as any,
+          confidence: analysis.confidence || 0.8,
+          analysis: analysis,
+          timestamp: new Date(),
+          source: source,
+          location: analysis.location || data.location,
+          relevance: analysis.relevance || 0.7
+        };
+      } catch (error) {
+        // Track failed usage
+        this.creditManager.trackUsage('gemini', 'processDataFlow', 100, false);
+        console.error("Central AI processing error:", error);
+        throw new Error(`Failed to process ${type} data with central AI`);
+      }
+    }, 15); // Cache for 15 minutes
   }
 
-  // Social media and news sentiment analysis for Jamaica elections with quota management
+  // Social media and news sentiment analysis for Jamaica elections with credit optimization
   async analyzeSocialSentiment(content: string, location?: string): Promise<SentimentAnalysis> {
-    try {
-      // Check if content is too short or empty
-      if (!content || content.length < 10) {
-        return this.getFallbackSentiment();
+    const cacheKey = `sentiment_${content.slice(0, 50)}_${location}`;
+    
+    return this.creditManager.getCachedOrFetch(cacheKey, async () => {
+      // Check credit limits before making API call
+      if (!(await this.creditManager.canMakeAPICall('gemini', 'analyzeSocialSentiment'))) {
+        throw new Error('API credit limit reached for sentiment analysis');
       }
 
       const systemPrompt = `You are an expert AI analyst specializing in Jamaican electoral monitoring and social sentiment analysis. 
@@ -126,14 +149,19 @@ Return in this JSON structure:
   "risk_level": "low|medium|high|critical"
 }`;
 
+      const optimizedPrompt = this.creditManager.optimizePrompt(prompt, 600);
+      
       try {
         const result = await this.model.generateContent([
           { text: systemPrompt },
-          { text: prompt }
+          { text: optimizedPrompt }
         ]);
         
         const response = result.response;
         let analysisText = response.text();
+        
+        // Estimate tokens used
+        const tokensUsed = Math.ceil((systemPrompt.length + optimizedPrompt.length + analysisText.length) / 4);
         
         // Clean and parse the JSON response
         if (analysisText.includes('```json')) {
@@ -151,64 +179,53 @@ Return in this JSON structure:
         // Remove any trailing commas before closing brackets/braces
         analysisText = analysisText.replace(/,(\s*[}\]])/g, '$1');
         
-        // If response doesn't look like JSON, return fallback immediately
+        // If response doesn't look like JSON, throw error immediately
         if (!analysisText.trim().startsWith('{')) {
-          console.log("Response is not JSON format, using fallback");
-          return this.getFallbackSentiment();
+          throw new Error('AI response is not in valid JSON format');
         }
         
         try {
-          return JSON.parse(analysisText);
+          const result = JSON.parse(analysisText);
+          
+          // Track successful usage
+          this.creditManager.trackUsage('gemini', 'analyzeSocialSentiment', tokensUsed, true);
+          
+          return result;
         } catch (parseError) {
           console.error("JSON parse error:", parseError);
           console.error("Problematic text (first 200 chars):", analysisText.substring(0, 200));
-          
-          return this.getFallbackSentiment();
+          throw new Error('Failed to parse AI sentiment analysis response');
         }
       } catch (error) {
+        // Track failed usage
+        this.creditManager.trackUsage('gemini', 'analyzeSocialSentiment', 100, false);
         console.error("Social sentiment analysis error:", error);
-        
-        // Check if it's a quota error and return fallback
-        if (error.message && (error.message.includes('quota') || error.message.includes('QUOTA'))) {
-          console.log("Quota exceeded, using fallback sentiment analysis");
-          return this.getFallbackSentiment();
-        }
-        
-        return this.getFallbackSentiment();
+        throw new Error("Failed to analyze social sentiment - AI service unavailable");
       }
-    } catch (error) {
-      console.error("Central AI sentiment analysis error:", error);
-      return this.getFallbackSentiment();
-    }
+    }, 30); // Cache for 30 minutes
   }
 
-  // Fallback sentiment analysis when API is unavailable  
-  private getFallbackSentiment(): SentimentAnalysis {
-    return {
-      overall_sentiment: "neutral",
-      confidence: 0.5,
-      key_issues: ["API quota exceeded - using fallback"],
-      election_relevance: 0.5,
-      geographic_focus: [],
-      concerns: ["Gemini API quota limit reached"],
-      positive_indicators: [],
-      risk_level: "medium"
-    };
-  }
-
-  // Jamaica-specific election monitoring analysis
+  // Jamaica-specific election monitoring analysis with credit optimization
   async analyzeElectionTrends(data: any[]): Promise<ElectionMonitoringData[]> {
-    const jamaicaParishes = [
-      'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
-      'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
-      'Manchester', 'Clarendon', 'St. Catherine'
-    ];
+    const cacheKey = `trends_${data.length}_${JSON.stringify(data.slice(0, 3))}`;
+    
+    return this.creditManager.getCachedOrFetch(cacheKey, async () => {
+      // Check credit limits before making API call
+      if (!(await this.creditManager.canMakeAPICall('gemini', 'analyzeElectionTrends'))) {
+        throw new Error('API credit limit reached for election trends analysis');
+      }
 
-    const systemPrompt = `You are an electoral monitoring AI specialist for Jamaica. 
-    Analyze election-related data trends across Jamaica's 14 parishes and 63 constituencies.
-    Focus on identifying patterns, risks, and sentiment changes that could affect electoral integrity.`;
+      const jamaicaParishes = [
+        'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
+        'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
+        'Manchester', 'Clarendon', 'St. Catherine'
+      ];
 
-    const prompt = `Analyze these Jamaica election monitoring data points:
+      const systemPrompt = `You are an electoral monitoring AI specialist for Jamaica. 
+      Analyze election-related data trends across Jamaica's 14 parishes and 63 constituencies.
+      Focus on identifying patterns, risks, and sentiment changes that could affect electoral integrity.`;
+
+      const prompt = `Analyze these Jamaica election monitoring data points:
 
 DATA: ${JSON.stringify(data, null, 2)}
 
@@ -231,50 +248,70 @@ Return as JSON array with this structure:
   "timestamp": "2025-07-05T12:00:00Z"
 }]`;
 
-    try {
-      const result = await this.model.generateContent([
-        { text: systemPrompt },
-        { text: prompt }
-      ]);
+      const optimizedPrompt = this.creditManager.optimizePrompt(prompt, 1000);
       
-      const response = result.response;
-      let analysisText = response.text();
-      
-      // Clean and parse the JSON response
-      if (analysisText.startsWith('```json')) {
-        analysisText = analysisText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      } else if (analysisText.startsWith('```')) {
-        analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+      try {
+        const result = await this.model.generateContent([
+          { text: systemPrompt },
+          { text: optimizedPrompt }
+        ]);
+        
+        const response = result.response;
+        let analysisText = response.text();
+        
+        // Estimate tokens used
+        const tokensUsed = Math.ceil((systemPrompt.length + optimizedPrompt.length + analysisText.length) / 4);
+        
+        // Clean and parse the JSON response
+        if (analysisText.startsWith('```json')) {
+          analysisText = analysisText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (analysisText.startsWith('```')) {
+          analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+        
+        const result = JSON.parse(analysisText);
+        
+        // Track successful usage
+        this.creditManager.trackUsage('gemini', 'analyzeElectionTrends', tokensUsed, true);
+        
+        return result;
+      } catch (error) {
+        // Track failed usage
+        this.creditManager.trackUsage('gemini', 'analyzeElectionTrends', 100, false);
+        console.error("Election trends analysis error:", error);
+        throw new Error("Failed to analyze election trends - AI service unavailable");
       }
-      
-      return JSON.parse(analysisText);
-    } catch (error) {
-      console.error("Election trends analysis error:", error);
-      // Return fallback data instead of throwing error
-      return [];
-    }
+    }, 60); // Cache for 1 hour
   }
 
-  // Cross-reference all data sources for comprehensive intelligence
+  // Cross-reference all data sources for comprehensive intelligence with credit optimization
   async generateComprehensiveIntelligence(): Promise<any> {
-    try {
-      // Gather data from all sources
-      const reports = await storage.getReports();
-      const documents = await storage.getDocuments();
-      
-      // Combine all data for AI analysis
-      const combinedData = {
-        incident_reports: reports.slice(-10), // Last 10 reports
-        documents: documents.slice(-20), // Last 20 documents
-        timestamp: new Date(),
-        analysis_scope: 'comprehensive_election_intelligence'
-      };
+    const cacheKey = 'comprehensive_intelligence';
+    
+    return this.creditManager.getCachedOrFetch(cacheKey, async () => {
+      // Check credit limits before making API call
+      if (!(await this.creditManager.canMakeAPICall('gemini', 'generateComprehensiveIntelligence'))) {
+        throw new Error('API credit limit reached for comprehensive intelligence');
+      }
 
-      const systemPrompt = `You are Jamaica's central electoral intelligence AI system.
-      Analyze all available data sources to provide comprehensive election monitoring intelligence.
-      Consider: incident patterns, document evidence, geographic trends, and temporal patterns.`;
+      try {
+        // Gather data from all sources
+        const reports = await storage.getReports();
+        const documents = await storage.getDocuments();
+        
+        // Combine all data for AI analysis
+        const combinedData = {
+          incident_reports: reports.slice(-10), // Last 10 reports
+          documents: documents.slice(-20), // Last 20 documents
+          timestamp: new Date(),
+          analysis_scope: 'comprehensive_election_intelligence'
+        };
 
-      const prompt = `Generate comprehensive electoral intelligence report for Jamaica:
+        const systemPrompt = `You are Jamaica's central electoral intelligence AI system.
+        Analyze all available data sources to provide comprehensive election monitoring intelligence.
+        Consider: incident patterns, document evidence, geographic trends, and temporal patterns.`;
+
+        const prompt = `Generate comprehensive electoral intelligence report for Jamaica:
 
 COMBINED DATA: ${JSON.stringify(combinedData, null, 2)}
 
@@ -288,26 +325,39 @@ Provide comprehensive analysis including:
 
 Return detailed JSON intelligence report.`;
 
-      const result = await this.model.generateContent([
-        { text: systemPrompt },
-        { text: prompt }
-      ]);
-      
-      const response = result.response;
-      let analysisText = response.text();
-      
-      // Clean and parse the JSON response
-      if (analysisText.startsWith('```json')) {
-        analysisText = analysisText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-      } else if (analysisText.startsWith('```')) {
-        analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        const optimizedPrompt = this.creditManager.optimizePrompt(prompt, 1200);
+        
+        const result = await this.model.generateContent([
+          { text: systemPrompt },
+          { text: optimizedPrompt }
+        ]);
+        
+        const response = result.response;
+        let analysisText = response.text();
+        
+        // Estimate tokens used
+        const tokensUsed = Math.ceil((systemPrompt.length + optimizedPrompt.length + analysisText.length) / 4);
+        
+        // Clean and parse the JSON response
+        if (analysisText.startsWith('```json')) {
+          analysisText = analysisText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (analysisText.startsWith('```')) {
+          analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+        
+        const result = JSON.parse(analysisText);
+        
+        // Track successful usage
+        this.creditManager.trackUsage('gemini', 'generateComprehensiveIntelligence', tokensUsed, true);
+        
+        return result;
+      } catch (error) {
+        // Track failed usage
+        this.creditManager.trackUsage('gemini', 'generateComprehensiveIntelligence', 100, false);
+        console.error("Comprehensive intelligence generation error:", error);
+        throw new Error("Failed to generate comprehensive intelligence");
       }
-      
-      return JSON.parse(analysisText);
-    } catch (error) {
-      console.error("Comprehensive intelligence generation error:", error);
-      throw new Error("Failed to generate comprehensive intelligence");
-    }
+    }, 120); // Cache for 2 hours
   }
 
   private buildUniversalPrompt(data: any, type: string, source: string): string {
@@ -328,33 +378,60 @@ Return comprehensive JSON analysis.`;
     return basePrompt;
   }
 
-  // Validate API connection and model performance
+  // Validate API connection and model performance with minimal credit usage
   async validateConnection(): Promise<{ valid: boolean; message: string; model: string }> {
-    try {
-      const testPrompt = "Test Jamaica electoral monitoring AI system connectivity. Respond with JSON: {\"status\": \"connected\", \"model\": \"gemini-2.5-flash\", \"ready\": true}";
-      const result = await this.model.generateContent(testPrompt);
-      const response = result.response;
-      const text = response.text();
-      
-      if (text && text.includes('connected')) {
+    const cacheKey = 'connection_validation';
+    
+    return this.creditManager.getCachedOrFetch(cacheKey, async () => {
+      try {
+        // Use minimal prompt for connection test
+        const testPrompt = "Test Jamaica electoral monitoring AI system connectivity. Respond with JSON: {\"status\": \"connected\", \"model\": \"gemini-2.0-flash-exp\", \"ready\": true}";
+        const result = await this.model.generateContent(testPrompt);
+        const response = result.response;
+        const text = response.text();
+        
+        // Estimate tokens used (minimal for connection test)
+        const tokensUsed = Math.ceil((testPrompt.length + text.length) / 4);
+        
+        if (text && text.includes('connected')) {
+          // Track successful usage
+          this.creditManager.trackUsage('gemini', 'validateConnection', tokensUsed, true);
+          
+          return { 
+            valid: true, 
+            message: 'Central AI system connected successfully', 
+            model: 'gemini-2.0-flash-exp' 
+          };
+        }
+        
+        // Track failed usage
+        this.creditManager.trackUsage('gemini', 'validateConnection', tokensUsed, false);
+        
         return { 
-          valid: true, 
-          message: 'Central AI system connected successfully', 
-          model: 'gemini-2.5-flash' 
+          valid: false, 
+          message: 'Unexpected response from AI system',
+          model: 'gemini-2.0-flash-exp'
+        };
+      } catch (error) {
+        // Track failed usage
+        this.creditManager.trackUsage('gemini', 'validateConnection', 50, false);
+        
+        return { 
+          valid: false, 
+          message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          model: 'gemini-2.0-flash-exp'
         };
       }
-      
-      return { 
-        valid: false, 
-        message: 'Unexpected response from AI system',
-        model: 'gemini-2.5-flash'
-      };
-    } catch (error) {
-      return { 
-        valid: false, 
-        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        model: 'gemini-2.5-flash'
-      };
-    }
+    }, 300); // Cache for 5 hours (connection validation doesn't change often)
+  }
+
+  // Get credit usage statistics
+  getCreditUsageStats(): any {
+    return this.creditManager.getUsageStats();
+  }
+
+  // Check for credit emergency
+  async checkCreditEmergency(): Promise<boolean> {
+    return this.creditManager.checkCreditEmergency();
   }
 }

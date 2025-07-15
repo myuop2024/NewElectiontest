@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { xSocialPosts, xSentimentAnalysis, xMonitoringConfig, xMonitoringAlerts } from '@shared/schema';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
+import { APICreditManager } from './api-credit-manager';
 
 // X API v2 interfaces for posts and sentiment analysis
 interface XAPIPost {
@@ -69,52 +70,12 @@ interface SentimentAnalysisResult {
 }
 
 export class XSentimentService {
-
-  // Get recent sentiment data for all stations
-  async getRecentSentimentData(): Promise<any[]> {
-    try {
-      console.log('[X Sentiment Service] Getting recent sentiment data for all stations');
-      
-      // Get recent posts and their sentiment analysis
-      const recentPosts = await db.select()
-      .from(xSocialPosts)
-      .leftJoin(xSentimentAnalysis, eq(xSocialPosts.id, xSentimentAnalysis.postId))
-      .where(gte(xSocialPosts.createdAt, sql`NOW() - INTERVAL '24 hours'`))
-      .orderBy(desc(xSocialPosts.createdAt))
-      .limit(50);
-
-      console.log(`[X Sentiment Service] Found ${recentPosts.length} recent posts`);
-      
-      // Group by location/parish for station mapping
-      const stationSentiment = recentPosts.reduce((acc: any[], result) => {
-        const post = result.x_social_posts;
-        const analysis = result.x_sentiment_analysis;
-        
-        if (post && post.location) {
-          acc.push({
-            location: post.location,
-            sentiment: analysis?.overallSentiment || 'neutral',
-            confidence: parseFloat(analysis?.confidence || '0.5'),
-            threatLevel: analysis?.threatLevel || 'low',
-            engagement: post.engagementScore || 0,
-            timestamp: post.createdAt
-          });
-        }
-        return acc;
-      }, []);
-
-      return stationSentiment;
-    } catch (error) {
-      console.error('[X Sentiment Service] Error getting recent sentiment data:', error);
-      return [];
-    }
-  }
-
   private xApiKey: string;
   private xApiSecret: string;
   private xBearerToken: string;
   private grokApiKey: string;
   private baseUrl = 'https://api.x.com/2';
+  private creditManager: APICreditManager;
   
   // Jamaica-specific data for enhanced analysis
   private jamaicaParishes = [
@@ -167,6 +128,7 @@ export class XSentimentService {
     this.xApiSecret = process.env.X_API_SECRET || '';
     this.xBearerToken = process.env.X_BEARER_TOKEN || '';
     this.grokApiKey = process.env.GROK_API_KEY || '';
+    this.creditManager = APICreditManager.getInstance();
     
     // Auto-create default monitoring configuration if none exists
     this.initializeDefaultConfig();
@@ -219,7 +181,7 @@ export class XSentimentService {
     }
   }
 
-  // Monitor X for Jamaica election-related content
+  // Monitor X for Jamaica election-related content with credit optimization
   async monitorXContent(configId?: number): Promise<{ success: boolean; posts: number; alerts: number }> {
     try {
       if (!this.grokApiKey) {
@@ -251,29 +213,50 @@ export class XSentimentService {
         }
       }
 
+      // Check credit limits before making API calls
+      if (!(await this.creditManager.canMakeAPICall('grok', 'monitorXContent'))) {
+        throw new Error('API credit limit reached for X monitoring');
+      }
+
       // Fetch posts from X API 
       const posts = await this.fetchXPosts(monitorConfig);
       console.log(`Fetched ${posts.length} posts for analysis`);
       
-      // Process and analyze posts
+      // Process and analyze posts with batching
       let processedPosts = 0;
       let generatedAlerts = 0;
 
-      for (const post of posts) {
-        try {
-          const stored = await this.storeXPost(post);
-          if (stored) {
-            const analysis = await this.analyzePostSentiment(stored.id);
-            if (analysis) {
-              processedPosts++;
-              
-              // Check for alert conditions
-              const alerts = await this.checkAlertConditions(stored.id, analysis, monitorConfig);
-              generatedAlerts += alerts.length;
+      // Use batch processing to reduce API calls
+      const batchSize = 5; // Process 5 posts at a time
+      for (let i = 0; i < posts.length; i += batchSize) {
+        const batch = posts.slice(i, i + batchSize);
+        
+        const batchResults = await Promise.all(
+          batch.map(async (post) => {
+            try {
+              const stored = await this.storeXPost(post);
+              if (stored) {
+                const analysis = await this.analyzePostSentiment(stored.id);
+                if (analysis) {
+                  // Check for alert conditions
+                  const alerts = await this.checkAlertConditions(stored.id, analysis, monitorConfig);
+                  return { processed: true, alerts: alerts.length };
+                }
+              }
+              return { processed: false, alerts: 0 };
+            } catch (error) {
+              console.error('Error processing post:', error);
+              return { processed: false, alerts: 0 };
             }
-          }
-        } catch (error) {
-          console.error('Error processing post:', error);
+          })
+        );
+
+        processedPosts += batchResults.filter(r => r.processed).length;
+        generatedAlerts += batchResults.reduce((sum, r) => sum + r.alerts, 0);
+
+        // Rate limiting between batches
+        if (i + batchSize < posts.length) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
         }
       }
 
@@ -294,41 +277,52 @@ export class XSentimentService {
     }
   }
 
-  // Import historical sentiment data for past X hours
+  // Import historical data with credit optimization
   async importHistoricalData(hoursBack: number = 24): Promise<{ success: boolean; posts: number; alerts?: number }> {
     try {
       if (!this.grokApiKey) {
-        throw new Error('Grok API key required for historical data import');
+        throw new Error('GROK_API_KEY is required for historical data import');
       }
 
-      console.log(`Importing Jamaica X sentiment data for past ${hoursBack} hours...`);
+      // Check credit limits before making API calls
+      if (!(await this.creditManager.canMakeAPICall('grok', 'importHistoricalData'))) {
+        throw new Error('API credit limit reached for historical data import');
+      }
+
+      console.log(`Importing historical X data for past ${hoursBack} hours...`);
 
       // Get or create monitoring configuration
-      let config = await db.select().from(xMonitoringConfig)
-        .where(eq(xMonitoringConfig.isActive, true))
-        .limit(1)
-        .execute();
-
+      let config = await db.select().from(xMonitoringConfig).where(eq(xMonitoringConfig.isActive, true)).execute();
+      
       if (!config.length) {
-        // Use default configuration for historical import
         config = [{
-          keywords: [
-            'Jamaica election', 'JLP', 'PNP', 'Andrew Holness', 'Mark Golding',
-            'Jamaica politics', 'Jamaica vote', 'Jamaica democracy',
-            'Jamaican politicians', 'Jamaica government', 'Jamaica parliament'
-          ],
-          locations: this.jamaicaParishes,
+          id: 1,
+          configName: 'Jamaica Political Monitoring',
+          isActive: true,
+          monitoringFrequency: 30,
           maxPostsPerSession: 100,
-          credibilityThreshold: 0.3
+          keywords: this.electionKeywords,
+          targetAccounts: this.jamaicaXAccounts,
+          monitorAccounts: this.jamaicaXAccounts.slice(0, 10),
+          locations: this.jamaicaParishes,
+          excludeWords: ['spam', 'bot', 'fake'],
+          credibilityThreshold: 0.3,
+          sentimentThreshold: 0.7,
+          alertCriteria: {
+            highNegativeSentiment: true,
+            threateningLanguage: true,
+            electionFraud: true,
+            violenceIndicators: true
+          },
+          parishes: this.jamaicaParishes,
+          pollingStations: [],
+          apiRateLimit: 300,
+          nextExecution: new Date(),
+          createdBy: 1
         }];
       }
 
       const monitorConfig = config[0];
-
-      // Only proceed if we have Grok API key for real analysis
-      if (!this.grokApiKey) {
-        throw new Error('GROK_API_KEY is required for historical data import');
-      }
 
       // Fetch real Jamaica political posts from X API
       const historicalPosts = await this.fetchXPosts(monitorConfig);
@@ -336,22 +330,36 @@ export class XSentimentService {
       let processedPosts = 0;
       let generatedAlerts = 0;
 
-      for (const post of historicalPosts) {
-        try {
-          const stored = await this.storeXPost(post);
-          if (stored) {
-            // Analyze with Grok if available, fallback to demo analysis
-            const analysis = await this.analyzePostSentiment(stored.id);
-            if (analysis) {
-              processedPosts++;
-              
-              // Check for alert conditions
-              const alerts = await this.checkAlertConditions(stored.id, analysis, monitorConfig);
-              generatedAlerts += alerts.length;
+      // Use batch processing for historical data
+      const batchSize = 3; // Smaller batch size for historical data
+      for (let i = 0; i < historicalPosts.length; i += batchSize) {
+        const batch = historicalPosts.slice(i, i + batchSize);
+        
+        const batchResults = await Promise.all(
+          batch.map(async (post) => {
+            try {
+              const stored = await this.storeXPost(post);
+              if (stored) {
+                const analysis = await this.analyzePostSentiment(stored.id);
+                if (analysis) {
+                  const alerts = await this.checkAlertConditions(stored.id, analysis, monitorConfig);
+                  return { processed: true, alerts: alerts.length };
+                }
+              }
+              return { processed: false, alerts: 0 };
+            } catch (error) {
+              console.error('Error processing historical post:', error);
+              return { processed: false, alerts: 0 };
             }
-          }
-        } catch (error) {
-          console.error('Error processing historical post:', error);
+          })
+        );
+
+        processedPosts += batchResults.filter(r => r.processed).length;
+        generatedAlerts += batchResults.reduce((sum, r) => sum + r.alerts, 0);
+
+        // Rate limiting between batches
+        if (i + batchSize < historicalPosts.length) {
+          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
         }
       }
 
@@ -369,7 +377,7 @@ export class XSentimentService {
     }
   }
 
-  // Fetch posts from X API with Jamaica election focus
+  // Fetch posts from X API with Jamaica election focus and credit optimization
   private async fetchXPosts(config: any): Promise<XAPIPost[]> {
     if (!this.grokApiKey) {
       throw new Error('GROK_API_KEY is required for X API access');
@@ -409,6 +417,10 @@ export class XSentimentService {
         throw new Error('No content received from Grok API');
       }
 
+      // Estimate tokens used
+      const tokensUsed = Math.ceil((content.length + 2000) / 4); // Rough estimate
+      this.creditManager.trackUsage('grok', 'fetchXPosts', tokensUsed, true);
+
       // Parse JSON response
       let posts: XAPIPost[] = [];
       try {
@@ -428,6 +440,7 @@ export class XSentimentService {
 
     } catch (error) {
       console.error('Error fetching X posts via Grok:', error);
+      this.creditManager.trackUsage('grok', 'fetchXPosts', 100, false);
       throw error; // Don't fallback to demo data
     }
   }
@@ -492,76 +505,85 @@ export class XSentimentService {
     }
   }
 
-  // Analyze post sentiment using Grok 4
+  // Analyze post sentiment using Grok 4 with credit optimization
   async analyzePostSentiment(postId: number): Promise<SentimentAnalysisResult | null> {
-    try {
-      const post = await db.select().from(xSocialPosts)
-        .where(eq(xSocialPosts.id, postId))
-        .execute();
+    const cacheKey = `sentiment_analysis_${postId}`;
+    
+    return this.creditManager.getCachedOrFetch(cacheKey, async () => {
+      try {
+        const post = await db.select().from(xSocialPosts)
+          .where(eq(xSocialPosts.id, postId))
+          .execute();
 
-      if (!post.length) {
-        throw new Error('Post not found');
+        if (!post.length) {
+          throw new Error('Post not found');
+        }
+
+        const postData = post[0];
+        
+        // Check credit limits before making API call
+        if (!(await this.creditManager.canMakeAPICall('grok', 'analyzePostSentiment'))) {
+          throw new Error('API credit limit reached for sentiment analysis');
+        }
+        
+        // Use Grok 4 for comprehensive sentiment analysis
+        const analysis = await this.callGrokAPI(postData.content, postData);
+        
+        if (!analysis) {
+          throw new Error('Failed to analyze sentiment');
+        }
+
+        // Store analysis results
+        const analysisData = {
+          postId: postData.id,
+          overallSentiment: analysis.overall_sentiment,
+          sentimentScore: analysis.sentiment_score,
+          confidence: analysis.confidence,
+          emotions: analysis.emotions,
+          politicalTopics: analysis.political_topics,
+          mentionedParties: analysis.mentioned_parties,
+          mentionedPoliticians: analysis.mentioned_politicians,
+          electionKeywords: analysis.election_keywords,
+          threatLevel: analysis.threat_level,
+          riskFactors: analysis.risk_factors,
+          credibilityAssessment: analysis.credibility_assessment,
+          parishRelevance: analysis.parish_relevance,
+          stationRelevance: analysis.station_relevance,
+          aiModel: 'grok-4',
+          analysisMetadata: {
+            processing_time: new Date(),
+            model_version: 'grok-4-latest',
+            confidence_factors: analysis.quality_score
+          },
+          qualityScore: analysis.quality_score,
+          reviewStatus: 'auto'
+        };
+
+        await db.insert(xSentimentAnalysis).values(analysisData).execute();
+
+        // Update post processing status
+        await db.update(xSocialPosts)
+          .set({ processingStatus: 'processed', updatedAt: new Date() })
+          .where(eq(xSocialPosts.id, postData.id))
+          .execute();
+
+        return analysis;
+
+      } catch (error) {
+        console.error('Error analyzing sentiment:', error);
+        
+        // Update post processing status to failed
+        await db.update(xSocialPosts)
+          .set({ processingStatus: 'failed', updatedAt: new Date() })
+          .where(eq(xSocialPosts.id, postId))
+          .execute();
+
+        return null;
       }
-
-      const postData = post[0];
-      
-      // Use Grok 4 for comprehensive sentiment analysis
-      const analysis = await this.callGrokAPI(postData.content, postData);
-      
-      if (!analysis) {
-        throw new Error('Failed to analyze sentiment');
-      }
-
-      // Store analysis results
-      const analysisData = {
-        postId: postData.id,
-        overallSentiment: analysis.overall_sentiment,
-        sentimentScore: analysis.sentiment_score,
-        confidence: analysis.confidence,
-        emotions: analysis.emotions,
-        politicalTopics: analysis.political_topics,
-        mentionedParties: analysis.mentioned_parties,
-        mentionedPoliticians: analysis.mentioned_politicians,
-        electionKeywords: analysis.election_keywords,
-        threatLevel: analysis.threat_level,
-        riskFactors: analysis.risk_factors,
-        credibilityAssessment: analysis.credibility_assessment,
-        parishRelevance: analysis.parish_relevance,
-        stationRelevance: analysis.station_relevance,
-        aiModel: 'grok-4',
-        analysisMetadata: {
-          processing_time: new Date(),
-          model_version: 'grok-4-latest',
-          confidence_factors: analysis.quality_score
-        },
-        qualityScore: analysis.quality_score,
-        reviewStatus: 'auto'
-      };
-
-      await db.insert(xSentimentAnalysis).values(analysisData).execute();
-
-      // Update post processing status
-      await db.update(xSocialPosts)
-        .set({ processingStatus: 'processed', updatedAt: new Date() })
-        .where(eq(xSocialPosts.id, postData.id))
-        .execute();
-
-      return analysis;
-
-    } catch (error) {
-      console.error('Error analyzing sentiment:', error);
-      
-      // Update post processing status to failed
-      await db.update(xSocialPosts)
-        .set({ processingStatus: 'failed', updatedAt: new Date() })
-        .where(eq(xSocialPosts.id, postId))
-        .execute();
-
-      return null;
-    }
+    }, 60); // Cache sentiment analysis for 1 hour
   }
 
-  // Call Grok 4 API for advanced sentiment analysis
+  // Call Grok 4 API for advanced sentiment analysis with credit optimization
   private async callGrokAPI(content: string, postContext: any): Promise<SentimentAnalysisResult | null> {
     if (!this.grokApiKey) {
       throw new Error('GROK_API_KEY is required for sentiment analysis');
@@ -569,6 +591,7 @@ export class XSentimentService {
 
     try {
       const prompt = this.buildGrokAnalysisPrompt(content, postContext);
+      const optimizedPrompt = this.creditManager.optimizePrompt(prompt, 800);
       
       const response = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
@@ -580,7 +603,7 @@ export class XSentimentService {
           model: 'grok-beta',
           messages: [{
             role: 'system',
-            content: prompt
+            content: optimizedPrompt
           }],
           max_tokens: 2000,
           temperature: 0.1
@@ -598,6 +621,10 @@ export class XSentimentService {
         throw new Error('No analysis received from Grok API');
       }
 
+      // Estimate tokens used
+      const tokensUsed = Math.ceil((optimizedPrompt.length + content_result.length) / 4);
+      this.creditManager.trackUsage('grok', 'callGrokAPI', tokensUsed, true);
+
       // Parse JSON response
       try {
         return JSON.parse(content_result);
@@ -613,6 +640,7 @@ export class XSentimentService {
 
     } catch (error) {
       console.error('Grok API error:', error);
+      this.creditManager.trackUsage('grok', 'callGrokAPI', 100, false);
       throw error; // Don't fallback to local analysis
     }
   }
@@ -1042,5 +1070,15 @@ Provide response in this exact JSON format:
       lang: 'en',
       possibly_sensitive: false
     }));
+  }
+
+  // Get credit usage statistics
+  getCreditUsageStats(): any {
+    return this.creditManager.getUsageStats();
+  }
+
+  // Check for credit emergency
+  async checkCreditEmergency(): Promise<boolean> {
+    return this.creditManager.checkCreditEmergency();
   }
 }
