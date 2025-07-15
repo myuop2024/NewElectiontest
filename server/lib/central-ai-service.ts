@@ -269,12 +269,12 @@ Return as JSON array with this structure:
           analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
         }
         
-        const result = JSON.parse(analysisText);
+        const parsedResult = JSON.parse(analysisText);
         
         // Track successful usage
         this.creditManager.trackUsage('gemini', 'analyzeElectionTrends', tokensUsed, true);
         
-        return result;
+        return parsedResult;
       } catch (error) {
         // Track failed usage
         this.creditManager.trackUsage('gemini', 'analyzeElectionTrends', 100, false);
@@ -345,12 +345,12 @@ Return detailed JSON intelligence report.`;
           analysisText = analysisText.replace(/^```\n?/, '').replace(/\n?```$/, '');
         }
         
-        const result = JSON.parse(analysisText);
+        const intelligenceResult = JSON.parse(analysisText);
         
         // Track successful usage
         this.creditManager.trackUsage('gemini', 'generateComprehensiveIntelligence', tokensUsed, true);
         
-        return result;
+        return intelligenceResult;
       } catch (error) {
         // Track failed usage
         this.creditManager.trackUsage('gemini', 'generateComprehensiveIntelligence', 100, false);
