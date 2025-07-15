@@ -676,6 +676,18 @@ export const syncLogs = pgTable("sync_logs", {
   completedAt: timestamp("completed_at"),
 });
 
+export const jamaicaMonitoringConfig = pgTable('jamaica_monitoring_config', {
+  id: serial('id').primaryKey(),
+  configName: text('config_name').notNull(),
+  category: text('category').notNull(), // 'politicians', 'parties', 'commentators', 'constituencies', 'electionKeywords', 'socialIssues', 'customKeywords'
+  keywords: text('keywords').array().notNull(),
+  isEnabled: boolean('is_enabled').default(true),
+  description: text('description'),
+  lastUpdated: timestamp('last_updated').defaultNow(),
+  createdBy: text('created_by').default('system'),
+  priority: integer('priority').default(1) // 1=high, 2=medium, 3=low
+});
+
 export const chatRooms = pgTable("chat_rooms", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

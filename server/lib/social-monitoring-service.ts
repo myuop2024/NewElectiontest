@@ -1052,19 +1052,29 @@ Return JSON: {
 
   async getHistoricalNewsData(daysBack: number = 30): Promise<any[]> {
     try {
-      // Enhanced search terms for broader coverage
-      const enhancedSearchTerms = [
-        ...this.electionKeywords,
-        'Andrew Holness', 'Mark Golding', 'Olivia Grange', 'Peter Phillips',
-        'Daryl Vaz', 'Nigel Clarke', 'Fayval Williams', 'Horace Chang',
-        'budget', 'taxation', 'inflation', 'cost of living', 'minimum wage',
-        'violence', 'crime rate', 'security', 'police', 'community safety',
-        'water supply', 'electricity', 'JUTC', 'public transport', 'housing',
-        'hospital', 'clinic', 'school', 'university', 'student loan',
-        'farmer', 'agriculture', 'tourism', 'bauxite', 'mining'
-      ];
+      // Use comprehensive Jamaica political data
+      let enhancedSearchTerms = [...this.electionKeywords];
 
-      console.log(`Fetching ${daysBack} days of historical Jamaica news data...`);
+      // Try to fetch from database settings first
+      try {
+        const { jamaicaMonitoringSettings } = await import('./jamaica-monitoring-settings');
+        const activeKeywords = await jamaicaMonitoringSettings.generateActiveKeywords();
+        
+        if (activeKeywords.length > 0) {
+          enhancedSearchTerms = activeKeywords;
+          console.log(`Using ${activeKeywords.length} active monitoring keywords from database`);
+        } else {
+          console.log('No active keywords found in database, using default enhanced terms');
+        }
+      } catch (dbError) {
+        console.log('Database settings not available, using comprehensive default terms');
+        
+        // Fallback to comprehensive default terms
+        const { generateMonitoringKeywords } = await import('./jamaica-political-data');
+        enhancedSearchTerms = generateMonitoringKeywords();
+      }
+
+      console.log(`Fetching ${daysBack} days of historical Jamaica news data with ${enhancedSearchTerms.length} search terms...`);
       const historicalNews = await this.fetchRealNewsData(enhancedSearchTerms);
       
       // Sort by date and return more comprehensive results

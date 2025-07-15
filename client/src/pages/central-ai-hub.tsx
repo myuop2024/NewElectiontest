@@ -31,6 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import ParishHeatMapNew from "./parish-heat-map-new";
 import XSentimentDashboard from "./x-sentiment-dashboard";
+import JamaicaMonitoringSettings from "@/components/jamaica-monitoring-settings";
 
 interface AIStatus {
   valid: boolean;
@@ -599,11 +600,12 @@ export default function CentralAIHub() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="intelligence">Intelligence</TabsTrigger>
+          <TabsTrigger value="monitoring-settings">Monitoring Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -818,6 +820,23 @@ export default function CentralAIHub() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="monitoring-settings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Jamaica Election Monitoring Settings
+              </CardTitle>
+              <CardDescription>
+                Configure monitoring keywords for Jamaica political content including politicians, parties, commentators, and social issues
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <JamaicaMonitoringSettings />
             </CardContent>
           </Card>
         </TabsContent>
