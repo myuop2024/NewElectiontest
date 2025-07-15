@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +23,58 @@ import ParishHeatMapNew from "./parish-heat-map-new";
 import XSentimentDashboard from "./x-sentiment-dashboard";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
 
+interface AIStatus {
+  valid: boolean;
+  message?: string;
+}
+
+interface XStatus {
+  connected: boolean;
+  message?: string;
+}
+
+interface NewsResponse {
+  success: boolean;
+  data?: {
+    articles?: any[];
+    [key: string]: any;
+  };
+}
+
+interface ParishData {
+  parishId: number;
+  parishName: string;
+  incidents: number;
+  turnout: number;
+  observers: number;
+  critical: number;
+}
+
+interface SentimentSummary {
+  average_sentiment: number;
+  sentiment_distribution: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+  threat_assessment: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+}
+
 export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
   // Check AI system status (reduced frequency with timeout)
-  const { data: aiStatus, isLoading: aiLoading } = useQuery({
+  const {
+    data: aiStatus,
+    isLoading: aiLoading,
+    error: aiError,
+  } = useQuery<AIStatus>({
     queryKey: ["/api/central-ai/status"],
     refetchInterval: 300000, // 5 minutes instead of constant
     staleTime: 120000, // 2 minutes cache
@@ -37,7 +83,11 @@ export default function CentralAIHub() {
   });
 
   // Check X API connection status (reduced frequency with timeout)
-  const { data: xStatus, isLoading: xLoading } = useQuery({
+  const {
+    data: xStatus,
+    isLoading: xLoading,
+    error: xError,
+  } = useQuery<XStatus>({
     queryKey: ["/api/x-sentiment/status"],
     refetchInterval: 600000, // 10 minutes
     staleTime: 300000, // 5 minutes cache
@@ -46,7 +96,11 @@ export default function CentralAIHub() {
   });
 
   // Get Jamaica news data (now with proper API keys)
-  const { data: jamaicaNews, isLoading: newsLoading } = useQuery({
+  const {
+    data: jamaicaNews,
+    isLoading: newsLoading,
+    error: newsError,
+  } = useQuery<NewsResponse>({
     queryKey: ["/api/news/jamaica-aggregated"],
     refetchInterval: 1800000, // 30 minutes
     staleTime: 900000, // 15 minutes cache
@@ -54,7 +108,11 @@ export default function CentralAIHub() {
   });
 
   // Get parish data for heat map (simple, no excessive calls)
-  const { data: parishData, isLoading: parishLoading } = useQuery({
+  const {
+    data: parishData,
+    isLoading: parishLoading,
+    error: parishError,
+  } = useQuery<ParishData[]>({
     queryKey: ["/api/analytics/parishes"],
     refetchInterval: false, // No auto-refresh to save resources
     staleTime: 1800000, // 30 minutes cache
@@ -62,7 +120,11 @@ export default function CentralAIHub() {
   });
 
   // Social sentiment summary
-  const { data: sentimentData, isLoading: sentimentLoading } = useQuery({
+  const {
+    data: sentimentData,
+    isLoading: sentimentLoading,
+    error: sentimentError,
+  } = useQuery({
     queryKey: ["/api/social-monitoring/sentiment"],
     refetchInterval: 600000, // 10 minutes
     staleTime: 300000,
@@ -97,6 +159,44 @@ export default function CentralAIHub() {
   };
 
   const connectionStatus = getConnectionStatus();
+
+  useEffect(() => {
+    if (aiError) {
+      toast({
+        title: "AI Status Error",
+        description: "Failed to fetch AI status.",
+        variant: "destructive",
+      });
+    }
+    if (xError) {
+      toast({
+        title: "X API Error",
+        description: "Failed to fetch X API status.",
+        variant: "destructive",
+      });
+    }
+    if (newsError) {
+      toast({
+        title: "News Fetch Error",
+        description: "Failed to load Jamaica news feed.",
+        variant: "destructive",
+      });
+    }
+    if (parishError) {
+      toast({
+        title: "Parish Data Error",
+        description: "Failed to load parish data.",
+        variant: "destructive",
+      });
+    }
+    if (sentimentError) {
+      toast({
+        title: "Sentiment Error",
+        description: "Failed to fetch sentiment summary.",
+        variant: "destructive",
+      });
+    }
+  }, [aiError, xError, newsError, parishError, sentimentError, toast]);
 
   // Display an initial loading screen when data has not yet loaded
   const anyLoading = aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading;
