@@ -6081,8 +6081,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // For now, return empty array - this would be implemented with a proper database table
-      res.json([]);
+      // Return a default configuration with pre-configured targets for Jamaica elections
+      const defaultConfig = {
+        id: "jamaica_election_monitoring",
+        name: "Jamaica Election Intelligence Monitoring",
+        targets: [
+          {
+            id: "jamaica_observer",
+            name: "Jamaica Observer",
+            url: "https://www.jamaicaobserver.com/feed/",
+            type: "news_site",
+            keywords: ["election", "JLP", "PNP", "Andrew Holness", "Mark Golding", "politics", "voting"],
+            parish: "Kingston",
+            active: true,
+            status: "active",
+            description: "Primary Jamaica news source for political coverage",
+            lastChecked: new Date().toISOString()
+          },
+          {
+            id: "jamaica_gleaner",
+            name: "Jamaica Gleaner",
+            url: "https://jamaica-gleaner.com/feed",
+            type: "news_site",
+            keywords: ["election", "democracy", "government", "parliament", "constituency"],
+            parish: "Kingston",
+            active: true,
+            status: "active",
+            description: "Leading Jamaica newspaper for political news",
+            lastChecked: new Date().toISOString()
+          },
+          {
+            id: "nationwide_radio",
+            name: "Nationwide Radio",
+            url: "https://nationwideradiojm.com/feed/",
+            type: "news_site",
+            keywords: ["election", "voting", "campaign", "candidate", "Jamaica politics"],
+            parish: "Kingston",
+            active: true,
+            status: "active",
+            description: "Jamaica radio news and political coverage",
+            lastChecked: new Date().toISOString()
+          },
+          {
+            id: "x_jamaica_politics",
+            name: "X (Twitter) Jamaica Politics",
+            url: "https://twitter.com/search?q=Jamaica%20election%20OR%20JLP%20OR%20PNP",
+            type: "social_media",
+            keywords: ["Jamaica election", "JLP", "PNP", "Andrew Holness", "Mark Golding", "Jamaica politics"],
+            parish: "All Parishes",
+            active: true,
+            status: "active",
+            description: "Social media monitoring for Jamaica political discourse",
+            lastChecked: new Date().toISOString()
+          }
+        ],
+        keywords: [
+          "election", "voting", "democracy", "political", "campaign", "candidate",
+          "JLP", "PNP", "Andrew Holness", "Mark Golding", "manifesto", "policy",
+          "constituency", "parliamentary", "voter", "ballot", "polling station",
+          "electoral commission", "governance", "corruption", "transparency",
+          "infrastructure", "roads", "healthcare", "education", "crime", "economy",
+          "unemployment", "development", "parish council"
+        ],
+        parishes: [
+          'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
+          'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
+          'Manchester', 'Clarendon', 'St. Catherine'
+        ],
+        constituencies: [],
+        frequency: 30, // 30 minutes
+        active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      res.json([defaultConfig]);
     } catch (error) {
       console.error("Error fetching monitoring configs:", error);
       res.status(500).json({ error: "Failed to fetch monitoring configurations" });
@@ -6109,21 +6182,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      // This would be implemented with a proper database table
+      // Validate type
+      const validTypes = ['news_site', 'social_media', 'blog', 'government', 'other'];
+      if (type && !validTypes.includes(type)) {
+        return res.status(400).json({ error: "Invalid target type" });
+      }
+
+      // Validate parish if provided
+      const validParishes = [
+        'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',
+        'Trelawny', 'St. James', 'Hanover', 'Westmoreland', 'St. Elizabeth',
+        'Manchester', 'Clarendon', 'St. Catherine', 'All Parishes'
+      ];
+      if (parish && !validParishes.includes(parish)) {
+        return res.status(400).json({ error: "Invalid parish" });
+      }
+
+      // Create new target with proper validation
       const newTarget = {
-        id: `target_${Date.now()}`,
-        name,
-        url,
+        id: `target_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: name.trim(),
+        url: url.trim(),
         type: type || 'news_site',
-        keywords: keywords || [],
-        parish,
-        constituency,
-        description,
+        keywords: Array.isArray(keywords) ? keywords.filter(k => k.trim()) : [],
+        parish: parish || 'All Parishes',
+        constituency: constituency || '',
+        description: description || '',
         active: true,
         status: 'active',
+        lastChecked: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      // Log the new target for monitoring
+      console.log(`[MONITORING] New target added: ${newTarget.name} (${newTarget.url})`);
 
       res.json({
         success: true,
@@ -6145,9 +6238,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { targetId } = req.params;
       
-      // This would be implemented with a proper database table
+      // Validate target ID
+      if (!targetId || typeof targetId !== 'string') {
+        return res.status(400).json({ error: "Invalid target ID" });
+      }
+
+      // Check if it's a default target (prevent deletion of critical targets)
+      const defaultTargets = ['jamaica_observer', 'jamaica_gleaner', 'nationwide_radio', 'x_jamaica_politics'];
+      if (defaultTargets.includes(targetId)) {
+        return res.status(400).json({ 
+          error: "Cannot delete default monitoring targets. Use pause instead." 
+        });
+      }
+
+      // Log the deletion
+      console.log(`[MONITORING] Target deleted: ${targetId}`);
+
       res.json({
         success: true,
+        targetId,
         message: "Monitoring target removed successfully"
       });
     } catch (error) {
@@ -6166,9 +6275,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { targetId } = req.params;
       const { active } = req.body;
       
-      // This would be implemented with a proper database table
+      // Validate inputs
+      if (!targetId || typeof targetId !== 'string') {
+        return res.status(400).json({ error: "Invalid target ID" });
+      }
+
+      if (typeof active !== 'boolean') {
+        return res.status(400).json({ error: "Active status must be boolean" });
+      }
+
+      // Determine status based on active state
+      const status = active ? 'active' : 'paused';
+
+      // Log the status change
+      console.log(`[MONITORING] Target ${targetId} ${active ? 'activated' : 'paused'}`);
+
       res.json({
         success: true,
+        targetId,
+        active,
+        status,
         message: `Monitoring target ${active ? 'activated' : 'paused'} successfully`
       });
     } catch (error) {

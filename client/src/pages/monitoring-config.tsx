@@ -114,17 +114,18 @@ export default function MonitoringConfig() {
   const deleteTargetMutation = useMutation({
     mutationFn: (targetId: string) => 
       apiRequest(`/api/monitoring/targets/${targetId}`, 'DELETE'),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/monitoring/configs'] });
       toast({
         title: "Target Removed",
-        description: "Monitoring target has been removed successfully.",
+        description: data.message || "Monitoring target has been removed successfully.",
       });
     },
     onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to remove monitoring target.";
       toast({
         title: "Error Removing Target",
-        description: error.message || "Failed to remove monitoring target.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -133,11 +134,19 @@ export default function MonitoringConfig() {
   const toggleTargetMutation = useMutation({
     mutationFn: ({ targetId, active }: { targetId: string; active: boolean }) => 
       apiRequest(`/api/monitoring/targets/${targetId}/toggle`, 'POST', { active }),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/monitoring/configs'] });
       toast({
         title: "Target Status Updated",
-        description: "Monitoring target status has been updated.",
+        description: data.message || "Monitoring target status has been updated.",
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to update target status.";
+      toast({
+        title: "Error Updating Target",
+        description: errorMessage,
+        variant: "destructive",
       });
     }
   });
@@ -160,10 +169,19 @@ export default function MonitoringConfig() {
   };
 
   const handleSubmit = () => {
-    if (!newTarget.name || !newTarget.url) {
+    if (!newTarget.name?.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please provide both name and URL for the monitoring target.",
+        title: "Missing Name",
+        description: "Please provide a name for the monitoring target.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newTarget.url?.trim()) {
+      toast({
+        title: "Missing URL",
+        description: "Please provide a URL for the monitoring target.",
         variant: "destructive",
       });
       return;
@@ -171,7 +189,7 @@ export default function MonitoringConfig() {
 
     // Validate URL format
     try {
-      new URL(newTarget.url);
+      new URL(newTarget.url.trim());
     } catch {
       toast({
         title: "Invalid URL",
@@ -181,7 +199,27 @@ export default function MonitoringConfig() {
       return;
     }
 
-    addTargetMutation.mutate(newTarget);
+    // Validate keywords
+    if (!newTarget.keywords || newTarget.keywords.length === 0) {
+      toast({
+        title: "Missing Keywords",
+        description: "Please add at least one election-related keyword for monitoring.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prepare the target data
+    const targetData = {
+      ...newTarget,
+      name: newTarget.name.trim(),
+      url: newTarget.url.trim(),
+      keywords: newTarget.keywords.filter(k => k.trim()),
+      parish: newTarget.parish || 'All Parishes',
+      description: newTarget.description?.trim() || ''
+    };
+
+    addTargetMutation.mutate(targetData);
   };
 
   const getStatusColor = (status: string) => {
@@ -361,6 +399,60 @@ export default function MonitoringConfig() {
         </Card>
       )}
 
+      {/* Monitoring Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Targets</p>
+                <p className="text-2xl font-bold">{allTargets.length}</p>
+              </div>
+              <Monitor className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Targets</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {allTargets.filter(t => t.active).length}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Paused Targets</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {allTargets.filter(t => !t.active).length}
+                </p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">News Sources</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {allTargets.filter(t => t.type === 'news_site').length}
+                </p>
+              </div>
+              <Globe className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Existing Targets */}
       <Card>
         <CardHeader>
@@ -378,32 +470,71 @@ export default function MonitoringConfig() {
           ) : (
             <div className="space-y-4">
               {allTargets.map(target => (
-                <div key={target.id} className="border rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                <div key={target.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
                       {getTypeIcon(target.type)}
                       <div>
-                        <h3 className="font-medium">{target.name}</h3>
-                        <p className="text-sm text-gray-500">{target.url}</p>
+                        <h3 className="font-medium text-lg">{target.name}</h3>
+                        <p className="text-sm text-gray-500 break-all">{target.url}</p>
+                        {target.description && (
+                          <p className="text-sm text-gray-600 mt-1">{target.description}</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <Badge className={getStatusColor(target.status || 'active')}>
                         {target.status || 'active'}
                       </Badge>
-                      {target.parish && (
+                      {target.parish && target.parish !== 'All Parishes' && (
                         <Badge variant="outline">{target.parish}</Badge>
                       )}
-                      <Badge variant="outline">{target.type}</Badge>
+                      <Badge variant="outline">{target.type.replace('_', ' ')}</Badge>
                     </div>
                   </div>
+                  
+                  {/* Keywords */}
+                  {target.keywords && target.keywords.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Monitoring Keywords:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {target.keywords.map(keyword => (
+                          <Badge key={keyword} variant="secondary" className="text-xs">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Last Checked */}
+                  {target.lastChecked && (
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500">
+                        Last checked: {new Date(target.lastChecked).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(target.url, '_blank')}
+                      onClick={() => {
+                        if (target.url && target.url.startsWith('http')) {
+                          window.open(target.url, '_blank', 'noopener,noreferrer');
+                        } else {
+                          toast({
+                            title: "Invalid URL",
+                            description: "Cannot open invalid URL.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Visit
                     </Button>
                     <Button
                       variant="outline"
@@ -412,13 +543,27 @@ export default function MonitoringConfig() {
                         targetId: target.id,
                         active: !target.active
                       })}
+                      disabled={toggleTargetMutation.isPending}
                     >
                       {target.active ? 'Pause' : 'Resume'}
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => deleteTargetMutation.mutate(target.id)}
+                      onClick={() => {
+                        // Check if it's a default target
+                        const defaultTargets = ['jamaica_observer', 'jamaica_gleaner', 'nationwide_radio', 'x_jamaica_politics'];
+                        if (defaultTargets.includes(target.id)) {
+                          toast({
+                            title: "Cannot Delete",
+                            description: "Default monitoring targets cannot be deleted. Use pause instead.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        deleteTargetMutation.mutate(target.id);
+                      }}
+                      disabled={deleteTargetMutation.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
