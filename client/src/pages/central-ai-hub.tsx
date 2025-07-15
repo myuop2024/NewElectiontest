@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,14 +21,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import ParishHeatMapNew from "./parish-heat-map-new";
 import XSentimentDashboard from "./x-sentiment-dashboard";
-import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
 
 export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
   // Check AI system status (reduced frequency with timeout)
-  const { data: aiStatus, isLoading: aiLoading } = useQuery({
+  const {
+    data: aiStatus,
+    isLoading: aiLoading,
+    error: aiError,
+  } = useQuery({
     queryKey: ["/api/central-ai/status"],
     refetchInterval: 300000, // 5 minutes instead of constant
     staleTime: 120000, // 2 minutes cache
@@ -37,7 +40,11 @@ export default function CentralAIHub() {
   });
 
   // Check X API connection status (reduced frequency with timeout)
-  const { data: xStatus, isLoading: xLoading } = useQuery({
+  const {
+    data: xStatus,
+    isLoading: xLoading,
+    error: xError,
+  } = useQuery({
     queryKey: ["/api/x-sentiment/status"],
     refetchInterval: 600000, // 10 minutes
     staleTime: 300000, // 5 minutes cache
@@ -46,20 +53,17 @@ export default function CentralAIHub() {
   });
 
   // Get Jamaica news data (now with proper API keys)
-  const { data: jamaicaNews, isLoading: newsLoading } = useQuery({
+  const {
+    data: jamaicaNews,
+    isLoading: newsLoading,
+    error: newsError,
+  } = useQuery({
     queryKey: ["/api/news/jamaica-aggregated"],
     refetchInterval: 1800000, // 30 minutes
     staleTime: 900000, // 15 minutes cache
     retry: 2,
   });
 
-  // Get parish data for heat map (simple, no excessive calls)
-  const { data: parishData, isLoading: parishLoading } = useQuery({
-    queryKey: ["/api/analytics/parishes"],
-    refetchInterval: false, // No auto-refresh to save resources
-    staleTime: 1800000, // 30 minutes cache
-    retry: 1, // Only retry once
-  });
 
   // Disable expensive sentiment monitoring to save credits
   const sentimentData = null;
@@ -81,8 +85,32 @@ export default function CentralAIHub() {
 
   const connectionStatus = getConnectionStatus();
 
+  useEffect(() => {
+    if (aiError) {
+      toast({
+        title: "AI Status Error",
+        description: "Failed to fetch AI status.",
+        variant: "destructive",
+      });
+    }
+    if (xError) {
+      toast({
+        title: "X API Error",
+        description: "Failed to fetch X API status.",
+        variant: "destructive",
+      });
+    }
+    if (newsError) {
+      toast({
+        title: "News Fetch Error",
+        description: "Failed to load Jamaica news feed.",
+        variant: "destructive",
+      });
+    }
+  }, [aiError, xError, newsError, toast]);
+
   // Show content even if some queries are still loading
-  const isInitialLoading = aiLoading && xLoading && newsLoading && parishLoading;
+  const isInitialLoading = aiLoading || xLoading || newsLoading;
   
   if (isInitialLoading) {
     return (
