@@ -22,6 +22,48 @@ import { useToast } from "@/hooks/use-toast";
 import ParishHeatMapNew from "./parish-heat-map-new";
 import XSentimentDashboard from "./x-sentiment-dashboard";
 
+interface AIStatus {
+  valid: boolean;
+  message?: string;
+}
+
+interface XStatus {
+  connected: boolean;
+  message?: string;
+}
+
+interface NewsResponse {
+  success: boolean;
+  data?: {
+    articles?: any[];
+    [key: string]: any;
+  };
+}
+
+interface ParishData {
+  parishId: number;
+  parishName: string;
+  incidents: number;
+  turnout: number;
+  observers: number;
+  critical: number;
+}
+
+interface SentimentSummary {
+  average_sentiment: number;
+  sentiment_distribution: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+  threat_assessment: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+}
+
 export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
@@ -31,7 +73,7 @@ export default function CentralAIHub() {
     data: aiStatus,
     isLoading: aiLoading,
     error: aiError,
-  } = useQuery({
+  } = useQuery<AIStatus>({
     queryKey: ["/api/central-ai/status"],
     refetchInterval: 300000, // 5 minutes instead of constant
     staleTime: 120000, // 2 minutes cache
@@ -44,7 +86,7 @@ export default function CentralAIHub() {
     data: xStatus,
     isLoading: xLoading,
     error: xError,
-  } = useQuery({
+  } = useQuery<XStatus>({
     queryKey: ["/api/x-sentiment/status"],
     refetchInterval: 600000, // 10 minutes
     staleTime: 300000, // 5 minutes cache
@@ -57,7 +99,7 @@ export default function CentralAIHub() {
     data: jamaicaNews,
     isLoading: newsLoading,
     error: newsError,
-  } = useQuery({
+  } = useQuery<NewsResponse>({
     queryKey: ["/api/news/jamaica-aggregated"],
     refetchInterval: 1800000, // 30 minutes
     staleTime: 900000, // 15 minutes cache
