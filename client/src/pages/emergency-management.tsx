@@ -104,7 +104,7 @@ export default function EmergencyManagement() {
   // Create emergency alert mutation
   const createAlertMutation = useMutation({
     mutationFn: async (alertData: any) => {
-      return await apiRequest("/api/emergency/alerts", "POST", alertData);
+      return await apiRequest("POST", "/api/emergency/alerts", alertData);
     },
     onSuccess: () => {
       toast({
@@ -135,7 +135,7 @@ export default function EmergencyManagement() {
   // Acknowledge alert mutation
   const acknowledgeAlertMutation = useMutation({
     mutationFn: async (alertId: string) => {
-      return await apiRequest(`/api/emergency/alerts/${alertId}/acknowledge`, "POST");
+      return await apiRequest("POST", `/api/emergency/alerts/${alertId}/acknowledge`);
     },
     onSuccess: () => {
       toast({
@@ -166,7 +166,7 @@ export default function EmergencyManagement() {
   // Test emergency system mutation
   const testSystemMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/emergency/test", "POST");
+      return await apiRequest("POST", "/api/emergency/test");
     },
     onSuccess: () => {
       toast({

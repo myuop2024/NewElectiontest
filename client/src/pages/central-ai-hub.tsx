@@ -61,9 +61,26 @@ export default function CentralAIHub() {
     retry: 1, // Only retry once
   });
 
-  // Disable expensive sentiment monitoring to save credits
-  const sentimentData = null;
-  const sentimentLoading = false;
+  // Social sentiment summary
+  const { data: sentimentData, isLoading: sentimentLoading } = useQuery({
+    queryKey: ["/api/social-monitoring/sentiment"],
+    refetchInterval: 600000, // 10 minutes
+    staleTime: 300000,
+    retry: 1,
+  });
+
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment?.toLowerCase()) {
+      case 'positive':
+        return 'bg-green-100 text-green-800';
+      case 'negative':
+        return 'bg-red-100 text-red-800';
+      case 'mixed':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   const getConnectionStatus = () => {
     const xConnected = xStatus?.connected === true;
@@ -81,10 +98,11 @@ export default function CentralAIHub() {
 
   const connectionStatus = getConnectionStatus();
 
-  // Show content even if some queries are still loading
-  const isInitialLoading = aiLoading && xLoading && newsLoading && parishLoading;
-  
-  if (isInitialLoading) {
+  // Display an initial loading screen when data has not yet loaded
+  const anyLoading = aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading;
+  const noData = !aiStatus && !xStatus && !jamaicaNews && !parishData && !sentimentData;
+
+  if (anyLoading && noData) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -251,6 +269,35 @@ export default function CentralAIHub() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <BarChart3 className="h-4 w-4" />
+                  Sentiment Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sentimentLoading ? (
+                  <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Dominant</span>
+                      <Badge className={getSentimentColor(sentimentData?.overall_sentiment?.dominant_sentiment)}>
+                        {sentimentData?.overall_sentiment?.dominant_sentiment || 'N/A'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Sources</span>
+                      <Badge variant="secondary">
+                        {sentimentData?.overall_sentiment?.total_analyzed || 0}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="government-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <BarChart3 className="h-4 w-4" />
                   Real-time Analytics
                 </CardTitle>
               </CardHeader>
@@ -282,7 +329,11 @@ export default function CentralAIHub() {
                 <div key={index} className="border-b last:border-b-0 py-3">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
-                      <h4 className="font-medium text-sm">{article.title}</h4>
+                      <h4 className="font-medium text-sm">
+                        <a href={article.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          {article.title}
+                        </a>
+                      </h4>
                       <p className="text-xs text-muted-foreground mt-1">
                         {article.source} • {article.parish || "Jamaica"} • Score: {article.relevance_score}/10
                       </p>
