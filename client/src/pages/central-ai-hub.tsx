@@ -112,6 +112,7 @@ export default function CentralAIHub() {
     refetchInterval: false,
     staleTime: 1800000,
     retry: 1,
+    placeholderData: [] // Provide empty array as fallback
   });
 
   const {
