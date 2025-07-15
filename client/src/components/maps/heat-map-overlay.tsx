@@ -100,9 +100,18 @@ export default function HeatMapOverlay({ stations, selectedStation, onStationSel
       
       if (endpoint) {
         const response = await fetch(endpoint);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
-        console.log(`[Heat Map Overlay] ${overlayId} data:`, data);
+        console.log(`[Heat Map Overlay] ${overlayId} data loaded successfully:`, data);
         setOverlayData(prev => new Map(prev.set(overlayId, data)));
+        
+        toast({
+          title: "Overlay Data Loaded",
+          description: `${overlayId.charAt(0).toUpperCase() + overlayId.slice(1)} data updated successfully`,
+        });
       }
     } catch (error) {
       console.error(`[Heat Map Overlay] Error fetching ${overlayId} data:`, error);
@@ -152,6 +161,44 @@ export default function HeatMapOverlay({ stations, selectedStation, onStationSel
         if (station.parish === 'Kingston' || station.parish === 'St. Andrew' || station.parish === 'St. James') {
           riskScore += 0.2;
         }
+      }
+    }
+
+    if (activeOverlays.has('weather')) {
+      const weatherData = overlayData.get('weather');
+      if (weatherData && weatherData.parishes) {
+        const stationWeather = weatherData.parishes.find((p: any) => p.parish === station.parish);
+        if (stationWeather) {
+          riskScore += stationWeather.electoralImpact === 'high' ? 0.3 : 
+                       stationWeather.electoralImpact === 'medium' ? 0.2 : 0.1;
+          stationDetails.weather = `${stationWeather.conditions}, ${stationWeather.temperature}°C`;
+        }
+      } else {
+        // Coastal parishes more prone to weather issues
+        if (station.parish === 'Portland' || station.parish === 'St. Thomas' || station.parish === 'Westmoreland') {
+          riskScore += 0.15;
+        }
+        stationDetails.weather = "Weather data loading...";
+      }
+    }
+
+    if (activeOverlays.has('incidents')) {
+      const incidentData = overlayData.get('incidents');
+      if (incidentData && incidentData.incidents) {
+        // Check for incidents near this station
+        const stationIncidents = incidentData.incidents.filter((incident: any) => 
+          incident.pollingStationId === station.id || 
+          incident.location?.toLowerCase().includes(station.parish.toLowerCase())
+        );
+        
+        if (stationIncidents.length > 0) {
+          riskScore += 0.25 + (stationIncidents.length * 0.1);
+          stationDetails.incidents = `${stationIncidents.length} recent incidents`;
+        } else {
+          stationDetails.incidents = "No recent incidents";
+        }
+      } else {
+        stationDetails.incidents = "Incident data loading...";
       }
     }
     

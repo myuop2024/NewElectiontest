@@ -76,16 +76,7 @@ export class XSentimentService {
       console.log('[X Sentiment Service] Getting recent sentiment data for all stations');
       
       // Get recent posts and their sentiment analysis
-      const recentPosts = await db.select({
-        postId: xSocialPosts.id,
-        content: xSocialPosts.content,
-        location: xSocialPosts.location,
-        engagement: xSocialPosts.engagementScore,
-        sentiment: xSentimentAnalysis.overallSentiment,
-        confidence: xSentimentAnalysis.confidence,
-        threatLevel: xSentimentAnalysis.threatLevel,
-        createdAt: xSocialPosts.createdAt
-      })
+      const recentPosts = await db.select()
       .from(xSocialPosts)
       .leftJoin(xSentimentAnalysis, eq(xSocialPosts.id, xSentimentAnalysis.postId))
       .where(gte(xSocialPosts.createdAt, sql`NOW() - INTERVAL '24 hours'`))
@@ -95,14 +86,17 @@ export class XSentimentService {
       console.log(`[X Sentiment Service] Found ${recentPosts.length} recent posts`);
       
       // Group by location/parish for station mapping
-      const stationSentiment = recentPosts.reduce((acc: any[], post) => {
-        if (post.location) {
+      const stationSentiment = recentPosts.reduce((acc: any[], result) => {
+        const post = result.x_social_posts;
+        const analysis = result.x_sentiment_analysis;
+        
+        if (post && post.location) {
           acc.push({
             location: post.location,
-            sentiment: post.sentiment || 'neutral',
-            confidence: parseFloat(post.confidence || '0.5'),
-            threatLevel: post.threatLevel || 'low',
-            engagement: post.engagement || 0,
+            sentiment: analysis?.overallSentiment || 'neutral',
+            confidence: parseFloat(analysis?.confidence || '0.5'),
+            threatLevel: analysis?.threatLevel || 'low',
+            engagement: post.engagementScore || 0,
             timestamp: post.createdAt
           });
         }
