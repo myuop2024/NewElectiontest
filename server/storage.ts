@@ -215,6 +215,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(pollingStations).orderBy(pollingStations.stationCode);
   }
 
+  async getPollingStationById(id: number): Promise<PollingStation | undefined> {
+    const [station] = await db.select().from(pollingStations).where(eq(pollingStations.id, id));
+    return station || undefined;
+  }
+
   async getPollingStationsByParish(parishId: number): Promise<PollingStation[]> {
     return await db.select().from(pollingStations).where(eq(pollingStations.parishId, parishId));
   }

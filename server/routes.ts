@@ -3500,6 +3500,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Station-specific weather endpoint for heat map
+  app.get("/api/weather/station/:stationId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const stationId = parseInt(req.params.stationId);
+      
+      // Get station details to determine parish
+      const station = await storage.getPollingStationById(stationId);
+      if (!station || !station.parish) {
+        return res.json({ 
+          electoral_impact: 'unknown',
+          severity: 'unknown',
+          conditions: 'No parish data available'
+        });
+      }
+
+      // Get weather data for the station's parish
+      const weatherService = getWeatherService();
+      const weatherData = await weatherService.getElectoralWeatherSummary(station.parish);
+      
+      res.json({
+        electoral_impact: weatherData.electoralImpact?.severity || 'low',
+        severity: weatherData.electoralImpact?.severity || 'low',
+        conditions: weatherData.current?.condition || 'Unknown',
+        temperature: weatherData.current?.temperature || 'N/A',
+        parish: station.parish
+      });
+    } catch (error) {
+      console.error('Error getting station weather:', error);
+      res.json({ 
+        electoral_impact: 'unknown',
+        severity: 'unknown',
+        conditions: 'Error loading weather data'
+      });
+    }
+  });
+
+  // Station-specific incidents endpoint for heat map
+  app.get("/api/incidents/station/:stationId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const stationId = parseInt(req.params.stationId);
+      
+      // Get recent incidents for this station
+      const reports = await storage.getReports();
+      const stationReports = reports.filter((report: any) => 
+        report.pollingStationId === stationId && 
+        new Date(report.timestamp).getTime() > Date.now() - 24 * 60 * 60 * 1000 // Last 24 hours
+      );
+      
+      // Calculate incident severity
+      let severity = 'low';
+      if (stationReports.length > 5) severity = 'high';
+      else if (stationReports.length > 2) severity = 'medium';
+      
+      // Check for high-priority incidents
+      const highPriorityIncidents = stationReports.filter((report: any) => 
+        report.priority === 'high' || report.priority === 'critical'
+      );
+      
+      if (highPriorityIncidents.length > 0) severity = 'high';
+      
+      res.json({
+        severity,
+        count: stationReports.length,
+        highPriority: highPriorityIncidents.length,
+        recentIncidents: stationReports.slice(0, 3), // Most recent 3
+        lastIncident: stationReports[0]?.timestamp || null
+      });
+    } catch (error) {
+      console.error('Error getting station incidents:', error);
+      res.json({ 
+        severity: 'unknown',
+        count: 0,
+        highPriority: 0,
+        recentIncidents: []
+      });
+    }
+  });
+
   app.get("/api/traffic/all-stations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { getTrafficService } = await import("./lib/traffic-service");

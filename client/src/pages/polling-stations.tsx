@@ -12,6 +12,7 @@ import EnhancedMap from "@/components/maps/enhanced-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
+import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -240,33 +241,12 @@ export default function PollingStations() {
         </TabsContent>
         
         <TabsContent value="map" className="space-y-6">
-          {/* HERE Maps Integration */}
-          <Card className="government-card">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MapPin className="h-5 w-5 mr-2" />
-                Polling Stations Map
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <EnhancedMap
-                height="600px"
-                center={{ lat: 18.1096, lng: -77.2975 }}
-                zoom={9}
-                markers={filteredStations
-                  .filter((station: any) => station.latitude && station.longitude)
-                  .map((station: any) => ({
-                    lat: parseFloat(station.latitude),
-                    lng: parseFloat(station.longitude),
-                    title: station.name,
-                    info: `${station.stationCode} - ${station.address}<br/>Capacity: ${station.capacity || 'Not set'} voters`,
-                    stationId: station.id
-                  }))}
-                interactive={true}
-                showTrafficOverlay={true}
-              />
-            </CardContent>
-          </Card>
+          {/* Comprehensive Heat Map with X Sentiment, Traffic, Weather, and Incidents */}
+          <PollingStationsHeatMap
+            stations={filteredStations}
+            selectedStation={selectedStation}
+            onStationSelect={setSelectedStation}
+          />
         </TabsContent>
       </Tabs>
 
