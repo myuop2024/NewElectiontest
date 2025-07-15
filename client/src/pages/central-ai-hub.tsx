@@ -66,7 +66,11 @@ interface SentimentSummary {
 
 export default function CentralAIHub() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Add detailed logging
+  console.log("[Central AI Hub] Component loaded, active tab:", activeTab);
 
   const {
     data: aiStatus,
@@ -78,6 +82,12 @@ export default function CentralAIHub() {
     staleTime: 120000,
     gcTime: 300000,
     retry: 1,
+    onSuccess: (data) => {
+      console.log("[Central AI Hub] AI Status loaded:", data);
+    },
+    onError: (error) => {
+      console.error("[Central AI Hub] AI Status error:", error);
+    }
   });
 
   const {
@@ -112,7 +122,15 @@ export default function CentralAIHub() {
     refetchInterval: false,
     staleTime: 1800000,
     retry: 1,
-    placeholderData: [] // Provide empty array as fallback
+    placeholderData: [], // Provide empty array as fallback
+    onSuccess: (data) => {
+      console.log("[Central AI Hub] Parish data loaded:", data);
+      setIsLoading(false);
+    },
+    onError: (error) => {
+      console.error("[Central AI Hub] Parish data error:", error);
+      setIsLoading(false);
+    }
   });
 
   const {
@@ -124,6 +142,12 @@ export default function CentralAIHub() {
     refetchInterval: 600000,
     staleTime: 300000,
     retry: 1,
+    onSuccess: (data) => {
+      console.log("[Central AI Hub] Sentiment data loaded:", data);
+    },
+    onError: (error) => {
+      console.error("[Central AI Hub] Sentiment data error:", error);
+    },
   });
 
   const getSentimentColor = (sentiment: string) => {

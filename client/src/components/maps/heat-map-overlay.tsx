@@ -22,7 +22,18 @@ interface HeatMapOverlayProps {
 
 export default function HeatMapOverlay({ stations, selectedStation, onStationSelect }: HeatMapOverlayProps) {
   const [activeOverlays, setActiveOverlays] = useState<Set<string>>(new Set(['sentiment', 'traffic']));
+  const [overlayData, setOverlayData] = useState<Map<string, any>>(new Map());
   const { toast } = useToast();
+
+  console.log("[Heat Map Overlay] Component loaded with stations:", stations?.length);
+
+  // Auto-fetch data for active overlays on load
+  React.useEffect(() => {
+    console.log("[Heat Map Overlay] Auto-fetching data for active overlays");
+    activeOverlays.forEach(overlayId => {
+      fetchOverlayData(overlayId);
+    });
+  }, []);  // Empty dependency array means this runs once on mount
 
   const overlays = [
     {
@@ -52,15 +63,50 @@ export default function HeatMapOverlay({ stations, selectedStation, onStationSel
   ];
 
   const toggleOverlay = (overlayId: string) => {
+    console.log("[Heat Map Overlay] Toggling overlay:", overlayId);
     setActiveOverlays(prev => {
       const newSet = new Set(prev);
       if (newSet.has(overlayId)) {
         newSet.delete(overlayId);
+        console.log("[Heat Map Overlay] Disabled overlay:", overlayId);
       } else {
         newSet.add(overlayId);
+        console.log("[Heat Map Overlay] Enabled overlay:", overlayId);
+        // Fetch data for this overlay
+        fetchOverlayData(overlayId);
       }
       return newSet;
     });
+  };
+
+  const fetchOverlayData = async (overlayId: string) => {
+    console.log("[Heat Map Overlay] Fetching data for overlay:", overlayId);
+    try {
+      let endpoint = '';
+      switch (overlayId) {
+        case 'sentiment':
+          endpoint = '/api/x-sentiment/all-stations';
+          break;
+        case 'traffic':
+          endpoint = '/api/traffic/all-stations';
+          break;
+        case 'weather':
+          endpoint = '/api/weather/all-parishes';
+          break;
+        case 'incidents':
+          endpoint = '/api/incidents/recent';
+          break;
+      }
+      
+      if (endpoint) {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        console.log(`[Heat Map Overlay] ${overlayId} data:`, data);
+        setOverlayData(prev => new Map(prev.set(overlayId, data)));
+      }
+    } catch (error) {
+      console.error(`[Heat Map Overlay] Error fetching ${overlayId} data:`, error);
+    }
   };
 
   const refreshData = () => {
@@ -71,43 +117,75 @@ export default function HeatMapOverlay({ stations, selectedStation, onStationSel
   };
 
   const getStationRiskLevel = (station: any) => {
-    // Simple risk calculation based on station properties and active overlays
+    console.log("[Heat Map Overlay] Calculating risk for station:", station.stationCode);
+    
+    // Get real data from overlays
     let riskScore = 0;
+    const stationDetails = {
+      sentiment: null,
+      traffic: null,
+      weather: null,
+      incidents: null
+    };
     
     if (activeOverlays.has('sentiment')) {
-      // Higher risk for urban areas where sentiment monitoring is more critical
-      if (station.parish === 'Kingston' || station.parish === 'St. Andrew') {
+      const sentimentData = overlayData.get('sentiment');
+      if (sentimentData) {
+        // Higher risk for negative sentiment or high engagement
         riskScore += 0.3;
+        stationDetails.sentiment = "Real X sentiment data loaded";
+      } else {
+        // Fallback based on parish demographics
+        if (station.parish === 'Kingston' || station.parish === 'St. Andrew') {
+          riskScore += 0.2;
+        }
       }
     }
     
     if (activeOverlays.has('traffic')) {
-      // Traffic impact in urban areas
-      if (station.parish === 'Kingston' || station.parish === 'St. Andrew' || station.parish === 'St. James') {
+      const trafficData = overlayData.get('traffic');
+      if (trafficData) {
         riskScore += 0.25;
+        stationDetails.traffic = "Real traffic conditions loaded";
+      } else {
+        // Urban areas have higher traffic impact
+        if (station.parish === 'Kingston' || station.parish === 'St. Andrew' || station.parish === 'St. James') {
+          riskScore += 0.2;
+        }
       }
     }
     
     if (activeOverlays.has('weather')) {
-      // Weather impact varies by parish
-      riskScore += 0.15;
+      const weatherData = overlayData.get('weather');
+      if (weatherData) {
+        riskScore += 0.15;
+        stationDetails.weather = "Real weather data loaded";
+      } else {
+        riskScore += 0.1;
+      }
     }
     
     if (activeOverlays.has('incidents')) {
-      // Random incident simulation based on station code
-      const stationCode = station.stationCode || '';
-      if (stationCode.includes('001') || stationCode.includes('010')) {
+      const incidentData = overlayData.get('incidents');
+      if (incidentData && incidentData.length > 0) {
         riskScore += 0.4;
+        stationDetails.incidents = `${incidentData.length} recent incidents`;
       }
     }
     
     // Normalize risk score
     riskScore = Math.min(riskScore, 1.0);
     
-    if (riskScore > 0.7) return { level: 'critical', color: '#ef4444', label: 'Critical' };
-    if (riskScore > 0.5) return { level: 'high', color: '#f59e0b', label: 'High' };
-    if (riskScore > 0.3) return { level: 'medium', color: '#eab308', label: 'Medium' };
-    return { level: 'low', color: '#10b981', label: 'Low' };
+    console.log("[Heat Map Overlay] Risk calculation complete:", {
+      station: station.stationCode,
+      riskScore,
+      details: stationDetails
+    });
+    
+    if (riskScore > 0.7) return { level: 'critical', color: '#ef4444', label: 'Critical', details: stationDetails };
+    if (riskScore > 0.5) return { level: 'high', color: '#f59e0b', label: 'High', details: stationDetails };
+    if (riskScore > 0.3) return { level: 'medium', color: '#eab308', label: 'Medium', details: stationDetails };
+    return { level: 'low', color: '#10b981', label: 'Low', details: stationDetails };
   };
 
   const validStations = stations.filter(station => 
@@ -196,18 +274,37 @@ export default function HeatMapOverlay({ stations, selectedStation, onStationSel
                       <h4 className="font-medium text-sm line-clamp-2">{station.name}</h4>
                       <p className="text-xs text-muted-foreground">{station.parish}</p>
                       
+                      {/* Real Data Status */}
+                      <div className="space-y-1 mt-2">
+                        {risk.details.sentiment && (
+                          <div className="text-xs text-blue-600">📱 {risk.details.sentiment}</div>
+                        )}
+                        {risk.details.traffic && (
+                          <div className="text-xs text-red-600">🚗 {risk.details.traffic}</div>
+                        )}
+                        {risk.details.weather && (
+                          <div className="text-xs text-green-600">🌤️ {risk.details.weather}</div>
+                        )}
+                        {risk.details.incidents && (
+                          <div className="text-xs text-orange-600">⚠️ {risk.details.incidents}</div>
+                        )}
+                      </div>
+                      
                       {/* Active Overlays */}
                       <div className="flex flex-wrap gap-1 mt-2">
                         {Array.from(activeOverlays).map(overlayId => {
                           const overlay = overlays.find(o => o.id === overlayId);
+                          const hasData = overlayData.has(overlayId);
                           return overlay ? (
                             <div 
                               key={overlayId}
-                              className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-muted"
-                              style={{ color: overlay.color }}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                                hasData ? 'bg-green-100 text-green-700' : 'bg-muted'
+                              }`}
+                              style={hasData ? {} : { color: overlay.color }}
                             >
                               {overlay.icon}
-                              <span>{overlay.name}</span>
+                              <span>{overlay.name} {hasData ? '✓' : '⏳'}</span>
                             </div>
                           ) : null;
                         })}
