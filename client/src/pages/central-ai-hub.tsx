@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,7 +78,7 @@ interface ParishData {
 }
 
 interface SentimentSummary {
-  average_sentiment: number;
+  overall_sentiment: number | string;
   sentiment_distribution: {
     positive: number;
     negative: number;
@@ -104,62 +104,63 @@ export default function CentralAIHub() {
   const [isActive, setIsActive] = useState(false);
   const [lastActivation, setLastActivation] = useState<Date | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const { toast } = useToast();
   const { steps, setStepLoading, setStepComplete, setStepError, resetSteps } = useLoadingSteps();
 
   // Track when page becomes active/inactive
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        setIsActive(true);
-        setLastActivation(new Date());
-        
-        // Notify server of activation
-        try {
-          await fetch('/api/central-ai/activation-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              isActive: true,
-              action: 'page_visible'
-            })
-          });
-        } catch (error) {
-          console.error('Failed to notify server of activation:', error);
-        }
-        
-        toast({
-          title: "Central AI Hub Activated",
-          description: "AI services are now active and monitoring Jamaica elections.",
+  const handleVisibilityChange = useCallback(async () => {
+    if (document.visibilityState === 'visible') {
+      setIsActive(true);
+      setLastActivation(new Date());
+      
+      // Notify server of activation
+      try {
+        await fetch('/api/central-ai/activation-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isActive: true,
+            action: 'page_visible'
+          })
         });
-      } else {
-        setIsActive(false);
-        
-        // Notify server of deactivation
-        try {
-          await fetch('/api/central-ai/activation-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              isActive: false,
-              action: 'page_hidden'
-            })
-          });
-        } catch (error) {
-          console.error('Failed to notify server of deactivation:', error);
-        }
-        
-        toast({
-          title: "Central AI Hub Paused",
-          description: "AI services paused to conserve API credits.",
-        });
+      } catch (error) {
+        console.error('Failed to notify server of activation:', error);
       }
-    };
+      
+      toast({
+        title: "Central AI Hub Activated",
+        description: "AI services are now active and monitoring Jamaica elections.",
+      });
+    } else {
+      setIsActive(false);
+      
+      // Notify server of deactivation
+      try {
+        await fetch('/api/central-ai/activation-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isActive: false,
+            action: 'page_hidden'
+          })
+        });
+      } catch (error) {
+        console.error('Failed to notify server of deactivation:', error);
+      }
+      
+      toast({
+        title: "Central AI Hub Paused",
+        description: "AI services paused to conserve API credits.",
+      });
+    }
+  }, [toast]);
 
+  useEffect(() => {
     // Set initial state
     setIsActive(document.visibilityState === 'visible');
     if (document.visibilityState === 'visible') {
@@ -168,7 +169,7 @@ export default function CentralAIHub() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [toast]);
+  }, [handleVisibilityChange]);
 
   const {
     data: aiStatus,
@@ -277,7 +278,7 @@ export default function CentralAIHub() {
     }
   });
 
-  const getSentimentColor = (sentiment: string | number | undefined) => {
+  const getSentimentColor = useCallback((sentiment: string | number | undefined) => {
     // Handle different sentiment data types
     let sentimentStr = '';
     
@@ -303,15 +304,15 @@ export default function CentralAIHub() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
 
-  const getConfidenceColor = (confidence: number) => {
+  const getConfidenceColor = useCallback((confidence: number) => {
     if (confidence >= 0.8) return 'text-green-600';
     if (confidence >= 0.6) return 'text-yellow-600';
     return 'text-red-600';
-  };
+  }, []);
 
-  const getConnectionStatus = () => {
+  const getConnectionStatus = useCallback(() => {
     const xConnected = xStatus?.connected === true;
     const aiConnected = aiStatus?.valid === true;
     const newsConnected = jamaicaNews?.success === true;
@@ -323,11 +324,11 @@ export default function CentralAIHub() {
     } else {
       return { status: "limited", label: "Limited Connectivity", color: "bg-red-100 text-red-800" };
     }
-  };
+  }, [xStatus?.connected, aiStatus?.valid, jamaicaNews?.success]);
 
   const connectionStatus = getConnectionStatus();
 
-  const handleRefreshAll = async () => {
+  const handleRefreshAll = useCallback(async () => {
     try {
       resetSteps();
       await Promise.all([
@@ -348,13 +349,28 @@ export default function CentralAIHub() {
         variant: "destructive",
       });
     }
-  };
+  }, [resetSteps, refetchAI, refetchX, refetchNews, refetchParish, refetchSentiment, toast]);
 
-  const handleViewSource = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  const handleViewSource = useCallback((url: string) => {
+    if (url && url.startsWith('http')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: "Invalid URL",
+        description: "Cannot open invalid or missing source URL.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   useEffect(() => {
+    const errors = [aiError, xError, newsError, parishError, sentimentError];
+    const hasAnyError = errors.some(error => error !== null);
+    
+    if (hasAnyError) {
+      setHasError(true);
+    }
+
     if (aiError) {
       toast({
         title: "AI Status Error",
@@ -396,28 +412,28 @@ export default function CentralAIHub() {
   const shouldShowLoadingScreen = isInitialLoad && (aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading);
 
   // Set loading states when queries start
-  React.useEffect(() => {
+  useEffect(() => {
     if (aiLoading) setStepLoading('ai', 'Loading AI engine status...');
   }, [aiLoading, setStepLoading]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (xLoading) setStepLoading('x', 'Connecting to social monitoring...');
   }, [xLoading, setStepLoading]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (newsLoading) setStepLoading('news', 'Fetching Jamaica news sources...');
   }, [newsLoading, setStepLoading]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (parishLoading) setStepLoading('parish', 'Loading parish data...');
   }, [parishLoading, setStepLoading]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (sentimentLoading) setStepLoading('sentiment', 'Analyzing sentiment data...');
   }, [sentimentLoading, setStepLoading]);
 
   // Check if initial load is complete
-  React.useEffect(() => {
+  useEffect(() => {
     const allLoaded = !aiLoading && !xLoading && !newsLoading && !parishLoading && !sentimentLoading;
     const hasData = aiStatus || xStatus || jamaicaNews || parishData || sentimentData;
     
@@ -425,6 +441,37 @@ export default function CentralAIHub() {
       setIsInitialLoad(false);
     }
   }, [aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, isInitialLoad]);
+
+  // Error boundary for critical failures
+  if (aiError && xError && newsError && parishError && sentimentError) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <XCircle className="h-6 w-6 text-red-600" />
+            <h2 className="text-xl font-semibold text-red-800">Critical System Error</h2>
+          </div>
+          <p className="text-red-700 mb-4">
+            All Central AI Hub services are currently unavailable. This may be due to:
+          </p>
+          <ul className="list-disc list-inside text-red-700 space-y-1 mb-4">
+            <li>API key configuration issues</li>
+            <li>Network connectivity problems</li>
+            <li>Service maintenance or outages</li>
+            <li>Database connection issues</li>
+          </ul>
+          <Button 
+            onClick={handleRefreshAll}
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-100"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry Connection
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (shouldShowLoadingScreen) {
     return (
@@ -660,7 +707,7 @@ export default function CentralAIHub() {
             <p className="text-xs text-gray-600 mt-2">
               Parishes with active monitoring
             </p>
-            {parishData && parishData.length > 0 && (
+            {parishData && Array.isArray(parishData) && parishData.length > 0 && (
               <p className="text-xs text-blue-600 mt-1">
                 Last update: {new Date(parishData[0]?.lastUpdate || Date.now()).toLocaleTimeString()}
               </p>
@@ -702,7 +749,9 @@ export default function CentralAIHub() {
                       <Badge className={getSentimentColor(sentimentData.overall_sentiment)}>
                         {typeof sentimentData.overall_sentiment === 'number' 
                           ? `${(sentimentData.overall_sentiment * 100).toFixed(0)}%`
-                          : sentimentData.overall_sentiment || 'Neutral'
+                          : (typeof sentimentData.overall_sentiment === 'string' 
+                              ? sentimentData.overall_sentiment 
+                              : 'Neutral')
                         }
                       </Badge>
                     </div>
@@ -722,7 +771,7 @@ export default function CentralAIHub() {
                     </div>
                     
                     {/* Data Sources */}
-                    {sentimentData.data_sources && sentimentData.data_sources.length > 0 && (
+                    {sentimentData.data_sources && Array.isArray(sentimentData.data_sources) && sentimentData.data_sources.length > 0 && (
                       <div className="mt-4 pt-4 border-t">
                         <h4 className="text-sm font-medium mb-2">Data Sources</h4>
                         <div className="space-y-2">
@@ -730,11 +779,14 @@ export default function CentralAIHub() {
                             <div key={index} className="flex justify-between items-center text-xs">
                               <span className="flex items-center gap-1">
                                 <Globe className="h-3 w-3" />
-                                {source.platform}
+                                {source.platform || 'Unknown Platform'}
                               </span>
-                              <span className="text-gray-600">{source.count} posts</span>
+                              <span className="text-gray-600">{source.count || 0} posts</span>
                               <span className="text-gray-500">
-                                {new Date(source.lastUpdate).toLocaleTimeString()}
+                                {source.lastUpdate 
+                                  ? new Date(source.lastUpdate).toLocaleTimeString()
+                                  : 'Unknown'
+                                }
                               </span>
                             </div>
                           ))}
@@ -763,30 +815,35 @@ export default function CentralAIHub() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {jamaicaNews?.data?.articles && jamaicaNews.data.articles.length > 0 ? (
+                {jamaicaNews?.data?.articles && Array.isArray(jamaicaNews.data.articles) && jamaicaNews.data.articles.length > 0 ? (
                   <div className="space-y-3">
                     {jamaicaNews.data.articles.slice(0, 5).map((article, index) => (
                       <div key={index} className="p-3 border rounded-lg hover:bg-gray-50">
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex-1">
-                            <h4 className="text-sm font-medium line-clamp-2">{article.title}</h4>
+                            <h4 className="text-sm font-medium line-clamp-2">{article.title || 'Untitled Article'}</h4>
                             <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
-                              <span>{article.source}</span>
+                              <span>{article.source || 'Unknown Source'}</span>
                               <span>•</span>
-                              <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                              <span>
+                                {article.publishedAt 
+                                  ? new Date(article.publishedAt).toLocaleDateString()
+                                  : 'Unknown Date'
+                                }
+                              </span>
                             </div>
                             {article.aiAnalysis && (
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="outline" className="text-xs">
-                                  Relevance: {(article.aiAnalysis.relevance * 100).toFixed(0)}%
+                                  Relevance: {((article.aiAnalysis.relevance || 0) * 100).toFixed(0)}%
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
-                                  Confidence: {(article.aiAnalysis.confidence * 100).toFixed(0)}%
+                                  Confidence: {((article.aiAnalysis.confidence || 0) * 100).toFixed(0)}%
                                 </Badge>
                                 <Badge className={`text-xs ${getSentimentColor(article.aiAnalysis.sentiment)}`}>
                                   {typeof article.aiAnalysis.sentiment === 'number' 
                                     ? `${(article.aiAnalysis.sentiment * 100).toFixed(0)}%`
-                                    : article.aiAnalysis.sentiment || 'Neutral'
+                                    : (article.aiAnalysis.sentiment || 'Neutral')
                                   }
                                 </Badge>
                               </div>
@@ -797,6 +854,7 @@ export default function CentralAIHub() {
                             size="sm"
                             onClick={() => handleViewSource(article.url)}
                             className="flex-shrink-0"
+                            disabled={!article.url || !article.url.startsWith('http')}
                           >
                             <ExternalLink className="h-3 w-3" />
                           </Button>

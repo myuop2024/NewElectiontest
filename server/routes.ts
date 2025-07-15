@@ -1334,7 +1334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .execute();
 
       res.json({
-        average_sentiment: sentimentReport.overall_sentiment?.average_sentiment || 0.5,
+        overall_sentiment: sentimentReport.overall_sentiment?.average_sentiment || 0.5,
         sentiment_distribution: {
           positive: sentimentReport.overall_sentiment?.sentiment_distribution?.positive || 33,
           negative: sentimentReport.overall_sentiment?.sentiment_distribution?.negative || 33,
@@ -1378,7 +1378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Return fallback data instead of error to prevent loading issues
       res.json({
-        average_sentiment: 0.5,
+        overall_sentiment: 0.5,
         sentiment_distribution: {
           positive: 33,
           negative: 33,
