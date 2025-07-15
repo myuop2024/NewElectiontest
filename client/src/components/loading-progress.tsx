@@ -38,12 +38,17 @@ export default function LoadingProgress({
   showDetailedProgress = true
 }: LoadingProgressProps) {
   const completedSteps = steps.filter(step => step.isComplete).length;
+  const errorSteps = steps.filter(step => step.hasError).length;
+  const loadingSteps = steps.filter(step => step.isLoading).length;
   const totalSteps = steps.length;
-  const progressPercentage = (completedSteps / totalSteps) * 100;
   
-  const hasErrors = steps.some(step => step.hasError);
-  const isLoading = steps.some(step => step.isLoading);
+  // Calculate progress including partial completion for loading steps
+  const progressPercentage = ((completedSteps + (loadingSteps * 0.3)) / totalSteps) * 100;
+  
+  const hasErrors = errorSteps > 0;
+  const isLoading = loadingSteps > 0;
   const allComplete = completedSteps === totalSteps;
+  const hasPartialProgress = completedSteps > 0 || loadingSteps > 0;
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -72,11 +77,13 @@ export default function LoadingProgress({
               <span className="text-sm font-medium">Overall Progress</span>
               <span className="text-sm text-gray-600">
                 {completedSteps} of {totalSteps} components loaded
+                {loadingSteps > 0 && ` (${loadingSteps} loading)`}
+                {errorSteps > 0 && ` (${errorSteps} failed)`}
               </span>
             </div>
             <Progress value={progressPercentage} className="h-2" />
             <div className="text-xs text-gray-500 text-center">
-              {progressPercentage.toFixed(0)}% Complete
+              {hasPartialProgress ? `${progressPercentage.toFixed(0)}% Complete` : 'Initializing...'}
             </div>
           </div>
 
@@ -176,11 +183,16 @@ export default function LoadingProgress({
                 {allComplete ? (
                   <span className="text-green-600 font-medium">All Systems Ready</span>
                 ) : isLoading ? (
-                  <span className="text-blue-600">Loading...</span>
+                  <span className="text-blue-600">
+                    {loadingSteps} Loading, {completedSteps} Complete
+                    {errorSteps > 0 && `, ${errorSteps} Failed`}
+                  </span>
                 ) : hasErrors ? (
-                  <span className="text-red-600">Some Components Failed</span>
+                  <span className="text-red-600">
+                    {errorSteps} Components Failed, {completedSteps} Complete
+                  </span>
                 ) : (
-                  <span>Initializing...</span>
+                  <span>Initializing Systems...</span>
                 )}
               </div>
             </div>

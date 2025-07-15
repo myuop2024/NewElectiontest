@@ -105,8 +105,47 @@ export default function CentralAIHub() {
   const [lastActivation, setLastActivation] = useState<Date | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const { toast } = useToast();
   const { steps, setStepLoading, setStepComplete, setStepError, resetSteps } = useLoadingSteps();
+
+  // Loading timeout to prevent stuck loading screen
+  useEffect(() => {
+    if (isInitialLoad) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true);
+        toast({
+          title: "Loading Taking Longer Than Expected",
+          description: "Some services may be experiencing delays. The page will continue loading.",
+          variant: "default",
+        });
+      }, 15000); // 15 seconds timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isInitialLoad, toast]);
+
+  // Initialize loading steps based on current state
+  useEffect(() => {
+    if (isInitialLoad) {
+      // Set initial loading states based on what's actually happening
+      if (aiLoading || (!aiStatus && !aiError)) {
+        setStepLoading('ai', 'Initializing AI engine...');
+      }
+      if (xLoading || (!xStatus && !xError)) {
+        setStepLoading('x', 'Initializing social monitoring...');
+      }
+      if (newsLoading || (!jamaicaNews && !newsError)) {
+        setStepLoading('news', 'Initializing news aggregation...');
+      }
+      if (parishLoading || (!parishData && !parishError)) {
+        setStepLoading('parish', 'Initializing parish data...');
+      }
+      if (sentimentLoading || (!sentimentData && !sentimentError)) {
+        setStepLoading('sentiment', 'Initializing sentiment analysis...');
+      }
+    }
+  }, [isInitialLoad, aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, aiError, xError, newsError, parishError, sentimentError, setStepLoading]);
 
   // Track when page becomes active/inactive
   const handleVisibilityChange = useCallback(async () => {
@@ -408,39 +447,78 @@ export default function CentralAIHub() {
     }
   }, [aiError, xError, newsError, parishError, sentimentError, toast]);
 
-  // Show loading progress on initial load
-  const shouldShowLoadingScreen = isInitialLoad && (aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading);
+  // Show loading progress on initial load - more accurate condition
+  const shouldShowLoadingScreen = isInitialLoad && (
+    aiLoading || xLoading || newsLoading || parishLoading || sentimentLoading ||
+    (!aiStatus && !aiError) || (!xStatus && !xError) || (!jamaicaNews && !newsError) || 
+    (!parishData && !parishError) || (!sentimentData && !sentimentError)
+  );
+
+  // Force hide loading screen after timeout if still stuck
+  const forceHideLoading = loadingTimeout && !aiLoading && !xLoading && !newsLoading && !parishLoading && !sentimentLoading;
 
   // Set loading states when queries start
   useEffect(() => {
-    if (aiLoading) setStepLoading('ai', 'Loading AI engine status...');
-  }, [aiLoading, setStepLoading]);
+    if (aiLoading) {
+      setStepLoading('ai', 'Loading AI engine status...');
+    } else if (aiError) {
+      setStepError('ai', aiError.message || 'Failed to load AI status');
+    } else if (aiStatus) {
+      setStepComplete('ai', 'AI engine connected and operational');
+    }
+  }, [aiLoading, aiError, aiStatus, setStepLoading, setStepError, setStepComplete]);
 
   useEffect(() => {
-    if (xLoading) setStepLoading('x', 'Connecting to social monitoring...');
-  }, [xLoading, setStepLoading]);
+    if (xLoading) {
+      setStepLoading('x', 'Connecting to social monitoring...');
+    } else if (xError) {
+      setStepError('x', xError.message || 'Failed to load X sentiment status');
+    } else if (xStatus) {
+      setStepComplete('x', 'Social monitoring connected');
+    }
+  }, [xLoading, xError, xStatus, setStepLoading, setStepError, setStepComplete]);
 
   useEffect(() => {
-    if (newsLoading) setStepLoading('news', 'Fetching Jamaica news sources...');
-  }, [newsLoading, setStepLoading]);
+    if (newsLoading) {
+      setStepLoading('news', 'Fetching Jamaica news sources...');
+    } else if (newsError) {
+      setStepError('news', newsError.message || 'Failed to load news data');
+    } else if (jamaicaNews) {
+      setStepComplete('news', 'Jamaica news sources connected');
+    }
+  }, [newsLoading, newsError, jamaicaNews, setStepLoading, setStepError, setStepComplete]);
 
   useEffect(() => {
-    if (parishLoading) setStepLoading('parish', 'Loading parish data...');
-  }, [parishLoading, setStepLoading]);
+    if (parishLoading) {
+      setStepLoading('parish', 'Loading parish data...');
+    } else if (parishError) {
+      setStepError('parish', parishError.message || 'Failed to load parish data');
+    } else if (parishData) {
+      setStepComplete('parish', 'Parish monitoring data loaded');
+    }
+  }, [parishLoading, parishError, parishData, setStepLoading, setStepError, setStepComplete]);
 
   useEffect(() => {
-    if (sentimentLoading) setStepLoading('sentiment', 'Analyzing sentiment data...');
-  }, [sentimentLoading, setStepLoading]);
+    if (sentimentLoading) {
+      setStepLoading('sentiment', 'Analyzing sentiment data...');
+    } else if (sentimentError) {
+      setStepError('sentiment', sentimentError.message || 'Failed to load sentiment data');
+    } else if (sentimentData) {
+      setStepComplete('sentiment', 'Sentiment analysis ready');
+    }
+  }, [sentimentLoading, sentimentError, sentimentData, setStepLoading, setStepError, setStepComplete]);
 
-  // Check if initial load is complete
+  // Check if initial load is complete - more accurate logic
   useEffect(() => {
-    const allLoaded = !aiLoading && !xLoading && !newsLoading && !parishLoading && !sentimentLoading;
-    const hasData = aiStatus || xStatus || jamaicaNews || parishData || sentimentData;
+    const allQueriesFinished = !aiLoading && !xLoading && !newsLoading && !parishLoading && !sentimentLoading;
+    const hasSomeData = aiStatus || xStatus || jamaicaNews || parishData || sentimentData;
+    const hasSomeErrors = aiError || xError || newsError || parishError || sentimentError;
     
-    if (allLoaded && hasData && isInitialLoad) {
+    // Consider initial load complete if all queries are finished and we have either data or errors
+    if (allQueriesFinished && (hasSomeData || hasSomeErrors) && isInitialLoad) {
       setIsInitialLoad(false);
     }
-  }, [aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, isInitialLoad]);
+  }, [aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, aiError, xError, newsError, parishError, sentimentError, isInitialLoad]);
 
   // Error boundary for critical failures
   if (aiError && xError && newsError && parishError && sentimentError) {
@@ -473,12 +551,15 @@ export default function CentralAIHub() {
     );
   }
 
-  if (shouldShowLoadingScreen) {
+  if (shouldShowLoadingScreen && !forceHideLoading) {
     return (
       <LoadingProgress 
         steps={steps}
         title="Central AI Hub Loading"
-        description="Initializing Jamaica Election Intelligence & Monitoring Center..."
+        description={loadingTimeout 
+          ? "Some services are taking longer than expected. Continuing to load available systems..."
+          : "Initializing Jamaica Election Intelligence & Monitoring Center..."
+        }
         showDetailedProgress={true}
       />
     );
