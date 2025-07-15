@@ -12,7 +12,7 @@ import EnhancedMap from "@/components/maps/enhanced-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
-import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
+import SimpleHeatMap from "@/components/maps/simple-heat-map";
 
 export default function PollingStations() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -241,8 +241,8 @@ export default function PollingStations() {
         </TabsContent>
         
         <TabsContent value="map" className="space-y-6">
-          {/* Comprehensive Heat Map with X Sentiment, Traffic, Weather, and Incidents */}
-          <PollingStationsHeatMap
+          {/* Simplified Heat Map with X Sentiment, Traffic, Weather, and Incidents */}
+          <SimpleHeatMap
             stations={filteredStations}
             selectedStation={selectedStation}
             onStationSelect={setSelectedStation}

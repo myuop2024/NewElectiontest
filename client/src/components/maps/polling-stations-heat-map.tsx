@@ -3,14 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { 
   MapPin, 
   Thermometer, 
   Car, 
   MessageCircle, 
-  TrendingUp, 
   AlertTriangle, 
   Layers,
   RefreshCw
@@ -54,7 +52,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       }
 
       const platform = new H.service.Platform({
-        'apikey': import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo-key'
+        'apikey': import.meta.env.VITE_HERE_API_KEY || 'demo-key'
       });
 
       const defaultLayers = platform.createDefaultLayers();
@@ -172,34 +170,55 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
   const createHeatMapMarkers = async () => {
     if (!map || !stations.length) return;
 
+    setIsLoading(true);
     const H = (window as any).H;
     const group = new H.map.Group();
 
-    for (const station of stations) {
-      if (!station.latitude || !station.longitude) continue;
+    // Process stations in batches to avoid overwhelming the API
+    const batchSize = 5;
+    for (let i = 0; i < stations.length; i += batchSize) {
+      const batch = stations.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (station) => {
+        if (!station.latitude || !station.longitude) return;
 
-      const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
-      
-      // Collect data for all active overlays
-      const overlayData: any = {};
-      
-      for (const overlay of overlays) {
-        if (activeOverlays.has(overlay.id)) {
-          try {
-            overlayData[overlay.id] = await overlay.getData(station.id);
-          } catch (error) {
-            console.error(`Error loading ${overlay.name} data:`, error);
+        const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
+        
+        // Collect data for all active overlays with timeout
+        const overlayData: any = {};
+        
+        for (const overlay of overlays) {
+          if (activeOverlays.has(overlay.id)) {
+            try {
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 5000)
+              );
+              overlayData[overlay.id] = await Promise.race([
+                overlay.getData(station.id),
+                timeoutPromise
+              ]);
+            } catch (error) {
+              console.error(`Error loading ${overlay.name} data for station ${station.id}:`, error);
+              // Provide fallback data
+              overlayData[overlay.id] = { severity: 'unknown', error: true };
+            }
           }
         }
-      }
 
-      // Create marker with heat map styling
-      const marker = createHeatMapMarker(H, position, station, overlayData);
-      group.addObject(marker);
+        // Create marker with heat map styling
+        const marker = createHeatMapMarker(H, position, station, overlayData);
+        group.addObject(marker);
+      }));
+      
+      // Small delay between batches
+      if (i + batchSize < stations.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
 
     map.removeObjects(map.getObjects());
     map.addObject(group);
+    setIsLoading(false);
   };
 
   const createHeatMapMarker = (H: any, position: any, station: any, overlayData: any) => {

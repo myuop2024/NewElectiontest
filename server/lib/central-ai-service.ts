@@ -89,13 +89,19 @@ export class CentralAIService {
     }
   }
 
-  // Social media and news sentiment analysis for Jamaica elections
+  // Social media and news sentiment analysis for Jamaica elections with quota management
   async analyzeSocialSentiment(content: string, location?: string): Promise<SentimentAnalysis> {
-    const systemPrompt = `You are an expert AI analyst specializing in Jamaican electoral monitoring and social sentiment analysis. 
-    Analyze social media content and news for election-related sentiment, issues, and concerns across Jamaica's parishes and constituencies.
-    Focus on: Kingston, Spanish Town, Montego Bay, May Pen, Portmore, Mandeville, Old Harbour, Savanna-la-Mar, Linstead, Half Way Tree, and all 14 parishes.`;
+    try {
+      // Check if content is too short or empty
+      if (!content || content.length < 10) {
+        return this.getFallbackSentiment();
+      }
 
-    const prompt = `Analyze this social media/news content for Jamaica election sentiment:
+      const systemPrompt = `You are an expert AI analyst specializing in Jamaican electoral monitoring and social sentiment analysis. 
+      Analyze social media content and news for election-related sentiment, issues, and concerns across Jamaica's parishes and constituencies.
+      Focus on: Kingston, Spanish Town, Montego Bay, May Pen, Portmore, Mandeville, Old Harbour, Savanna-la-Mar, Linstead, Half Way Tree, and all 14 parishes.`;
+
+      const prompt = `Analyze this social media/news content for Jamaica election sentiment:
 
 CONTENT: ${content}
 LOCATION: ${location || 'Jamaica (general)'}
@@ -120,68 +126,74 @@ Return in this JSON structure:
   "risk_level": "low|medium|high|critical"
 }`;
 
-    try {
-      const result = await this.model.generateContent([
-        { text: systemPrompt },
-        { text: prompt }
-      ]);
-      
-      const response = result.response;
-      let analysisText = response.text();
-      
-      // Clean and parse the JSON response
-      if (analysisText.includes('```json')) {
-        analysisText = analysisText.replace(/^.*```json\n?/, '').replace(/\n?```.*$/, '');
-      } else if (analysisText.includes('```')) {
-        analysisText = analysisText.replace(/^.*```\n?/, '').replace(/\n?```.*$/, '');
-      }
-      
-      // Extract JSON from the response if it's mixed with text
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysisText = jsonMatch[0];
-      }
-      
-      // Remove any trailing commas before closing brackets/braces
-      analysisText = analysisText.replace(/,(\s*[}\]])/g, '$1');
-      
-      // If response doesn't look like JSON, return fallback immediately
-      if (!analysisText.trim().startsWith('{')) {
-        console.log("Response is not JSON format, using fallback");
-        return {
-          overall_sentiment: "neutral",
-          confidence: 0.5,
-          key_issues: [],
-          election_relevance: 0.5,
-          geographic_focus: [],
-          concerns: [],
-          positive_indicators: [],
-          risk_level: "medium"
-        };
-      }
-      
       try {
-        return JSON.parse(analysisText);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        console.error("Problematic text (first 200 chars):", analysisText.substring(0, 200));
+        const result = await this.model.generateContent([
+          { text: systemPrompt },
+          { text: prompt }
+        ]);
         
-        // Return a fallback response structure
-        return {
-          overall_sentiment: "neutral",
-          confidence: 0.5,
-          key_issues: [],
-          election_relevance: 0.5,
-          geographic_focus: [],
-          concerns: [],
-          positive_indicators: [],
-          risk_level: "medium"
-        };
+        const response = result.response;
+        let analysisText = response.text();
+        
+        // Clean and parse the JSON response
+        if (analysisText.includes('```json')) {
+          analysisText = analysisText.replace(/^.*```json\n?/, '').replace(/\n?```.*$/, '');
+        } else if (analysisText.includes('```')) {
+          analysisText = analysisText.replace(/^.*```\n?/, '').replace(/\n?```.*$/, '');
+        }
+        
+        // Extract JSON from the response if it's mixed with text
+        const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          analysisText = jsonMatch[0];
+        }
+        
+        // Remove any trailing commas before closing brackets/braces
+        analysisText = analysisText.replace(/,(\s*[}\]])/g, '$1');
+        
+        // If response doesn't look like JSON, return fallback immediately
+        if (!analysisText.trim().startsWith('{')) {
+          console.log("Response is not JSON format, using fallback");
+          return this.getFallbackSentiment();
+        }
+        
+        try {
+          return JSON.parse(analysisText);
+        } catch (parseError) {
+          console.error("JSON parse error:", parseError);
+          console.error("Problematic text (first 200 chars):", analysisText.substring(0, 200));
+          
+          return this.getFallbackSentiment();
+        }
+      } catch (error) {
+        console.error("Social sentiment analysis error:", error);
+        
+        // Check if it's a quota error and return fallback
+        if (error.message && (error.message.includes('quota') || error.message.includes('QUOTA'))) {
+          console.log("Quota exceeded, using fallback sentiment analysis");
+          return this.getFallbackSentiment();
+        }
+        
+        return this.getFallbackSentiment();
       }
     } catch (error) {
-      console.error("Social sentiment analysis error:", error);
-      throw new Error("Failed to analyze social sentiment");
+      console.error("Central AI sentiment analysis error:", error);
+      return this.getFallbackSentiment();
     }
+  }
+
+  // Fallback sentiment analysis when API is unavailable  
+  private getFallbackSentiment(): SentimentAnalysis {
+    return {
+      overall_sentiment: "neutral",
+      confidence: 0.5,
+      key_issues: ["API quota exceeded - using fallback"],
+      election_relevance: 0.5,
+      geographic_focus: [],
+      concerns: ["Gemini API quota limit reached"],
+      positive_indicators: [],
+      risk_level: "medium"
+    };
   }
 
   // Jamaica-specific election monitoring analysis
