@@ -238,13 +238,28 @@ export default function CentralAIHub() {
     enabled: isActive // Only enable when page is active
   });
 
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment?.toLowerCase()) {
+  const getSentimentColor = (sentiment: string | number | undefined) => {
+    // Handle different sentiment data types
+    let sentimentStr = '';
+    
+    if (typeof sentiment === 'number') {
+      // Convert numeric sentiment to string
+      if (sentiment >= 0.6) sentimentStr = 'positive';
+      else if (sentiment <= 0.4) sentimentStr = 'negative';
+      else sentimentStr = 'neutral';
+    } else if (typeof sentiment === 'string') {
+      sentimentStr = sentiment.toLowerCase();
+    } else {
+      return 'bg-gray-100 text-gray-800'; // Default for undefined/null
+    }
+    
+    switch (sentimentStr) {
       case 'positive':
         return 'bg-green-100 text-green-800';
       case 'negative':
         return 'bg-red-100 text-red-800';
       case 'mixed':
+      case 'neutral':
         return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -612,7 +627,10 @@ export default function CentralAIHub() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Overall Sentiment</span>
                       <Badge className={getSentimentColor(sentimentData.overall_sentiment)}>
-                        {sentimentData.overall_sentiment || 'Neutral'}
+                        {typeof sentimentData.overall_sentiment === 'number' 
+                          ? `${(sentimentData.overall_sentiment * 100).toFixed(0)}%`
+                          : sentimentData.overall_sentiment || 'Neutral'
+                        }
                       </Badge>
                     </div>
                     <div className="space-y-2">
@@ -693,7 +711,10 @@ export default function CentralAIHub() {
                                   Confidence: {(article.aiAnalysis.confidence * 100).toFixed(0)}%
                                 </Badge>
                                 <Badge className={`text-xs ${getSentimentColor(article.aiAnalysis.sentiment)}`}>
-                                  {article.aiAnalysis.sentiment}
+                                  {typeof article.aiAnalysis.sentiment === 'number' 
+                                    ? `${(article.aiAnalysis.sentiment * 100).toFixed(0)}%`
+                                    : article.aiAnalysis.sentiment || 'Neutral'
+                                  }
                                 </Badge>
                               </div>
                             )}

@@ -15,13 +15,29 @@ class WebSocketService {
   private ws: WebSocket | null = null;
 
   connect(userId: string): WebSocket {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${userId}`;
+    // Handle different environments
+    let wsUrl: string;
     
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Local development
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      wsUrl = `${protocol}//${window.location.host}/ws?userId=${userId}`;
+    } else {
+      // Cloud environment (Replit, etc.)
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host || window.location.hostname;
+      wsUrl = `${protocol}//${host}/ws?userId=${userId}`;
+    }
+    
+    console.log("Connecting to WebSocket:", wsUrl);
     this.ws = new WebSocket(wsUrl);
     
     this.ws.onopen = () => {
-      console.log("WebSocket connected");
+      console.log("WebSocket connected successfully");
+    };
+
+    this.ws.onerror = (error) => {
+      console.error("WebSocket connection error:", error);
     };
 
     return this.ws;
