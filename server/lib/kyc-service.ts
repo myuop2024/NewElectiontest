@@ -1,4 +1,4 @@
-import { SecurityService } from "./security.js";
+import { SecurityService } from "./security";
 
 export interface DidITVerificationRequest {
   firstName: string;
@@ -35,7 +35,7 @@ export class KYCService {
 
   // Get configuration from database settings and environment
   private static async getConfiguration() {
-    const { storage } = await import('../storage.js');
+    const { storage } = await import('../storage');
     const endpoint = await storage.getSettingByKey('didit_api_endpoint');
     const clientId = await storage.getSettingByKey('didit_client_id');
     const clientSecret = await storage.getSettingByKey('didit_client_secret');

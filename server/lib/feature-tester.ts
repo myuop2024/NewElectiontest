@@ -1,5 +1,5 @@
-import { storage } from "../storage.js";
-import { AdminSettingsService } from "./admin-settings-service.js";
+import { storage } from "../storage";
+import { AdminSettingsService } from "./admin-settings-service";
 
 export class FeatureTester {
   

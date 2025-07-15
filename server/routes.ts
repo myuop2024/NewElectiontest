@@ -36,31 +36,31 @@ import {
   xMonitoringConfig,
   xMonitoringAlerts
 } from "@shared/schema";
-import { classroomService } from "./lib/google-classroom-service.js";
+import { classroomService } from "./lib/google-classroom-service";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { insertUserSchema } from "@shared/schema";
-import { SecurityService } from "./lib/security.js";
-import { KYCService } from "./lib/kyc-service.js";
-import { NotificationService } from "./lib/notification-service.js";
-import { AnalyticsService } from "./lib/analytics-service.js";
-import { TrainingService } from "./lib/training-service.js";
-import { RouteService } from "./lib/route-service.js";
-import { CommunicationService } from "./lib/communication-service.js";
-import { FormBuilderService } from "./lib/form-builder-service.js";
-import { ChatService } from "./lib/chat-service.js";
-import { AdminSettingsService } from "./lib/admin-settings-service.js";
-import { createAIIncidentService } from "./lib/ai-incident-service.js";
-import { googleSheetsService } from "./lib/google-sheets-service.js";
-import { aiClassificationService } from "./lib/ai-classification-service.js";
-import { emergencyService } from "./lib/emergency-service.js";
-import { CentralAIService } from "./lib/central-ai-service.js";
-import { SocialMonitoringService } from "./lib/social-monitoring-service.js";
-import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator.js";
-import { getWeatherService } from "./lib/weather-service.js";
-import { parishAnalyticsService } from "./lib/parish-analytics-service.js";
-import { XSentimentService } from "./lib/x-sentiment-service.js";
+import { SecurityService } from "./lib/security";
+import { KYCService } from "./lib/kyc-service";
+import { NotificationService } from "./lib/notification-service";
+import { AnalyticsService } from "./lib/analytics-service";
+import { TrainingService } from "./lib/training-service";
+import { RouteService } from "./lib/route-service";
+import { CommunicationService } from "./lib/communication-service";
+import { FormBuilderService } from "./lib/form-builder-service";
+import { ChatService } from "./lib/chat-service";
+import { AdminSettingsService } from "./lib/admin-settings-service";
+import { createAIIncidentService } from "./lib/ai-incident-service";
+import { googleSheetsService } from "./lib/google-sheets-service";
+import { aiClassificationService } from "./lib/ai-classification-service";
+import { emergencyService } from "./lib/emergency-service";
+import { CentralAIService } from "./lib/central-ai-service";
+import { SocialMonitoringService } from "./lib/social-monitoring-service";
+import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator";
+import { getWeatherService } from "./lib/weather-service";
+import { parishAnalyticsService } from "./lib/parish-analytics-service";
+import { XSentimentService } from "./lib/x-sentiment-service";
 import PDFDocument from "pdfkit";
-import { GeminiService } from "./lib/training-service.js";
+import { GeminiService } from "./lib/training-service";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1767,7 +1767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DidIT Webhook for verification status updates
   app.post("/api/kyc/webhook", async (req: Request, res: Response) => {
     try {
-      const { storage } = await import('./storage.js');
+      const { storage } = await import('./storage');
       const webhookPayload = req.body; // Full payload
       const { id, status, reference_id: nationalId } = webhookPayload;
 
@@ -2288,7 +2288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const { FeatureTester } = await import('./lib/feature-tester');
       const testResults = await FeatureTester.testAllFeatures();
       res.json(testResults);
     } catch (error) {
@@ -2306,7 +2306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const { FeatureTester } = await import('./lib/feature-tester');
       const result = await FeatureTester.testFeatureConnectivity(req.params.service);
       res.json(result);
     } catch (error) {
@@ -2886,7 +2886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const { FeatureTester } = await import('./lib/feature-tester');
       const validation = await FeatureTester.validateEmergencyFeatures();
       res.json(validation);
     } catch (error) {
@@ -2904,7 +2904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { FeatureTester } = await import('./lib/feature-tester.js');
+      const { FeatureTester } = await import('./lib/feature-tester');
       const health = await FeatureTester.testDatabaseHealth();
       res.json(health);
     } catch (error) {
@@ -5619,7 +5619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/training/sync-progress", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user!.id;
-      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service');
       const analyticsService = new TrainingAnalyticsService();
       
       await analyticsService.syncUserProgress(userId);
@@ -5633,7 +5633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/training/dashboard", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user!.id;
-      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service');
       const analyticsService = new TrainingAnalyticsService();
       
       const dashboard = await analyticsService.getUserTrainingDashboard(userId);
@@ -5648,7 +5648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const completionId = parseInt(req.params.completionId);
-      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service');
       const analyticsService = new TrainingAnalyticsService();
       
       // Get completion record and verify ownership
@@ -5675,7 +5675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { certificateNumber } = req.params;
       const { hash } = req.query;
-      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service.js');
+      const { TrainingAnalyticsService } = await import('./lib/training-analytics-service');
       const analyticsService = new TrainingAnalyticsService();
       
       const verification = await analyticsService.verifyCertificate(certificateNumber, hash as string);

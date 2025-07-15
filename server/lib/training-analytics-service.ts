@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { 
   googleClassroomTokens, 
   trainingCompletions, 
@@ -6,9 +6,9 @@ import {
   classroomProgress, 
   trainingAnalytics,
   users
-} from '../../shared/schema.js';
+} from '../../shared/schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
-import { GoogleClassroomService } from './google-classroom-service.js';
+import { GoogleClassroomService } from './google-classroom-service';
 import { nanoid } from 'nanoid';
 import crypto from 'crypto';
 import QRCode from 'qrcode';
