@@ -1,0 +1,108 @@
+use-websocket.tsx:113 WebSocket not connected
+sendMessage @ use-websocket.tsx:113
+(anonymous) @ live-chat-widget.tsx:45
+commitHookEffectListMount @ chunk-WERSD76P.js?v=ba6f4ca6:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=ba6f4ca6:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=ba6f4ca6:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=ba6f4ca6:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=ba6f4ca6:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=ba6f4ca6:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=ba6f4ca6:19447
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=ba6f4ca6:18868
+flushSyncCallbacks @ chunk-WERSD76P.js?v=ba6f4ca6:9119
+commitRootImpl @ chunk-WERSD76P.js?v=ba6f4ca6:19432
+commitRoot @ chunk-WERSD76P.js?v=ba6f4ca6:19277
+finishConcurrentRender @ chunk-WERSD76P.js?v=ba6f4ca6:18805
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=ba6f4ca6:18718
+workLoop @ chunk-WERSD76P.js?v=ba6f4ca6:197
+flushWork @ chunk-WERSD76P.js?v=ba6f4ca6:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=ba6f4ca6:384Understand this warning
+use-websocket.tsx:113 WebSocket not connected
+sendMessage @ use-websocket.tsx:113
+(anonymous) @ live-chat-widget.tsx:56
+safelyCallDestroy @ chunk-WERSD76P.js?v=ba6f4ca6:16748
+commitHookEffectListUnmount @ chunk-WERSD76P.js?v=ba6f4ca6:16875
+commitPassiveUnmountOnFiber @ chunk-WERSD76P.js?v=ba6f4ca6:18232
+commitPassiveUnmountEffects_complete @ chunk-WERSD76P.js?v=ba6f4ca6:18213
+commitPassiveUnmountEffects_begin @ chunk-WERSD76P.js?v=ba6f4ca6:18204
+commitPassiveUnmountEffects @ chunk-WERSD76P.js?v=ba6f4ca6:18169
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=ba6f4ca6:19489
+flushPassiveEffects @ chunk-WERSD76P.js?v=ba6f4ca6:19447
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=ba6f4ca6:18868
+flushSyncCallbacks @ chunk-WERSD76P.js?v=ba6f4ca6:9119
+commitRootImpl @ chunk-WERSD76P.js?v=ba6f4ca6:19432
+commitRoot @ chunk-WERSD76P.js?v=ba6f4ca6:19277
+finishConcurrentRender @ chunk-WERSD76P.js?v=ba6f4ca6:18805
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=ba6f4ca6:18718
+workLoop @ chunk-WERSD76P.js?v=ba6f4ca6:197
+flushWork @ chunk-WERSD76P.js?v=ba6f4ca6:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=ba6f4ca6:384Understand this warning
+central-ai-hub.tsx:73 [Central AI Hub] Component loaded, active tab: overview
+use-websocket.tsx:35 WebSocket connected
+2central-ai-hub.tsx:73 [Central AI Hub] Component loaded, active tab: overview
+3central-ai-hub.tsx:73 [Central AI Hub] Component loaded, active tab: overview
+2central-ai-hub.tsx:73 [Central AI Hub] Component loaded, active tab: overview
+heat-map-overlay.tsx:28 [Heat Map Overlay] Component loaded with stations: 16
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: CLA001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'CLA001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: CLA002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'CLA002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: KGN001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'KGN001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: KGN002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'KGN002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: KGN003
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'KGN003', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: MAN001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'MAN001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: MAN002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'MAN002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STA001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STA001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STA002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STA002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STA003
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STA003', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STC001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STC001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STC002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STC002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STJ001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STJ001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: STJ002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'STJ002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: WES001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'WES001', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: WES002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'WES002', riskScore: 0, details: {…}}
+heat-map-overlay.tsx:32 [Heat Map Overlay] Auto-fetching data for active overlays
+heat-map-overlay.tsx:83 [Heat Map Overlay] Fetching data for overlay: sentiment
+heat-map-overlay.tsx:83 [Heat Map Overlay] Fetching data for overlay: traffic
+heat-map-overlay.tsx:108 [Heat Map Overlay] Error fetching sentiment data: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+fetchOverlayData @ heat-map-overlay.tsx:108
+await in fetchOverlayData
+(anonymous) @ heat-map-overlay.tsx:34
+(anonymous) @ heat-map-overlay.tsx:33
+commitHookEffectListMount @ chunk-WERSD76P.js?v=ba6f4ca6:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=ba6f4ca6:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=ba6f4ca6:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=ba6f4ca6:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=ba6f4ca6:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=ba6f4ca6:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=ba6f4ca6:19447
+commitRootImpl @ chunk-WERSD76P.js?v=ba6f4ca6:19416
+commitRoot @ chunk-WERSD76P.js?v=ba6f4ca6:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=ba6f4ca6:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=ba6f4ca6:9119
+(anonymous) @ chunk-WERSD76P.js?v=ba6f4ca6:18627Understand this error
+heat-map-overlay.tsx:104 [Heat Map Overlay] traffic data: {stations: Array(16), totalStations: 16, lastUpdated: '2025-07-15T02:23:56.981Z'}
+heat-map-overlay.tsx:28 [Heat Map Overlay] Component loaded with stations: 16
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: CLA001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'CLA001', riskScore: 0.25, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: CLA002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'CLA002', riskScore: 0.25, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: KGN001
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'KGN001', riskScore: 0.25, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: KGN002
+heat-map-overlay.tsx:179 [Heat Map Overlay] Risk calculation complete: {station: 'KGN002', riskScore: 0.25, details: {…}}
+heat-map-overlay.tsx:120 [Heat Map Overlay] Calculating risk for station: KGN003

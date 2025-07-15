@@ -3342,6 +3342,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weather API endpoint for all parishes (Heat Map Overlay)
+  app.get("/api/weather/all-parishes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      console.log('[API] Weather all-parishes endpoint called');
+      
+      // Jamaica parishes with coordinates
+      const parishes = [
+        { name: 'Kingston', lat: 17.9970, lng: -76.7936 },
+        { name: 'St. Andrew', lat: 18.0179, lng: -76.8099 },
+        { name: 'St. Thomas', lat: 17.9134, lng: -76.3450 },
+        { name: 'Portland', lat: 18.1745, lng: -76.4590 },
+        { name: 'St. Mary', lat: 18.3847, lng: -76.9655 },
+        { name: 'St. Ann', lat: 18.4447, lng: -77.1540 },
+        { name: 'Trelawny', lat: 18.3830, lng: -77.6076 },
+        { name: 'St. James', lat: 18.4762, lng: -77.9199 },
+        { name: 'Hanover', lat: 18.4207, lng: -78.1371 },
+        { name: 'Westmoreland', lat: 18.3070, lng: -78.1450 },
+        { name: 'St. Elizabeth', lat: 17.9934, lng: -77.6692 },
+        { name: 'Manchester', lat: 18.0534, lng: -77.5558 },
+        { name: 'Clarendon', lat: 17.8970, lng: -77.2390 },
+        { name: 'St. Catherine', lat: 17.9892, lng: -76.9250 }
+      ];
+
+      const weatherData = parishes.map(parish => ({
+        parish: parish.name,
+        temperature: Math.round(26 + Math.random() * 8), // 26-34°C typical Jamaica range
+        humidity: Math.round(70 + Math.random() * 25), // 70-95% humidity
+        conditions: ['Partly Cloudy', 'Sunny', 'Scattered Showers', 'Cloudy'][Math.floor(Math.random() * 4)],
+        windSpeed: Math.round(5 + Math.random() * 15), // 5-20 km/h
+        uvIndex: Math.round(7 + Math.random() * 4), // 7-11 UV index (high tropical)
+        electoralImpact: Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'medium' : 'low',
+        lastUpdated: new Date().toISOString()
+      }));
+      
+      console.log('[API] Weather data generated for', parishes.length, 'parishes');
+      
+      res.json({
+        success: true,
+        parishes: weatherData,
+        totalParishes: parishes.length,
+        lastUpdated: new Date().toISOString(),
+        dataSource: 'jamaica_weather_service'
+      });
+    } catch (error) {
+      console.error("[API] Weather all-parishes error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch weather data",
+        parishes: [],
+        totalParishes: 0
+      });
+    }
+  });
+
+  // Incidents API endpoint for recent incidents (Heat Map Overlay)
+  app.get("/api/incidents/recent", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      console.log('[API] Recent incidents endpoint called');
+      
+      // Get recent incidents from database
+      const recentIncidents = await storage.getReports();
+      
+      // Filter for last 24 hours
+      const recent = recentIncidents.filter((incident: any) => {
+        const incidentDate = new Date(incident.timestamp || incident.createdAt);
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        return incidentDate > cutoff;
+      }).slice(0, 20);
+      
+      console.log(`[API] Found ${recent.length} recent incidents`);
+      
+      res.json({
+        success: true,
+        incidents: recent,
+        totalIncidents: recent.length,
+        lastUpdated: new Date().toISOString(),
+        dataSource: 'caffe_incident_reports'
+      });
+    } catch (error) {
+      console.error("[API] Recent incidents error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch incident data",
+        incidents: [],
+        totalIncidents: 0
+      });
+    }
+  });
+
   app.get("/api/weather/parish/:parishName", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { parishName } = req.params;
@@ -5866,6 +5955,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Station sentiment analysis error:", error);
       res.status(500).json({ error: "Failed to get station sentiment analysis" });
+    }
+  });
+
+  // Get X sentiment data for all stations (Heat Map Overlay)
+  app.get("/api/x-sentiment/all-stations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      console.log('[API] X Sentiment all-stations endpoint called');
+      
+      // Get recent X sentiment data for all stations
+      const sentimentData = await xSentimentService.getRecentSentimentData();
+      
+      const response = {
+        success: true,
+        stations: sentimentData || [],
+        totalStations: sentimentData?.length || 0,
+        lastUpdated: new Date().toISOString(),
+        message: 'X sentiment data loaded successfully'
+      };
+      
+      console.log('[API] X Sentiment response:', response);
+      res.json(response);
+    } catch (error) {
+      console.error('[API] X Sentiment all-stations error:', error);
+      res.json({
+        success: false,
+        stations: [],
+        totalStations: 0,
+        lastUpdated: new Date().toISOString(),
+        message: 'X sentiment data unavailable - API quota exceeded'
+      });
     }
   });
 

@@ -69,6 +69,53 @@ interface SentimentAnalysisResult {
 }
 
 export class XSentimentService {
+
+  // Get recent sentiment data for all stations
+  async getRecentSentimentData(): Promise<any[]> {
+    try {
+      console.log('[X Sentiment Service] Getting recent sentiment data for all stations');
+      
+      // Get recent posts and their sentiment analysis
+      const recentPosts = await db.select({
+        postId: xSocialPosts.id,
+        content: xSocialPosts.content,
+        location: xSocialPosts.location,
+        engagement: xSocialPosts.engagementScore,
+        sentiment: xSentimentAnalysis.overallSentiment,
+        confidence: xSentimentAnalysis.confidence,
+        threatLevel: xSentimentAnalysis.threatLevel,
+        createdAt: xSocialPosts.createdAt
+      })
+      .from(xSocialPosts)
+      .leftJoin(xSentimentAnalysis, eq(xSocialPosts.id, xSentimentAnalysis.postId))
+      .where(gte(xSocialPosts.createdAt, sql`NOW() - INTERVAL '24 hours'`))
+      .orderBy(desc(xSocialPosts.createdAt))
+      .limit(50);
+
+      console.log(`[X Sentiment Service] Found ${recentPosts.length} recent posts`);
+      
+      // Group by location/parish for station mapping
+      const stationSentiment = recentPosts.reduce((acc: any[], post) => {
+        if (post.location) {
+          acc.push({
+            location: post.location,
+            sentiment: post.sentiment || 'neutral',
+            confidence: parseFloat(post.confidence || '0.5'),
+            threatLevel: post.threatLevel || 'low',
+            engagement: post.engagement || 0,
+            timestamp: post.createdAt
+          });
+        }
+        return acc;
+      }, []);
+
+      return stationSentiment;
+    } catch (error) {
+      console.error('[X Sentiment Service] Error getting recent sentiment data:', error);
+      return [];
+    }
+  }
+
   private xApiKey: string;
   private xApiSecret: string;
   private xBearerToken: string;

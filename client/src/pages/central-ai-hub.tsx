@@ -72,6 +72,23 @@ export default function CentralAIHub() {
   // Add detailed logging
   console.log("[Central AI Hub] Component loaded, active tab:", activeTab);
 
+  // Effect to track loading state changes
+  React.useEffect(() => {
+    console.log("[Central AI Hub] Loading states:", {
+      aiLoading,
+      parishLoading,
+      sentimentLoading,
+      newsLoading,
+      xLoading
+    });
+    
+    const allLoaded = !aiLoading && !parishLoading && !sentimentLoading && !newsLoading && !xLoading;
+    if (allLoaded && isLoading) {
+      console.log("[Central AI Hub] All data loaded, updating state");
+      setIsLoading(false);
+    }
+  }, [aiLoading, parishLoading, sentimentLoading, newsLoading, xLoading, isLoading]);
+
   const {
     data: aiStatus,
     isLoading: aiLoading,
