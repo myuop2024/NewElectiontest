@@ -661,4 +661,67 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       return null;
     }
   }
+
+  // Fallback method for basic relevance scoring when AI is unavailable
+  private scoreArticleRelevance(article: ProcessedArticle): number {
+    let score = 0;
+    const content = (article.title + ' ' + article.content).toLowerCase();
+    
+    // Check for election keywords
+    this.electionKeywords.forEach(keyword => {
+      if (content.includes(keyword.toLowerCase())) {
+        score += 0.2;
+      }
+    });
+    
+    // Check for Jamaica-specific terms
+    if (content.includes('jamaica') || content.includes('jamaican')) {
+      score += 0.3;
+    }
+    
+    // Check for parish mentions
+    this.jamaicanParishes.forEach(parish => {
+      if (content.includes(parish.toLowerCase())) {
+        score += 0.1;
+      }
+    });
+    
+    // Check for political entities
+    const politicalTerms = ['jlp', 'pnp', 'holness', 'golding', 'candidate', 'mp', 'constituency'];
+    politicalTerms.forEach(term => {
+      if (content.includes(term)) {
+        score += 0.15;
+      }
+    });
+    
+    return Math.min(score, 1.0);
+  }
+
+  // Extract election keywords from content
+  private extractElectionKeywords(content: string): string[] {
+    const keywords: string[] = [];
+    const contentLower = content.toLowerCase();
+    
+    this.electionKeywords.forEach(keyword => {
+      if (contentLower.includes(keyword.toLowerCase())) {
+        keywords.push(keyword);
+      }
+    });
+    
+    return keywords;
+  }
+
+  // Extract parish mentions from content
+  private extractParishMentions(content: string): string[] {
+    const parishes: string[] = [];
+    const contentLower = content.toLowerCase();
+    
+    this.jamaicanParishes.forEach(parish => {
+      if (contentLower.includes(parish.toLowerCase())) {
+        parishes.push(parish);
+      }
+    });
+    
+    return parishes;
+  }
 }

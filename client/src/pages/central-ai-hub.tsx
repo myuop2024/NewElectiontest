@@ -295,7 +295,7 @@ export default function CentralAIHub() {
     }
   }, [isInitialLoad, toast]);
 
-  // Initialize loading steps based on current state
+  // Initialize loading steps based on current state (run only once)
   useEffect(() => {
     if (isInitialLoad) {
       // Set initial loading states based on what's actually happening
@@ -314,8 +314,11 @@ export default function CentralAIHub() {
       if (sentimentLoading || (!sentimentData && !sentimentError)) {
         setStepLoading('sentiment', 'Initializing sentiment analysis...');
       }
+      
+      // Mark initialization as complete to prevent re-running
+      setTimeout(() => setIsInitialLoad(false), 1000);
     }
-  }, [isInitialLoad, aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, aiError, xError, newsError, parishError, sentimentError, setStepLoading]);
+  }, [isInitialLoad]); // Only depend on isInitialLoad to prevent infinite loop
 
   const getSentimentColor = useCallback((sentiment: string | number | undefined) => {
     // Handle different sentiment data types

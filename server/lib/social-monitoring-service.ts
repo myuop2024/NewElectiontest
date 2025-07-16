@@ -963,15 +963,27 @@ Return JSON: {
       .map(item => item.ai_analysis?.overall_sentiment)
       .filter(sentiment => sentiment);
 
+    if (allSentiments.length === 0) {
+      return {
+        dominant_sentiment: 'neutral',
+        distribution: { neutral: 1 },
+        total_analyzed: 0
+      };
+    }
+
     const sentimentCounts = allSentiments.reduce((acc, sentiment) => {
       acc[sentiment] = (acc[sentiment] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
+    const dominantSentiment = Object.keys(sentimentCounts).length > 0 
+      ? Object.keys(sentimentCounts).reduce((a, b) => 
+          sentimentCounts[a] > sentimentCounts[b] ? a : b
+        )
+      : 'neutral';
+
     return {
-      dominant_sentiment: Object.keys(sentimentCounts).reduce((a, b) => 
-        sentimentCounts[a] > sentimentCounts[b] ? a : b
-      ),
+      dominant_sentiment: dominantSentiment,
       distribution: sentimentCounts,
       total_analyzed: allSentiments.length
     };
