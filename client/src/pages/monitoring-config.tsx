@@ -19,7 +19,8 @@ import {
   CheckCircle,
   ExternalLink,
   Eye,
-  Search
+  Search,
+  Brain
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -35,6 +36,17 @@ interface MonitoringTarget {
   lastChecked?: string;
   status?: 'active' | 'error' | 'paused';
   description?: string;
+  ai_assessment?: {
+    relevance: number;
+    confidence: number;
+    reasoning: string;
+    jamaica_focus: number;
+    political_coverage: number;
+    reliability: number;
+    update_frequency: 'high' | 'medium' | 'low';
+    language: 'english' | 'patois' | 'mixed';
+    assessed_at: string;
+  };
 }
 
 interface MonitoringConfig {
@@ -60,6 +72,9 @@ export default function MonitoringConfig() {
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [bulkSites, setBulkSites] = useState('');
+  const [bulkResults, setBulkResults] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -151,6 +166,27 @@ export default function MonitoringConfig() {
     }
   });
 
+  const bulkAddMutation = useMutation({
+    mutationFn: (sites: Array<{ url: string; name?: string }>) => 
+      apiRequest('/api/monitoring/bulk-add', 'POST', { sites }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/monitoring/configs'] });
+      setBulkResults(data.result);
+      toast({
+        title: "Bulk Sites Added",
+        description: data.message || "Sites have been added with AI assessment.",
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || "Failed to add bulk sites.";
+      toast({
+        title: "Error Adding Sites",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleAddKeyword = () => {
     if (keywordInput.trim() && !newTarget.keywords?.includes(keywordInput.trim())) {
       setNewTarget(prev => ({
@@ -199,27 +235,44 @@ export default function MonitoringConfig() {
       return;
     }
 
-    // Validate keywords
-    if (!newTarget.keywords || newTarget.keywords.length === 0) {
-      toast({
-        title: "Missing Keywords",
-        description: "Please add at least one election-related keyword for monitoring.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Prepare the target data
+    // Keywords are now optional as AI will generate them
     const targetData = {
       ...newTarget,
       name: newTarget.name.trim(),
       url: newTarget.url.trim(),
-      keywords: newTarget.keywords.filter(k => k.trim()),
+      keywords: newTarget.keywords?.filter(k => k.trim()) || [],
       parish: newTarget.parish || 'All Parishes',
       description: newTarget.description?.trim() || ''
     };
 
     addTargetMutation.mutate(targetData);
+  };
+
+  const handleBulkSubmit = () => {
+    if (!bulkSites.trim()) {
+      toast({
+        title: "Missing Sites",
+        description: "Please provide URLs to add.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Parse URLs from text
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    const urls = bulkSites.match(urlRegex) || [];
+    
+    if (urls.length === 0) {
+      toast({
+        title: "No Valid URLs",
+        description: "Please provide valid URLs starting with http:// or https://",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const sites = urls.map(url => ({ url: url.trim() }));
+    bulkAddMutation.mutate(sites);
   };
 
   const getStatusColor = (status: string) => {
@@ -267,13 +320,23 @@ export default function MonitoringConfig() {
             Configure custom monitoring targets for Jamaica election intelligence
           </p>
         </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Monitoring Target
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Single Target
+          </Button>
+          <Button 
+            onClick={() => setShowBulkAdd(!showBulkAdd)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Globe className="h-4 w-4" />
+            Bulk Add Sites
+          </Button>
+        </div>
       </div>
 
       {/* Add Target Form */}
@@ -348,13 +411,13 @@ export default function MonitoringConfig() {
             </div>
 
             <div>
-              <Label htmlFor="keywords">Election Keywords</Label>
+              <Label htmlFor="keywords">Election Keywords (Optional - AI will generate optimal keywords)</Label>
               <div className="flex gap-2 mb-2">
                 <Input
                   id="keywords"
                   value={keywordInput}
                   onChange={(e) => setKeywordInput(e.target.value)}
-                  placeholder="Add election-related keywords"
+                  placeholder="Add custom keywords (optional)"
                   onKeyPress={(e) => e.key === 'Enter' && handleAddKeyword()}
                 />
                 <Button onClick={handleAddKeyword} type="button" variant="outline">
@@ -375,7 +438,7 @@ export default function MonitoringConfig() {
                 ))}
               </div>
               <p className="text-sm text-gray-500 mt-2">
-                Suggested: {electionKeywords.slice(0, 10).join(', ')}...
+                AI will automatically assess the site and generate optimal election-related keywords
               </p>
             </div>
 
@@ -395,6 +458,106 @@ export default function MonitoringConfig() {
                 Cancel
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bulk Add Sites Form */}
+      {showBulkAdd && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bulk Add Monitoring Sites</CardTitle>
+            <p className="text-sm text-gray-600">
+              Add multiple sites at once. AI will automatically assess each site for relevance and generate optimal keywords.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="bulk-sites">Site URLs (One per line or separated by spaces)</Label>
+              <Textarea
+                id="bulk-sites"
+                value={bulkSites}
+                onChange={(e) => setBulkSites(e.target.value)}
+                placeholder="https://example1.com&#10;https://example2.com&#10;https://example3.com"
+                rows={6}
+                className="font-mono text-sm"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Enter URLs starting with http:// or https://. AI will assess each site for Jamaica election relevance.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleBulkSubmit}
+                disabled={bulkAddMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                {bulkAddMutation.isPending ? 'Processing with AI...' : 'Add Sites with AI Assessment'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowBulkAdd(false);
+                  setBulkSites('');
+                  setBulkResults(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+
+            {/* Bulk Results */}
+            {bulkResults && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-3">AI Assessment Results</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{bulkResults.summary.total_processed}</div>
+                    <div className="text-sm text-gray-600">Total Processed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{bulkResults.summary.successfully_added}</div>
+                    <div className="text-sm text-gray-600">Successfully Added</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600">{bulkResults.summary.failed}</div>
+                    <div className="text-sm text-gray-600">Failed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{bulkResults.summary.average_relevance}%</div>
+                    <div className="text-sm text-gray-600">Avg Relevance</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {bulkResults.sites.map((site: any, index: number) => (
+                    <div key={index} className={`p-3 rounded border ${site.added ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-medium">{site.name || 'Unknown Site'}</div>
+                          <div className="text-sm text-gray-600 break-all">{site.url}</div>
+                          {site.target?.ai_assessment && (
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">AI Assessment: </span>
+                              <span className="text-blue-600">{site.target.ai_assessment.relevance}% relevant</span>
+                              <span className="text-gray-500 ml-2">({site.target.ai_assessment.confidence}% confidence)</span>
+                            </div>
+                          )}
+                        </div>
+                        <Badge variant={site.added ? "default" : "destructive"}>
+                          {site.added ? "Added" : "Failed"}
+                        </Badge>
+                      </div>
+                      {site.error && (
+                        <div className="text-sm text-red-600 mt-1">{site.error}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -493,10 +656,43 @@ export default function MonitoringConfig() {
                     </div>
                   </div>
                   
+                  {/* AI Assessment */}
+                  {target.ai_assessment && (
+                    <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Brain className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">AI Assessment</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        <div>
+                          <span className="text-gray-600">Relevance:</span>
+                          <span className="ml-1 font-medium text-blue-600">{target.ai_assessment.relevance}%</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Confidence:</span>
+                          <span className="ml-1 font-medium text-blue-600">{target.ai_assessment.confidence}%</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Jamaica Focus:</span>
+                          <span className="ml-1 font-medium text-blue-600">{target.ai_assessment.jamaica_focus}%</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Political Coverage:</span>
+                          <span className="ml-1 font-medium text-blue-600">{target.ai_assessment.political_coverage}%</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-600">
+                        <span className="font-medium">Reasoning:</span> {target.ai_assessment.reasoning}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Keywords */}
                   {target.keywords && target.keywords.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Monitoring Keywords:</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Monitoring Keywords {target.ai_assessment && '(AI Generated)'}:
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {target.keywords.map(keyword => (
                           <Badge key={keyword} variant="secondary" className="text-xs">
