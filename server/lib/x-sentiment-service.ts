@@ -59,8 +59,16 @@ interface SentimentAnalysisResult {
   emotions: Record<string, number>;
   political_topics: string[];
   mentioned_parties: string[];
+  party_sentiment: {
+    jlp_sentiment: 'positive' | 'negative' | 'neutral';
+    jlp_sentiment_score: number; // -1.0 to 1.0
+    pnp_sentiment: 'positive' | 'negative' | 'neutral';
+    pnp_sentiment_score: number; // -1.0 to 1.0
+  };
   mentioned_politicians: string[];
   election_keywords: string[];
+  poll_mentions: string[];
+  campaign_mentions: string[];
   threat_level: 'low' | 'medium' | 'high' | 'critical';
   risk_factors: string[];
   credibility_assessment: Record<string, any>;
@@ -85,11 +93,20 @@ export class XSentimentService {
   ];
 
   private jamaicaPoliticians = [
-    'Andrew Holness', 'Mark Golding', 'Juliet Holness', 'Lisa Hanna', 
-    'Nigel Clarke', 'Peter Phillips', 'Kamina Johnson Smith', 'Omar Davies',
-    'Olivia Grange', 'Robert Montague', 'Floyd Green', 'Mikael Phillips',
-    'Fayval Williams', 'Julian Robinson', 'Dr. Christopher Tufton',
-    'Juliet Cuthbert', 'Peter Bunting', 'Daryl Vaz', 'Edmund Bartlett'
+    // JLP Leaders and Key Figures
+    'Andrew Holness', 'Juliet Holness', 'Nigel Clarke', 'Kamina Johnson Smith',
+    'Olivia Grange', 'Robert Montague', 'Floyd Green', 'Dr. Christopher Tufton',
+    'Juliet Cuthbert', 'Daryl Vaz', 'Edmund Bartlett', 'Matthew Samuda',
+    'Marlene Malahoo Forte', 'Everald Warmington', 'Pearnel Charles Jr.',
+    'Fayval Williams', 'Karl Samuda', 'Mike Henry', 'Shahine Robinson',
+    'Ruel Reid', 'Rudyard Spencer', 'James Robertson', 'Ernest Smith',
+    
+    // PNP Leaders and Key Figures
+    'Mark Golding', 'Lisa Hanna', 'Peter Phillips', 'Omar Davies',
+    'Mikael Phillips', 'Julian Robinson', 'Peter Bunting', 'Phillip Paulwell',
+    'Angela Brown Burke', 'Anthony Hylton', 'Fitz Jackson', 'Derrick Kellier',
+    'Noel Arscott', 'Ronald Thwaites', 'Lisa Hanna', 'Damion Crawford',
+    'Raymond Pryce', 'Colin Fagan', 'Richard Azan', 'Luther Buchanan'
   ];
 
   private jamaicaXAccounts = [
@@ -147,9 +164,11 @@ export class XSentimentService {
           maxPostsPerSession: 50,
           keywords: [
             'Jamaica election', 'JLP', 'PNP', 'Andrew Holness', 'Mark Golding',
-            'Jamaica politics', 'Jamaica vote', 'Jamaica democracy', 
-            'Jamaican politicians', 'Jamaica government', 'Jamaica parliament',
-            'Kingston politics', 'Jamaica candidate'
+            'Jamaica Labour Party', 'People\'s National Party', 'Jamaica politics', 
+            'Jamaica vote', 'Jamaica democracy', 'Jamaican politicians', 
+            'Jamaica government', 'Jamaica parliament', 'Kingston politics', 
+            'Jamaica candidate', 'Jamaica poll', 'Jamaica survey', 'Jamaica campaign',
+            'Jamaica manifesto', 'Jamaica policy', 'Jamaica budget', 'Jamaica economy'
           ],
           targetAccounts: this.jamaicaXAccounts,
           monitorAccounts: [
@@ -675,6 +694,14 @@ ANALYSIS REQUIREMENTS:
 6. Jamaica Parish Relevance (0-1 score)
 7. Election Keywords Identification
 8. Risk Factor Detection
+9. JLP vs PNP Sentiment Analysis (CRITICAL)
+
+JAMAICA POLITICAL CONTEXT:
+- JLP (Jamaica Labour Party): Current governing party led by Prime Minister Andrew Holness
+- PNP (People's National Party): Opposition party led by Mark Golding
+- Recent field polls show both parties are actively campaigning
+- Focus on sentiment FOR or AGAINST each party specifically
+- Look for mentions of recent poll results, campaign promises, policy positions
 
 JAMAICA CONTEXT:
 - Parishes: ${this.jamaicaParishes.join(', ')}
@@ -700,8 +727,16 @@ Provide response in this exact JSON format:
   },
   "political_topics": ["array of relevant political topics"],
   "mentioned_parties": ["array of political parties mentioned"],
+  "party_sentiment": {
+    "jlp_sentiment": "positive|negative|neutral",
+    "jlp_sentiment_score": -1.0 to 1.0,
+    "pnp_sentiment": "positive|negative|neutral",
+    "pnp_sentiment_score": -1.0 to 1.0
+  },
   "mentioned_politicians": ["array of politicians mentioned"],
   "election_keywords": ["array of election-related terms found"],
+  "poll_mentions": ["any mentions of recent polls or survey results"],
+  "campaign_mentions": ["campaign promises or policy positions mentioned"],
   "threat_level": "low|medium|high|critical",
   "risk_factors": ["array of identified risks"],
   "credibility_assessment": {
@@ -750,6 +785,36 @@ Provide response in this exact JSON format:
       lowerContent.includes(threat.toLowerCase())
     );
 
+    // JLP vs PNP sentiment analysis
+    let jlpSentiment = 0;
+    let pnpSentiment = 0;
+    
+    // JLP sentiment indicators
+    const jlpPositive = ['jlp', 'andrew holness', 'jamaica labour party', 'labour party'];
+    const jlpNegative = ['anti-jlp', 'against jlp', 'jlp bad', 'holness bad'];
+    
+    jlpPositive.forEach(term => {
+      if (lowerContent.includes(term)) jlpSentiment += 0.2;
+    });
+    jlpNegative.forEach(term => {
+      if (lowerContent.includes(term)) jlpSentiment -= 0.3;
+    });
+    
+    // PNP sentiment indicators
+    const pnpPositive = ['pnp', 'mark golding', 'people\'s national party', 'national party'];
+    const pnpNegative = ['anti-pnp', 'against pnp', 'pnp bad', 'golding bad'];
+    
+    pnpPositive.forEach(term => {
+      if (lowerContent.includes(term)) pnpSentiment += 0.2;
+    });
+    pnpNegative.forEach(term => {
+      if (lowerContent.includes(term)) pnpSentiment -= 0.3;
+    });
+    
+    // Normalize sentiment scores
+    jlpSentiment = Math.max(-1, Math.min(1, jlpSentiment));
+    pnpSentiment = Math.max(-1, Math.min(1, pnpSentiment));
+
     // Determine threat level
     let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
     if (riskFactors.length > 3) threatLevel = 'critical';
@@ -778,7 +843,15 @@ Provide response in this exact JSON format:
       political_topics: ['election_monitoring', 'voting_sentiment'],
       mentioned_parties: mentionedParties,
       mentioned_politicians: mentionedPoliticians,
+      party_sentiment: {
+        jlp_sentiment: jlpSentiment > 0.1 ? 'positive' : jlpSentiment < -0.1 ? 'negative' : 'neutral',
+        jlp_sentiment_score: jlpSentiment,
+        pnp_sentiment: pnpSentiment > 0.1 ? 'positive' : pnpSentiment < -0.1 ? 'negative' : 'neutral',
+        pnp_sentiment_score: pnpSentiment
+      },
       election_keywords: electionKeywords,
+      poll_mentions: [],
+      campaign_mentions: [],
       threat_level: threatLevel,
       risk_factors: riskFactors,
       credibility_assessment: {

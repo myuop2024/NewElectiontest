@@ -533,7 +533,8 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
     }
 
     try {
-      const url = `https://newsapi.org/v2/everything?q=Jamaica AND (election OR politics OR government OR democracy OR vote OR candidate)&language=en&sortBy=publishedAt&pageSize=50&apiKey=${this.newsApiKey}`;
+      // More specific query focused on Jamaican political news only
+      const url = `https://newsapi.org/v2/everything?q=Jamaica AND (JLP OR PNP OR "Andrew Holness" OR "Mark Golding" OR "Jamaica Labour Party" OR "People's National Party" OR "Jamaica election" OR "Jamaica politics" OR "Jamaica government" OR "Jamaica parliament" OR "Jamaica constituency" OR "Jamaica MP" OR "Jamaica candidate")&language=en&sortBy=publishedAt&pageSize=50&apiKey=${this.newsApiKey}`;
       
       const response = await fetch(url, {
         headers: {
@@ -551,7 +552,10 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
 
       if (data.articles) {
         for (const article of data.articles.slice(0, 20)) {
-          if (article.title && article.url && !article.title.includes('[Removed]')) {
+          // Enhanced filtering to exclude irrelevant content
+          if (article.title && article.url && 
+              !article.title.includes('[Removed]') &&
+              this.isRelevantJamaicanPoliticalContent(article.title, article.description || '')) {
             const processedArticle: ProcessedArticle = {
               id: this.generateArticleId(article.title, 'newsapi'),
               title: this.cleanText(article.title),
@@ -723,5 +727,45 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
     });
     
     return parishes;
+  }
+
+  // Enhanced filtering to ensure content is relevant to Jamaican politics
+  private isRelevantJamaicanPoliticalContent(title: string, description: string): boolean {
+    const content = (title + ' ' + description).toLowerCase();
+    
+    // Must contain Jamaica or Jamaican
+    if (!content.includes('jamaica') && !content.includes('jamaican')) {
+      return false;
+    }
+    
+    // Must contain political keywords
+    const politicalKeywords = [
+      'jlp', 'pnp', 'andrew holness', 'mark golding', 'jamaica labour party', 
+      'people\'s national party', 'election', 'politics', 'government', 'parliament',
+      'constituency', 'mp', 'candidate', 'minister', 'opposition', 'democracy',
+      'vote', 'voting', 'campaign', 'manifesto', 'policy', 'budget', 'economy'
+    ];
+    
+    const hasPoliticalContent = politicalKeywords.some(keyword => 
+      content.includes(keyword.toLowerCase())
+    );
+    
+    if (!hasPoliticalContent) {
+      return false;
+    }
+    
+    // Exclude irrelevant content
+    const excludeKeywords = [
+      'kfc', 'chicken', 'bucket', 'restaurant', 'food', 'menu', 'fast food',
+      'sports', 'football', 'cricket', 'basketball', 'entertainment', 'music',
+      'movie', 'celebrity', 'gossip', 'fashion', 'beauty', 'travel', 'tourism',
+      'weather', 'hurricane', 'earthquake', 'natural disaster'
+    ];
+    
+    const hasExcludedContent = excludeKeywords.some(keyword => 
+      content.includes(keyword.toLowerCase())
+    );
+    
+    return !hasExcludedContent;
   }
 }

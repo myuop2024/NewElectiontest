@@ -423,7 +423,7 @@ Return JSON: {
       const items = [];
       
       // Search for Jamaica-specific election news with extended time range
-      const jamaicaQuery = `Jamaica AND (${searchTerms.slice(0, 5).join(' OR ')})`;
+      const jamaicaQuery = `Jamaica AND (JLP OR PNP OR "Andrew Holness" OR "Mark Golding" OR "Jamaica Labour Party" OR "People's National Party" OR "Jamaica election" OR "Jamaica politics" OR "Jamaica government" OR "Jamaica parliament" OR "Jamaica constituency" OR "Jamaica MP" OR "Jamaica candidate")`;
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
@@ -448,7 +448,7 @@ Return JSON: {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
       const caribbeanResponse = await fetch(
-        `https://newsapi.org/v2/everything?q=Jamaica AND (election OR politics OR government OR JLP OR PNP OR voting OR democracy OR parliament OR constituency OR campaign)&domains=jamaica-gleaner.com,jamaicaobserver.com,loopjamaica.com&language=en&sortBy=publishedAt&pageSize=30&from=${sevenDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
+        `https://newsapi.org/v2/everything?q=Jamaica AND (JLP OR PNP OR "Andrew Holness" OR "Mark Golding" OR "Jamaica Labour Party" OR "People's National Party" OR "Jamaica election" OR "Jamaica politics" OR "Jamaica government" OR "Jamaica parliament" OR "Jamaica constituency" OR "Jamaica MP" OR "Jamaica candidate")&domains=jamaica-gleaner.com,jamaicaobserver.com,loopjamaica.com&language=en&sortBy=publishedAt&pageSize=30&from=${sevenDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
         {
           headers: {
             'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
@@ -456,9 +456,9 @@ Return JSON: {
         }
       );
       
-      // Additional search for broader political and social issues
+      // Additional search for broader political and social issues (only if related to government/politics)
       const broadResponse = await fetch(
-        `https://newsapi.org/v2/everything?q=Jamaica AND (infrastructure OR roads OR healthcare OR education OR crime OR economy OR unemployment OR corruption OR governance)&language=en&sortBy=publishedAt&pageSize=20&from=${sevenDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
+        `https://newsapi.org/v2/everything?q=Jamaica AND (infrastructure OR roads OR healthcare OR education OR crime OR economy OR unemployment OR corruption OR governance) AND (government OR politics OR JLP OR PNP OR "Andrew Holness" OR "Mark Golding")&language=en&sortBy=publishedAt&pageSize=20&from=${sevenDaysAgo.toISOString()}&apiKey=${newsApiKey}`,
         {
           headers: {
             'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
@@ -490,6 +490,7 @@ Return JSON: {
   private processNewsAPIArticles(articles: any[], source: string): any[] {
     return articles
       .filter(article => article.title && article.description)
+      .filter(article => this.isRelevantJamaicanPoliticalContent(article.title, article.description || ''))
       .map((article, index) => {
         const content = `${article.title} ${article.description || ''} ${article.content || ''}`;
         const detectedParish = this.jamaicaParishes.find(parish => 
@@ -531,6 +532,46 @@ Return JSON: {
     };
     
     return credibilityMap[sourceName] || 0.70; // Default credibility for unknown sources
+  }
+
+  // Enhanced filtering to ensure content is relevant to Jamaican politics
+  private isRelevantJamaicanPoliticalContent(title: string, description: string): boolean {
+    const content = (title + ' ' + description).toLowerCase();
+    
+    // Must contain Jamaica or Jamaican
+    if (!content.includes('jamaica') && !content.includes('jamaican')) {
+      return false;
+    }
+    
+    // Must contain political keywords
+    const politicalKeywords = [
+      'jlp', 'pnp', 'andrew holness', 'mark golding', 'jamaica labour party', 
+      'people\'s national party', 'election', 'politics', 'government', 'parliament',
+      'constituency', 'mp', 'candidate', 'minister', 'opposition', 'democracy',
+      'vote', 'voting', 'campaign', 'manifesto', 'policy', 'budget', 'economy'
+    ];
+    
+    const hasPoliticalContent = politicalKeywords.some(keyword => 
+      content.includes(keyword.toLowerCase())
+    );
+    
+    if (!hasPoliticalContent) {
+      return false;
+    }
+    
+    // Exclude irrelevant content
+    const excludeKeywords = [
+      'kfc', 'chicken', 'bucket', 'restaurant', 'food', 'menu', 'fast food',
+      'sports', 'football', 'cricket', 'basketball', 'entertainment', 'music',
+      'movie', 'celebrity', 'gossip', 'fashion', 'beauty', 'travel', 'tourism',
+      'weather', 'hurricane', 'earthquake', 'natural disaster'
+    ];
+    
+    const hasExcludedContent = excludeKeywords.some(keyword => 
+      content.includes(keyword.toLowerCase())
+    );
+    
+    return !hasExcludedContent;
   }
 
   private async fetchFromObserver(searchTerms: string[]): Promise<any[]> {
