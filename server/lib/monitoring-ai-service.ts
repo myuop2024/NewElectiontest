@@ -33,7 +33,8 @@ export class MonitoringAIService {
   private aiService: CentralAIService;
 
   constructor() {
-    this.aiService = new CentralAIService();
+    const apiKey = process.env.GEMINI_API_KEY;
+    this.aiService = new CentralAIService(apiKey);
   }
 
   async assessSiteRelevance(url: string, name?: string): Promise<SiteAssessment> {

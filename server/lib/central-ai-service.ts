@@ -41,11 +41,16 @@ export class CentralAIService {
   private creditManager: APICreditManager;
 
   constructor(apiKey?: string) {
-    if (!apiKey) {
-      throw new Error("Gemini API key is required");
+    const key = apiKey || process.env.GEMINI_API_KEY;
+    if (!key) {
+      console.warn("Gemini API key not found. AI services will be limited.");
+      // Create a mock instance to prevent crashes
+      this.genAI = null as any;
+      this.model = null as any;
+    } else {
+      this.genAI = new GoogleGenerativeAI(key);
+      this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     this.creditManager = APICreditManager.getInstance();
   }
 
@@ -58,6 +63,24 @@ export class CentralAIService {
 
   // Central AI data processing hub with credit optimization
   async processDataFlow(data: any, type: string, source: string): Promise<AIAnalysisResult> {
+    // Return fallback if AI model is not available
+    if (!this.model) {
+      return {
+        success: false,
+        analysis: {
+          sentiment: 'neutral',
+          confidence: 0.1,
+          riskLevel: 'low',
+          analysis: 'AI service unavailable - please configure GEMINI_API_KEY',
+          location: 'Jamaica',
+          relevance: 0.1,
+          error: 'AI model not initialized'
+        },
+        insights: [],
+        error: 'Gemini API key not configured'
+      };
+    }
+
     const cacheKey = `dataflow_${type}_${source}_${JSON.stringify(data).slice(0, 100)}`;
     
     return this.creditManager.getCachedOrFetch(cacheKey, async () => {
@@ -127,6 +150,20 @@ export class CentralAIService {
 
   // Social media and news sentiment analysis for Jamaica elections with credit optimization
   async analyzeSocialSentiment(content: string, location?: string): Promise<SentimentAnalysis> {
+    // Return fallback if AI model is not available
+    if (!this.model) {
+      return {
+        overall_sentiment: 'neutral',
+        confidence: 0.1,
+        key_issues: ['AI service unavailable'],
+        election_relevance: 0.1,
+        geographic_focus: [location || 'Jamaica'],
+        concerns: ['Cannot analyze - API key not configured'],
+        positive_indicators: [],
+        risk_level: 'low'
+      };
+    }
+
     const cacheKey = `sentiment_${content.slice(0, 50)}_${location}`;
     
     return this.creditManager.getCachedOrFetch(cacheKey, async () => {
@@ -222,6 +259,20 @@ Return in this JSON structure:
 
   // Jamaica-specific election monitoring analysis with credit optimization
   async analyzeElectionTrends(data: any[]): Promise<ElectionMonitoringData[]> {
+    // Return fallback if AI model is not available
+    if (!this.model) {
+      return [{
+        location: 'Jamaica',
+        parish: 'All Parishes',
+        sentiment_score: 0.5,
+        key_issues: ['AI service unavailable'],
+        news_sources: ['system'],
+        social_media_mentions: 0,
+        risk_indicators: ['Cannot analyze - API key not configured'],
+        timestamp: new Date()
+      }];
+    }
+
     const cacheKey = `trends_${data.length}_${JSON.stringify(data.slice(0, 3))}`;
     
     return this.creditManager.getCachedOrFetch(cacheKey, async () => {
@@ -328,6 +379,19 @@ Return as JSON array with this structure:
 
   // Cross-reference all data sources for comprehensive intelligence with credit optimization
   async generateComprehensiveIntelligence(): Promise<any> {
+    // Return fallback if AI model is not available
+    if (!this.model) {
+      return {
+        overall_assessment: 'limited',
+        risk_areas: ['AI service unavailable'],
+        patterns: [],
+        predictions: ['Cannot analyze - API key not configured'],
+        recommendations: ['Configure GEMINI_API_KEY environment variable'],
+        alerts: [],
+        timestamp: new Date()
+      };
+    }
+
     const cacheKey = 'comprehensive_intelligence';
     
     return this.creditManager.getCachedOrFetch(cacheKey, async () => {
@@ -420,8 +484,95 @@ Return comprehensive JSON analysis.`;
     return basePrompt;
   }
 
+  // Generic content analysis method for monitoring service
+  async analyzeContent(prompt: string): Promise<{ success: boolean; analysis?: any; error?: string }> {
+    // Return fallback if AI model is not available
+    if (!this.model) {
+      return {
+        success: false,
+        error: 'AI model not available - GEMINI_API_KEY not configured',
+        analysis: {
+          relevance: 0.1,
+          confidence: 0.1,
+          reasoning: 'Cannot analyze - API key not configured',
+          recommended_keywords: ['system', 'unavailable'],
+          content_type: 'other',
+          jamaica_focus: 0,
+          political_coverage: 0,
+          reliability: 0,
+          update_frequency: 'low',
+          language: 'english'
+        }
+      };
+    }
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = result.response;
+      const analysisText = response.text();
+
+      // Clean and parse the JSON response
+      let cleanText = analysisText.trim();
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+      }
+
+      try {
+        const analysis = JSON.parse(cleanText);
+        return { success: true, analysis };
+      } catch (parseError) {
+        console.error("JSON parsing failed:", parseError);
+        return {
+          success: false,
+          error: 'Failed to parse AI response',
+          analysis: {
+            relevance: 0.1,
+            confidence: 0.1,
+            reasoning: 'Parsing error occurred',
+            recommended_keywords: ['error'],
+            content_type: 'other',
+            jamaica_focus: 0,
+            political_coverage: 0,
+            reliability: 0,
+            update_frequency: 'low',
+            language: 'english'
+          }
+        };
+      }
+    } catch (error) {
+      console.error("Content analysis error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        analysis: {
+          relevance: 0.1,
+          confidence: 0.1,
+          reasoning: 'API error occurred',
+          recommended_keywords: ['error'],
+          content_type: 'other',
+          jamaica_focus: 0,
+          political_coverage: 0,
+          reliability: 0,
+          update_frequency: 'low',
+          language: 'english'
+        }
+      };
+    }
+  }
+
   // Validate API connection and model performance with minimal credit usage
   async validateConnection(): Promise<{ valid: boolean; message: string; model: string }> {
+    // Return fallback if AI model is not available
+    if (!this.model) {
+      return {
+        valid: false,
+        message: 'GEMINI_API_KEY not configured - AI services unavailable',
+        model: 'gemini-2.0-flash-exp (not connected)'
+      };
+    }
+
     const cacheKey = 'connection_validation';
     
     return this.creditManager.getCachedOrFetch(cacheKey, async () => {

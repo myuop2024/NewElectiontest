@@ -317,58 +317,6 @@ export default function CentralAIHub() {
     }
   }, [isInitialLoad, aiLoading, xLoading, newsLoading, parishLoading, sentimentLoading, aiStatus, xStatus, jamaicaNews, parishData, sentimentData, aiError, xError, newsError, parishError, sentimentError, setStepLoading]);
 
-  // Track when page becomes active/inactive
-  const handleVisibilityChange = useCallback(async () => {
-    if (document.visibilityState === 'visible') {
-      setIsActive(true);
-      setLastActivation(new Date());
-      
-      // Notify server of activation
-      try {
-        await fetch('/api/central-ai/activation-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            isActive: true,
-            action: 'page_visible'
-          })
-        });
-      } catch (error) {
-        console.error('Failed to notify server of activation:', error);
-      }
-      
-      toast({
-        title: "Central AI Hub Activated",
-        description: "AI services are now active and monitoring Jamaica elections.",
-      });
-    } else {
-      setIsActive(false);
-      
-      // Notify server of deactivation
-      try {
-        await fetch('/api/central-ai/activation-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            isActive: false,
-            action: 'page_hidden'
-          })
-        });
-      } catch (error) {
-        console.error('Failed to notify server of deactivation:', error);
-      }
-      
-      toast({
-        title: "Central AI Hub Paused",
-        description: "AI services paused to conserve API credits.",
-      });
-    }
-  }, [toast]);
-
   const getSentimentColor = useCallback((sentiment: string | number | undefined) => {
     // Handle different sentiment data types
     let sentimentStr = '';
