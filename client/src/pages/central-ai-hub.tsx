@@ -460,8 +460,11 @@ export default function CentralAIHub() {
   // Force hide loading screen after timeout if still stuck
   const forceHideLoading = loadingTimeout && !aiLoading && !xLoading && !newsLoading && !parishLoading && !sentimentLoading;
 
-  // Set loading states when queries start
+  // Update loading steps when states change (consolidated to prevent infinite loops)
   useEffect(() => {
+    if (!isInitialLoad) return;
+
+    // Update AI step
     if (aiLoading) {
       setStepLoading('ai', 'Loading AI engine status...');
     } else if (aiError) {
@@ -469,9 +472,8 @@ export default function CentralAIHub() {
     } else if (aiStatus) {
       setStepComplete('ai', 'AI engine connected and operational');
     }
-  }, [aiLoading, aiError, aiStatus, setStepLoading, setStepError, setStepComplete]);
 
-  useEffect(() => {
+    // Update X step
     if (xLoading) {
       setStepLoading('x', 'Connecting to social monitoring...');
     } else if (xError) {
@@ -479,9 +481,8 @@ export default function CentralAIHub() {
     } else if (xStatus) {
       setStepComplete('x', 'Social monitoring connected');
     }
-  }, [xLoading, xError, xStatus, setStepLoading, setStepError, setStepComplete]);
 
-  useEffect(() => {
+    // Update news step
     if (newsLoading) {
       setStepLoading('news', 'Fetching Jamaica news sources...');
     } else if (newsError) {
@@ -489,9 +490,8 @@ export default function CentralAIHub() {
     } else if (jamaicaNews) {
       setStepComplete('news', 'Jamaica news sources connected');
     }
-  }, [newsLoading, newsError, jamaicaNews, setStepLoading, setStepError, setStepComplete]);
 
-  useEffect(() => {
+    // Update parish step
     if (parishLoading) {
       setStepLoading('parish', 'Loading parish data...');
     } else if (parishError) {
@@ -499,9 +499,8 @@ export default function CentralAIHub() {
     } else if (parishData) {
       setStepComplete('parish', 'Parish monitoring data loaded');
     }
-  }, [parishLoading, parishError, parishData, setStepLoading, setStepError, setStepComplete]);
 
-  useEffect(() => {
+    // Update sentiment step
     if (sentimentLoading) {
       setStepLoading('sentiment', 'Analyzing sentiment data...');
     } else if (sentimentError) {
@@ -509,7 +508,7 @@ export default function CentralAIHub() {
     } else if (sentimentData) {
       setStepComplete('sentiment', 'Sentiment analysis ready');
     }
-  }, [sentimentLoading, sentimentError, sentimentData, setStepLoading, setStepError, setStepComplete]);
+  }, [isInitialLoad]); // Only depend on isInitialLoad to prevent infinite loops
 
   // Check if initial load is complete - more accurate logic
   useEffect(() => {

@@ -252,32 +252,32 @@ export function useLoadingSteps() {
     }
   ]);
 
-  const updateStep = (key: string, updates: Partial<LoadingStep>) => {
+  const updateStep = React.useCallback((key: string, updates: Partial<LoadingStep>) => {
     setSteps(prev => prev.map(step => 
       step.key === key ? { ...step, ...updates } : step
     ));
-  };
+  }, []);
 
-  const setStepLoading = (key: string, message?: string) => {
+  const setStepLoading = React.useCallback((key: string, message?: string) => {
     updateStep(key, { isLoading: true, isComplete: false, hasError: false, message });
-  };
+  }, [updateStep]);
 
-  const setStepComplete = (key: string, message?: string) => {
+  const setStepComplete = React.useCallback((key: string, message?: string) => {
     updateStep(key, { isLoading: false, isComplete: true, hasError: false, message });
-  };
+  }, [updateStep]);
 
-  const setStepError = (key: string, message?: string) => {
+  const setStepError = React.useCallback((key: string, message?: string) => {
     updateStep(key, { isLoading: false, isComplete: false, hasError: true, message });
-  };
+  }, [updateStep]);
 
-  const resetSteps = () => {
+  const resetSteps = React.useCallback(() => {
     setSteps(prev => prev.map(step => ({
       ...step,
       isLoading: false,
       isComplete: false,
       hasError: false
     })));
-  };
+  }, []);
 
   return {
     steps,

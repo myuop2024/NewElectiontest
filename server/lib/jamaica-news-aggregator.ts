@@ -646,7 +646,7 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
     }
   }
 
-  // Analyze article with Gemini AI
+  // Analyze article with Gemini AI (with rate limiting)
   private async analyzeWithGemini(article: ProcessedArticle): Promise<any> {
     if (!process.env.GEMINI_API_KEY) {
       return null;
@@ -683,7 +683,7 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       `;
 
       const response = await genAI.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-1.5-flash', // Use stable model instead of experimental
         contents: prompt
       });
 
@@ -704,6 +704,11 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       return null;
 
     } catch (error) {
+      // Handle rate limiting gracefully
+      if (error.status === 429) {
+        console.warn('Gemini API rate limit exceeded, using fallback analysis');
+        return null; // Will trigger fallback analysis
+      }
       console.error('Gemini analysis error:', error);
       return null;
     }
