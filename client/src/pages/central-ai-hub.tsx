@@ -109,6 +109,176 @@ export default function CentralAIHub() {
   const { toast } = useToast();
   const { steps, setStepLoading, setStepComplete, setStepError, resetSteps } = useLoadingSteps();
 
+  // Track when page becomes active/inactive
+  const handleVisibilityChange = useCallback(async () => {
+    if (document.visibilityState === 'visible') {
+      setIsActive(true);
+      setLastActivation(new Date());
+      
+      // Notify server of activation
+      try {
+        await fetch('/api/central-ai/activation-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isActive: true,
+            action: 'page_visible'
+          })
+        });
+      } catch (error) {
+        console.error('Failed to notify server of activation:', error);
+      }
+      
+      toast({
+        title: "Central AI Hub Activated",
+        description: "AI services are now active and monitoring Jamaica elections.",
+      });
+    } else {
+      setIsActive(false);
+      
+      // Notify server of deactivation
+      try {
+        await fetch('/api/central-ai/activation-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isActive: false,
+            action: 'page_hidden'
+          })
+        });
+      } catch (error) {
+        console.error('Failed to notify server of deactivation:', error);
+      }
+      
+      toast({
+        title: "Central AI Hub Paused",
+        description: "AI services paused to conserve API credits.",
+      });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    // Set initial state
+    setIsActive(document.visibilityState === 'visible');
+    if (document.visibilityState === 'visible') {
+      setLastActivation(new Date());
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [handleVisibilityChange]);
+
+  const {
+    data: aiStatus,
+    isLoading: aiLoading,
+    error: aiError,
+    refetch: refetchAI,
+    isFetching: aiFetching
+  } = useQuery<AIStatus>({
+    queryKey: ["/api/central-ai/status"],
+    refetchInterval: isActive ? 300000 : false, // Only refetch when active
+    staleTime: 120000,
+    gcTime: 300000,
+    retry: 1,
+    enabled: true, // Always enable for initial load
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('ai', error.message || 'Failed to load AI status');
+      } else {
+        setStepComplete('ai', 'AI engine connected and operational');
+      }
+    }
+  });
+
+  const {
+    data: xStatus,
+    isLoading: xLoading,
+    error: xError,
+    refetch: refetchX,
+    isFetching: xFetching
+  } = useQuery<XStatus>({
+    queryKey: ["/api/x-sentiment/status"],
+    refetchInterval: isActive ? 600000 : false, // Only refetch when active
+    staleTime: 300000,
+    gcTime: 600000,
+    retry: 1,
+    enabled: true, // Always enable for initial load
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('x', error.message || 'Failed to load X sentiment status');
+      } else {
+        setStepComplete('x', 'Social monitoring connected');
+      }
+    }
+  });
+
+  const {
+    data: jamaicaNews,
+    isLoading: newsLoading,
+    error: newsError,
+    refetch: refetchNews,
+    isFetching: newsFetching
+  } = useQuery<NewsResponse>({
+    queryKey: ["/api/news/jamaica-aggregated"],
+    refetchInterval: isActive ? 1800000 : false, // Only refetch when active
+    staleTime: 900000,
+    retry: 2,
+    enabled: true, // Always enable for initial load
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('news', error.message || 'Failed to load news data');
+      } else {
+        setStepComplete('news', 'Jamaica news sources connected');
+      }
+    }
+  });
+
+  const {
+    data: parishData,
+    isLoading: parishLoading,
+    error: parishError,
+    refetch: refetchParish,
+    isFetching: parishFetching
+  } = useQuery<ParishData[]>({
+    queryKey: ["/api/analytics/parishes"],
+    refetchInterval: false, // Never auto-refetch parish data
+    staleTime: 1800000,
+    retry: 1,
+    enabled: true, // Always enable for initial load
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('parish', error.message || 'Failed to load parish data');
+      } else {
+        setStepComplete('parish', 'Parish monitoring data loaded');
+      }
+    }
+  });
+
+  const {
+    data: sentimentData,
+    isLoading: sentimentLoading,
+    error: sentimentError,
+    refetch: refetchSentiment,
+    isFetching: sentimentFetching
+  } = useQuery<SentimentSummary>({
+    queryKey: ["/api/social-monitoring/sentiment"],
+    refetchInterval: isActive ? 600000 : false, // Only refetch when active
+    staleTime: 300000,
+    retry: 1,
+    enabled: true, // Always enable for initial load
+    onSettled: (data, error) => {
+      if (error) {
+        setStepError('sentiment', error.message || 'Failed to load sentiment data');
+      } else {
+        setStepComplete('sentiment', 'Sentiment analysis ready');
+      }
+    }
+  });
+
   // Loading timeout to prevent stuck loading screen
   useEffect(() => {
     if (isInitialLoad) {
@@ -198,124 +368,6 @@ export default function CentralAIHub() {
       });
     }
   }, [toast]);
-
-  useEffect(() => {
-    // Set initial state
-    setIsActive(document.visibilityState === 'visible');
-    if (document.visibilityState === 'visible') {
-      setLastActivation(new Date());
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [handleVisibilityChange]);
-
-  const {
-    data: aiStatus,
-    isLoading: aiLoading,
-    error: aiError,
-    refetch: refetchAI,
-    isFetching: aiFetching
-  } = useQuery<AIStatus>({
-    queryKey: ["/api/central-ai/status"],
-    refetchInterval: isActive ? 300000 : false, // Only refetch when active
-    staleTime: 120000,
-    gcTime: 300000,
-    retry: 1,
-    enabled: isActive, // Only enable when page is active
-    onSettled: (data, error) => {
-      if (error) {
-        setStepError('ai', error.message || 'Failed to load AI status');
-      } else {
-        setStepComplete('ai', 'AI engine connected and operational');
-      }
-    }
-  });
-
-  const {
-    data: xStatus,
-    isLoading: xLoading,
-    error: xError,
-    refetch: refetchX,
-    isFetching: xFetching
-  } = useQuery<XStatus>({
-    queryKey: ["/api/x-sentiment/status"],
-    refetchInterval: isActive ? 600000 : false, // Only refetch when active
-    staleTime: 300000,
-    gcTime: 600000,
-    retry: 1,
-    enabled: isActive, // Only enable when page is active
-    onSettled: (data, error) => {
-      if (error) {
-        setStepError('x', error.message || 'Failed to load X sentiment status');
-      } else {
-        setStepComplete('x', 'Social monitoring connected');
-      }
-    }
-  });
-
-  const {
-    data: jamaicaNews,
-    isLoading: newsLoading,
-    error: newsError,
-    refetch: refetchNews,
-    isFetching: newsFetching
-  } = useQuery<NewsResponse>({
-    queryKey: ["/api/news/jamaica-aggregated"],
-    refetchInterval: isActive ? 1800000 : false, // Only refetch when active
-    staleTime: 900000,
-    retry: 2,
-    enabled: isActive, // Only enable when page is active
-    onSettled: (data, error) => {
-      if (error) {
-        setStepError('news', error.message || 'Failed to load news data');
-      } else {
-        setStepComplete('news', 'Jamaica news sources connected');
-      }
-    }
-  });
-
-  const {
-    data: parishData,
-    isLoading: parishLoading,
-    error: parishError,
-    refetch: refetchParish,
-    isFetching: parishFetching
-  } = useQuery<ParishData[]>({
-    queryKey: ["/api/analytics/parishes"],
-    refetchInterval: false, // Never auto-refetch parish data
-    staleTime: 1800000,
-    retry: 1,
-    enabled: isActive, // Only enable when page is active
-    onSettled: (data, error) => {
-      if (error) {
-        setStepError('parish', error.message || 'Failed to load parish data');
-      } else {
-        setStepComplete('parish', 'Parish monitoring data loaded');
-      }
-    }
-  });
-
-  const {
-    data: sentimentData,
-    isLoading: sentimentLoading,
-    error: sentimentError,
-    refetch: refetchSentiment,
-    isFetching: sentimentFetching
-  } = useQuery<SentimentSummary>({
-    queryKey: ["/api/social-monitoring/sentiment"],
-    refetchInterval: isActive ? 600000 : false, // Only refetch when active
-    staleTime: 300000,
-    retry: 1,
-    enabled: isActive, // Only enable when page is active
-    onSettled: (data, error) => {
-      if (error) {
-        setStepError('sentiment', error.message || 'Failed to load sentiment data');
-      } else {
-        setStepComplete('sentiment', 'Sentiment analysis ready');
-      }
-    }
-  });
 
   const getSentimentColor = useCallback((sentiment: string | number | undefined) => {
     // Handle different sentiment data types
