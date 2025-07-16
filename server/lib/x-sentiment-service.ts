@@ -207,7 +207,8 @@ export class XSentimentService {
         throw new Error('GROK_API_KEY is required for X sentiment monitoring');
       }
       
-      console.log('Starting X monitoring for Jamaica political content with Grok AI...');
+      console.log('🐦 [X SENTIMENT] Starting X monitoring for Jamaica political content with Grok AI...');
+      console.log('🐦 [X SENTIMENT] Monitoring for JLP vs PNP sentiment analysis...');
 
       // Get monitoring configuration
       const config = configId 
@@ -217,6 +218,11 @@ export class XSentimentService {
       if (!config.length) {
         throw new Error('No active monitoring configuration found');
       }
+      
+      console.log(`🐦 [X SENTIMENT] Using config: ${config[0].configName}`);
+      console.log(`🐦 [X SENTIMENT] Keywords: ${config[0].keywords.join(', ')}`);
+      console.log(`🐦 [X SENTIMENT] Target accounts: ${config[0].targetAccounts?.length || 0} accounts`);
+      console.log(`🐦 [X SENTIMENT] Monitor accounts: ${config[0].monitorAccounts?.length || 0} accounts`);
 
       const monitorConfig = config[0];
       
@@ -239,7 +245,11 @@ export class XSentimentService {
 
       // Fetch posts from X API 
       const posts = await this.fetchXPosts(monitorConfig);
-      console.log(`Fetched ${posts.length} posts for analysis`);
+      console.log(`🐦 [X SENTIMENT] Fetched ${posts.length} posts for analysis`);
+      
+      if (posts.length === 0) {
+        console.log(`🐦 [X SENTIMENT] No posts found - using demo data for testing`);
+      }
       
       // Process and analyze posts with batching
       let processedPosts = 0;
@@ -247,24 +257,40 @@ export class XSentimentService {
 
       // Use batch processing to reduce API calls
       const batchSize = 5; // Process 5 posts at a time
+      console.log(`🐦 [X SENTIMENT] Processing posts in batches of ${batchSize}`);
+      
       for (let i = 0; i < posts.length; i += batchSize) {
         const batch = posts.slice(i, i + batchSize);
+        console.log(`🐦 [X SENTIMENT] Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(posts.length/batchSize)}`);
         
         const batchResults = await Promise.all(
-          batch.map(async (post) => {
+          batch.map(async (post, index) => {
             try {
+              console.log(`🐦 [X SENTIMENT] Processing post ${i + index + 1}: "${post.text.substring(0, 50)}..."`);
               const stored = await this.storeXPost(post);
               if (stored) {
+                console.log(`🐦 [X SENTIMENT] Post stored with ID: ${stored.id}`);
                 const analysis = await this.analyzePostSentiment(stored.id);
                 if (analysis) {
+                  console.log(`🐦 [X SENTIMENT] Sentiment analysis completed: ${analysis.overall_sentiment} (${analysis.sentiment_score.toFixed(2)})`);
+                  console.log(`🐦 [X SENTIMENT] JLP sentiment: ${analysis.party_sentiment.jlp_sentiment} (${analysis.party_sentiment.jlp_sentiment_score.toFixed(2)})`);
+                  console.log(`🐦 [X SENTIMENT] PNP sentiment: ${analysis.party_sentiment.pnp_sentiment} (${analysis.party_sentiment.pnp_sentiment_score.toFixed(2)})`);
+                  
                   // Check for alert conditions
                   const alerts = await this.checkAlertConditions(stored.id, analysis, monitorConfig);
+                  if (alerts.length > 0) {
+                    console.log(`🐦 [X SENTIMENT] Generated ${alerts.length} alerts for post ${stored.id}`);
+                  }
                   return { processed: true, alerts: alerts.length };
+                } else {
+                  console.log(`🐦 [X SENTIMENT] Sentiment analysis failed for post ${stored.id}`);
                 }
+              } else {
+                console.log(`🐦 [X SENTIMENT] Failed to store post`);
               }
               return { processed: false, alerts: 0 };
             } catch (error) {
-              console.error('Error processing post:', error);
+              console.error(`🐦 [X SENTIMENT] Error processing post:`, error);
               return { processed: false, alerts: 0 };
             }
           })
@@ -273,8 +299,11 @@ export class XSentimentService {
         processedPosts += batchResults.filter(r => r.processed).length;
         generatedAlerts += batchResults.reduce((sum, r) => sum + r.alerts, 0);
 
+        console.log(`🐦 [X SENTIMENT] Batch ${Math.floor(i/batchSize) + 1} completed: ${batchResults.filter(r => r.processed).length} processed, ${batchResults.reduce((sum, r) => sum + r.alerts, 0)} alerts`);
+
         // Rate limiting between batches
         if (i + batchSize < posts.length) {
+          console.log(`🐦 [X SENTIMENT] Waiting 2 seconds before next batch...`);
           await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
         }
       }
@@ -614,8 +643,15 @@ export class XSentimentService {
     }
 
     try {
+      console.log(`🐦 [GROK API] Calling Grok API for sentiment analysis...`);
+      console.log(`🐦 [GROK API] Content length: ${content.length} characters`);
+      console.log(`🐦 [GROK API] Post context: ${JSON.stringify(postContext, null, 2)}`);
+      
       const prompt = this.buildGrokAnalysisPrompt(content, postContext);
       const optimizedPrompt = this.creditManager.optimizePrompt(prompt, 800);
+      
+      console.log(`🐦 [GROK API] Prompt length: ${prompt.length} characters`);
+      console.log(`🐦 [GROK API] Optimized prompt length: ${optimizedPrompt.length} characters`);
       
       const response = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
@@ -634,6 +670,8 @@ export class XSentimentService {
         })
       });
 
+      console.log(`🐦 [GROK API] Response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
         throw new Error(`Grok API error: ${response.status} - Real sentiment analysis required`);
       }
@@ -645,19 +683,30 @@ export class XSentimentService {
         throw new Error('No analysis received from Grok API');
       }
 
+      console.log(`🐦 [GROK API] Received analysis text: ${content_result.substring(0, 200)}...`);
+
       // Estimate tokens used
       const tokensUsed = Math.ceil((optimizedPrompt.length + content_result.length) / 4);
       this.creditManager.trackUsage('grok', 'callGrokAPI', tokensUsed, true);
 
       // Parse JSON response
       try {
-        return JSON.parse(content_result);
+        const analysis = JSON.parse(content_result);
+        console.log(`🐦 [GROK API] Successfully parsed JSON response`);
+        console.log(`🐦 [GROK API] Overall sentiment: ${analysis.overall_sentiment}`);
+        console.log(`🐦 [GROK API] JLP sentiment: ${analysis.party_sentiment?.jlp_sentiment || 'N/A'}`);
+        console.log(`🐦 [GROK API] PNP sentiment: ${analysis.party_sentiment?.pnp_sentiment || 'N/A'}`);
+        return analysis;
       } catch (parseError) {
+        console.error(`🐦 [GROK API] Failed to parse JSON, trying markdown extraction...`);
         // Extract JSON from response if wrapped in markdown
         const jsonMatch = content_result.match(/```json\s*(.*?)\s*```/s);
         if (jsonMatch) {
-          return JSON.parse(jsonMatch[1]);
+          const analysis = JSON.parse(jsonMatch[1]);
+          console.log(`🐦 [GROK API] Successfully parsed JSON from markdown`);
+          return analysis;
         } else {
+          console.error(`🐦 [GROK API] Unable to parse sentiment analysis from Grok response`);
           throw new Error('Unable to parse sentiment analysis from Grok response');
         }
       }

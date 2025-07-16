@@ -160,41 +160,60 @@ export class JamaicaNewsAggregator {
 
   // Main aggregation method
   async aggregateAllSources(): Promise<ProcessedArticle[]> {
-    console.log('Starting comprehensive Jamaica news aggregation...');
+    console.log('📰 [AGGREGATOR] Starting comprehensive Jamaica news aggregation...');
+    console.log('📰 [AGGREGATOR] Focus: Jamaican political news only (JLP vs PNP)');
+    console.log('📰 [AGGREGATOR] Filtering: Excluding KFC, sports, weather, entertainment, etc.');
     
     const allArticles: ProcessedArticle[] = [];
     
     // Fetch from RSS feeds
+    console.log(`📰 [AGGREGATOR] Fetching from ${this.sources.filter(s => s.isActive && s.type === 'rss').length} RSS sources...`);
     for (const source of this.sources.filter(s => s.isActive && s.type === 'rss')) {
       try {
+        console.log(`📰 [AGGREGATOR] Fetching RSS from: ${source.name}`);
         const articles = await this.fetchFromRSSSource(source);
+        console.log(`📰 [AGGREGATOR] Got ${articles.length} articles from ${source.name}`);
         allArticles.push(...articles);
       } catch (error) {
-        console.error(`Failed to fetch from ${source.name}:`, error);
+        console.error(`📰 [AGGREGATOR] Failed to fetch from ${source.name}:`, error);
       }
     }
 
     // Fetch from website sources
+    console.log(`📰 [AGGREGATOR] Fetching from ${this.sources.filter(s => s.isActive && s.type === 'website').length} website sources...`);
     for (const source of this.sources.filter(s => s.isActive && s.type === 'website')) {
       try {
+        console.log(`📰 [AGGREGATOR] Fetching website from: ${source.name}`);
         const articles = await this.fetchFromWebsiteSource(source);
+        console.log(`📰 [AGGREGATOR] Got ${articles.length} articles from ${source.name}`);
         allArticles.push(...articles);
       } catch (error) {
-        console.error(`Failed to fetch from ${source.name}:`, error);
+        console.error(`📰 [AGGREGATOR] Failed to fetch from ${source.name}:`, error);
       }
     }
 
+    console.log(`📰 [AGGREGATOR] Total articles collected: ${allArticles.length}`);
+    
     // Remove duplicates and score articles
     const uniqueArticles = await this.deduplicateAndScore(allArticles);
+    console.log(`📰 [AGGREGATOR] After deduplication: ${uniqueArticles.length} articles`);
     
     // Sort by relevance and recency
-    return uniqueArticles.sort((a, b) => {
+    const sortedArticles = uniqueArticles.sort((a, b) => {
       const scoreWeight = 0.7;
       const timeWeight = 0.3;
       const aScore = (a.relevanceScore * scoreWeight) + (this.getRecencyScore(a.publishedAt) * timeWeight);
       const bScore = (b.relevanceScore * scoreWeight) + (this.getRecencyScore(b.publishedAt) * timeWeight);
       return bScore - aScore;
     });
+    
+    console.log(`📰 [AGGREGATOR] Final result: ${sortedArticles.length} relevant Jamaican political articles`);
+    console.log(`📰 [AGGREGATOR] Top articles:`);
+    sortedArticles.slice(0, 3).forEach((article, index) => {
+      console.log(`  ${index + 1}. "${article.title}" (Score: ${article.relevanceScore.toFixed(2)})`);
+    });
+    
+    return sortedArticles;
   }
 
   private async fetchFromRSSSource(source: NewsSource): Promise<ProcessedArticle[]> {
@@ -536,6 +555,9 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       // More specific query focused on Jamaican political news only
       const url = `https://newsapi.org/v2/everything?q=Jamaica AND (JLP OR PNP OR "Andrew Holness" OR "Mark Golding" OR "Jamaica Labour Party" OR "People's National Party" OR "Jamaica election" OR "Jamaica politics" OR "Jamaica government" OR "Jamaica parliament" OR "Jamaica constituency" OR "Jamaica MP" OR "Jamaica candidate")&language=en&sortBy=publishedAt&pageSize=50&apiKey=${this.newsApiKey}`;
       
+      console.log(`🌐 [NEWSAPI] Fetching from URL: ${url.replace(this.newsApiKey, '***API_KEY_HIDDEN***')}`);
+      console.log(`🌐 [NEWSAPI] Query: Jamaica AND (JLP OR PNP OR "Andrew Holness" OR "Mark Golding" OR "Jamaica Labour Party" OR "People's National Party" OR "Jamaica election" OR "Jamaica politics" OR "Jamaica government" OR "Jamaica parliament" OR "Jamaica constituency" OR "Jamaica MP" OR "Jamaica candidate")`);
+      
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'CAFFE Electoral Observer Bot 1.0'
@@ -551,7 +573,17 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       const articles: ProcessedArticle[] = [];
 
       if (data.articles) {
+        console.log(`📰 [NEWSAPI] Received ${data.articles.length} articles from NewsAPI`);
+        console.log(`📰 [NEWSAPI] Processing first 20 articles...`);
+        
+        let processedCount = 0;
+        let filteredCount = 0;
+        
         for (const article of data.articles.slice(0, 20)) {
+          console.log(`\n📰 [NEWSAPI] Processing article ${processedCount + 1}/20:`);
+          console.log(`📰 [NEWSAPI] Title: "${article.title}"`);
+          console.log(`📰 [NEWSAPI] Source: ${article.source?.name || 'Unknown'}`);
+          
           // Enhanced filtering to exclude irrelevant content
           if (article.title && article.url && 
               !article.title.includes('[Removed]') &&
@@ -590,8 +622,19 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
             }
             
             articles.push(processedArticle);
+            processedCount++;
+            console.log(`✅ [NEWSAPI] Article ${processedCount} ACCEPTED and processed`);
+          } else {
+            filteredCount++;
+            console.log(`❌ [NEWSAPI] Article ${processedCount + 1} FILTERED OUT`);
           }
         }
+        
+        console.log(`\n📊 [NEWSAPI] SUMMARY:`);
+        console.log(`📊 [NEWSAPI] Total articles received: ${data.articles.length}`);
+        console.log(`📊 [NEWSAPI] Articles processed: ${processedCount}`);
+        console.log(`📊 [NEWSAPI] Articles filtered out: ${filteredCount}`);
+        console.log(`📊 [NEWSAPI] Final articles returned: ${articles.length}`);
       }
 
       console.log(`NewsAPI returned ${articles.length} Jamaica articles with Gemini AI analysis`);
@@ -733,10 +776,15 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
   private isRelevantJamaicanPoliticalContent(title: string, description: string): boolean {
     const content = (title + ' ' + description).toLowerCase();
     
+    console.log(`🔍 [NEWS FILTER] Analyzing: "${title}"`);
+    console.log(`🔍 [NEWS FILTER] Description: "${description}"`);
+    
     // Must contain Jamaica or Jamaican
     if (!content.includes('jamaica') && !content.includes('jamaican')) {
+      console.log(`❌ [NEWS FILTER] REJECTED: No Jamaica/Jamaican mention`);
       return false;
     }
+    console.log(`✅ [NEWS FILTER] PASSED: Contains Jamaica/Jamaican`);
     
     // Must contain political keywords
     const politicalKeywords = [
@@ -746,13 +794,16 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       'vote', 'voting', 'campaign', 'manifesto', 'policy', 'budget', 'economy'
     ];
     
-    const hasPoliticalContent = politicalKeywords.some(keyword => 
+    const foundPoliticalKeywords = politicalKeywords.filter(keyword => 
       content.includes(keyword.toLowerCase())
     );
     
-    if (!hasPoliticalContent) {
+    if (foundPoliticalKeywords.length === 0) {
+      console.log(`❌ [NEWS FILTER] REJECTED: No political keywords found`);
+      console.log(`🔍 [NEWS FILTER] Searched for: ${politicalKeywords.join(', ')}`);
       return false;
     }
+    console.log(`✅ [NEWS FILTER] PASSED: Found political keywords: ${foundPoliticalKeywords.join(', ')}`);
     
     // Exclude irrelevant content
     const excludeKeywords = [
@@ -762,10 +813,16 @@ Respond in JSON format with: summary, keyPoints (array), actionRequired (boolean
       'weather', 'hurricane', 'earthquake', 'natural disaster'
     ];
     
-    const hasExcludedContent = excludeKeywords.some(keyword => 
+    const foundExcludeKeywords = excludeKeywords.filter(keyword => 
       content.includes(keyword.toLowerCase())
     );
     
-    return !hasExcludedContent;
+    if (foundExcludeKeywords.length > 0) {
+      console.log(`❌ [NEWS FILTER] REJECTED: Found excluded keywords: ${foundExcludeKeywords.join(', ')}`);
+      return false;
+    }
+    
+    console.log(`✅ [NEWS FILTER] FINAL RESULT: ACCEPTED - Relevant Jamaican political content`);
+    return true;
   }
 }

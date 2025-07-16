@@ -422,8 +422,12 @@ Return JSON: {
     try {
       const items = [];
       
+      console.log(`🌐 [SOCIAL NEWSAPI] Starting NewsAPI fetch for social monitoring...`);
+      
       // Search for Jamaica-specific election news with extended time range
       const jamaicaQuery = `Jamaica AND (JLP OR PNP OR "Andrew Holness" OR "Mark Golding" OR "Jamaica Labour Party" OR "People's National Party" OR "Jamaica election" OR "Jamaica politics" OR "Jamaica government" OR "Jamaica parliament" OR "Jamaica constituency" OR "Jamaica MP" OR "Jamaica candidate")`;
+      
+      console.log(`🌐 [SOCIAL NEWSAPI] Jamaica Query: ${jamaicaQuery}`);
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
@@ -438,9 +442,14 @@ Return JSON: {
 
       if (jamaicaResponse.ok) {
         const jamaicaData = await jamaicaResponse.json();
+        console.log(`📰 [SOCIAL NEWSAPI] Jamaica response received: ${jamaicaData.articles?.length || 0} articles`);
         if (jamaicaData.articles) {
-          items.push(...this.processNewsAPIArticles(jamaicaData.articles, 'NewsAPI Global'));
+          const processedArticles = this.processNewsAPIArticles(jamaicaData.articles, 'NewsAPI Global');
+          console.log(`📰 [SOCIAL NEWSAPI] Jamaica articles processed: ${processedArticles.length} relevant articles`);
+          items.push(...processedArticles);
         }
+      } else {
+        console.log(`❌ [SOCIAL NEWSAPI] Jamaica response failed: ${jamaicaResponse.status} ${jamaicaResponse.statusText}`);
       }
 
       // Search Caribbean news sources for Jamaica election coverage with broader terms
@@ -488,10 +497,15 @@ Return JSON: {
   }
 
   private processNewsAPIArticles(articles: any[], source: string): any[] {
-    return articles
+    console.log(`🔍 [SOCIAL PROCESS] Processing ${articles.length} articles from ${source}`);
+    
+    const filteredArticles = articles
       .filter(article => article.title && article.description)
-      .filter(article => this.isRelevantJamaicanPoliticalContent(article.title, article.description || ''))
-      .map((article, index) => {
+      .filter(article => this.isRelevantJamaicanPoliticalContent(article.title, article.description || ''));
+    
+    console.log(`🔍 [SOCIAL PROCESS] After filtering: ${filteredArticles.length} relevant articles`);
+    
+    return filteredArticles.map((article, index) => {
         const content = `${article.title} ${article.description || ''} ${article.content || ''}`;
         const detectedParish = this.jamaicaParishes.find(parish => 
           content.toLowerCase().includes(parish.toLowerCase())
@@ -538,10 +552,15 @@ Return JSON: {
   private isRelevantJamaicanPoliticalContent(title: string, description: string): boolean {
     const content = (title + ' ' + description).toLowerCase();
     
+    console.log(`🔍 [SOCIAL FILTER] Analyzing: "${title}"`);
+    console.log(`🔍 [SOCIAL FILTER] Description: "${description}"`);
+    
     // Must contain Jamaica or Jamaican
     if (!content.includes('jamaica') && !content.includes('jamaican')) {
+      console.log(`❌ [SOCIAL FILTER] REJECTED: No Jamaica/Jamaican mention`);
       return false;
     }
+    console.log(`✅ [SOCIAL FILTER] PASSED: Contains Jamaica/Jamaican`);
     
     // Must contain political keywords
     const politicalKeywords = [
@@ -551,13 +570,16 @@ Return JSON: {
       'vote', 'voting', 'campaign', 'manifesto', 'policy', 'budget', 'economy'
     ];
     
-    const hasPoliticalContent = politicalKeywords.some(keyword => 
+    const foundPoliticalKeywords = politicalKeywords.filter(keyword => 
       content.includes(keyword.toLowerCase())
     );
     
-    if (!hasPoliticalContent) {
+    if (foundPoliticalKeywords.length === 0) {
+      console.log(`❌ [SOCIAL FILTER] REJECTED: No political keywords found`);
+      console.log(`🔍 [SOCIAL FILTER] Searched for: ${politicalKeywords.join(', ')}`);
       return false;
     }
+    console.log(`✅ [SOCIAL FILTER] PASSED: Found political keywords: ${foundPoliticalKeywords.join(', ')}`);
     
     // Exclude irrelevant content
     const excludeKeywords = [
@@ -567,11 +589,17 @@ Return JSON: {
       'weather', 'hurricane', 'earthquake', 'natural disaster'
     ];
     
-    const hasExcludedContent = excludeKeywords.some(keyword => 
+    const foundExcludeKeywords = excludeKeywords.filter(keyword => 
       content.includes(keyword.toLowerCase())
     );
     
-    return !hasExcludedContent;
+    if (foundExcludeKeywords.length > 0) {
+      console.log(`❌ [SOCIAL FILTER] REJECTED: Found excluded keywords: ${foundExcludeKeywords.join(', ')}`);
+      return false;
+    }
+    
+    console.log(`✅ [SOCIAL FILTER] FINAL RESULT: ACCEPTED - Relevant Jamaican political content`);
+    return true;
   }
 
   private async fetchFromObserver(searchTerms: string[]): Promise<any[]> {
