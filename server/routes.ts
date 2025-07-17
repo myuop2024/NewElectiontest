@@ -1407,21 +1407,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const socialMonitoring = new SocialMonitoringService(geminiKey);
       const sentimentReport = await socialMonitoring.generateSentimentReport();
       
-      // Get data source statistics
-      const timeThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
+      // Get data source statistics with error handling
+      let xPostsCount = 0;
+      let lastAnalysisDate = new Date().toISOString();
       
-      const xPosts = await db.select({ count: sql`count(*)` })
-        .from(xSocialPosts)
-        .where(gte(xSocialPosts.createdAt, timeThreshold))
-        .execute();
+      try {
+        const timeThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
+        
+        const xPosts = await db.select({ count: sql`count(*)` })
+          .from(xSocialPosts)
+          .where(gte(xSocialPosts.createdAt, timeThreshold));
 
-      const lastAnalysis = await db.select({ 
-        createdAt: xSentimentAnalysis.createdAt 
-      })
-      .from(xSentimentAnalysis)
-      .orderBy(desc(xSentimentAnalysis.createdAt))
-      .limit(1)
-      .execute();
+        xPostsCount = xPosts[0]?.count || 0;
+
+        const lastAnalysis = await db.select({ 
+          createdAt: xSentimentAnalysis.createdAt 
+        })
+        .from(xSentimentAnalysis)
+        .orderBy(desc(xSentimentAnalysis.createdAt))
+        .limit(1);
+
+        lastAnalysisDate = lastAnalysis[0]?.createdAt || new Date().toISOString();
+      } catch (dbError) {
+        console.error('Database query error in sentiment endpoint:', dbError);
+        // Continue with default values
+      }
 
       res.json({
         overall_sentiment: sentimentReport.overall_sentiment?.average_sentiment || 0.5,
@@ -1440,8 +1450,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data_sources: [
           {
             platform: 'X (Twitter)',
-            count: xPosts[0]?.count || 0,
-            lastUpdate: lastAnalysis[0]?.createdAt || new Date().toISOString()
+            count: xPostsCount,
+            lastUpdate: lastAnalysisDate
           },
           {
             platform: 'News Aggregation',
@@ -1449,7 +1459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastUpdate: new Date().toISOString()
           }
         ],
-        last_analysis: lastAnalysis[0]?.createdAt || new Date().toISOString(),
+        last_analysis: lastAnalysisDate,
         monitoring_scope: 'Jamaica Elections',
         parishes_covered: [
           'Kingston', 'St. Andrew', 'St. Thomas', 'Portland', 'St. Mary', 'St. Ann',

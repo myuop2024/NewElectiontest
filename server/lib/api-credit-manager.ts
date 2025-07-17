@@ -182,22 +182,58 @@ export class APICreditManager {
     return results;
   }
 
-  // Smart caching for frequently requested data
   async getCachedOrFetch<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    ttlMinutes: number = 30
+    cacheKey: string, 
+    fetchFunction: () => Promise<T>, 
+    cacheMinutes: number = 10
   ): Promise<T> {
-    const cached = this.getCachedData(key);
-    if (cached) {
-      console.log(`Cache hit for key: ${key}`);
-      return cached;
-    }
+    try {
+      // Check cache first
+      const cached = this.cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < cacheMinutes * 60 * 1000) {
+        console.log(`Cache hit for key: ${cacheKey}`);
+        return cached.data;
+      }
 
-    console.log(`Cache miss for key: ${key}, fetching fresh data`);
-    const data = await fetcher();
-    this.setCachedData(key, data, ttlMinutes);
-    return data;
+      console.log(`Cache miss for key: ${cacheKey}, fetching fresh data`);
+
+      const result = await fetchFunction();
+
+      // Cache the result safely
+      if (result !== undefined && result !== null) {
+        this.cache.set(cacheKey, {
+          data: result,
+          timestamp: Date.now()
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`Error in getCachedOrFetch for key ${cacheKey}:`, error);
+
+      // Return stale cache if available
+      const staleCache = this.cache.get(cacheKey);
+      if (staleCache) {
+        console.log(`Returning stale cache for key: ${cacheKey}`);
+        return staleCache.data;
+      }
+
+      // Create a safe fallback result based on the expected type
+      if (cacheKey.includes('sentiment')) {
+        return {
+          overall_sentiment: 'neutral',
+          confidence: 0.1,
+          key_issues: [],
+          election_relevance: 0.1,
+          geographic_focus: ['Jamaica'],
+          concerns: ['Service temporarily unavailable'],
+          positive_indicators: [],
+          risk_level: 'low'
+        } as T;
+      }
+
+      throw error;
+    }
   }
 
   // Rate limiting
@@ -273,4 +309,4 @@ export class APICreditManager {
 
     return false;
   }
-} 
+}

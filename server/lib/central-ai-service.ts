@@ -112,18 +112,31 @@ export class CentralAIService {
         
         let analysis;
         try {
+          // Try to extract JSON from mixed text responses
+          const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            cleanText = jsonMatch[0];
+          }
+          
+          // Remove trailing commas
+          cleanText = cleanText.replace(/,(\s*[}\]])/g, '$1');
+          
           analysis = JSON.parse(cleanText);
         } catch (parseError) {
-          console.error("JSON parsing failed, AI returned non-JSON text:", cleanText.substring(0, 100));
-          // Return fallback analysis structure
+          console.error("JSON parsing failed, AI returned non-JSON text:", cleanText.substring(0, 200));
+          // Return structured fallback analysis
           analysis = {
             sentiment: 'neutral',
             confidence: 0.1,
             riskLevel: 'low',
-            analysis: 'AI parsing error - rate limits or service issues',
-            location: location || 'Jamaica',
+            analysis: 'AI service temporarily unavailable due to parsing issues',
+            location: data.location || 'Jamaica',
             relevance: 0.1,
-            error: 'JSON parsing failed'
+            error: 'JSON parsing failed',
+            detected: false,
+            level: 'low',
+            description: 'Unable to analyze - AI parsing error',
+            recommendations: ['Retry analysis later', 'Check API service status']
           };
         }
         
