@@ -67,7 +67,7 @@ const adminNavigationGroups = [
     title: "Analytics & Intelligence",
     items: [
       { name: 'Central AI Hub', href: '/central-ai-hub', icon: Brain },
-      { name: 'Analytics Dashboard', href: '/analytics', icon: BarChart3 },
+      { name: 'Electoral Analytics', href: '/analytics', icon: BarChart3 },
       { name: 'Monitoring Config', href: '/monitoring-config', icon: Activity },
     ]
   },
@@ -75,7 +75,7 @@ const adminNavigationGroups = [
     title: "Configuration",
     items: [
       { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
-      { name: 'System Settings', href: '/admin/didit-settings', icon: Settings },
+      { name: 'System Settings', href: '/admin-settings', icon: Settings },
       { name: 'Data Integration', href: '/sheets-integration', icon: FileSpreadsheet },
     ]
   },

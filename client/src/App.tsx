@@ -28,8 +28,9 @@ import EmergencyAlert from "@/pages/emergency-alert";
 import Settings from "@/pages/settings";
 import UnifiedAdmin from "@/pages/unified-admin";
 import AdminPanel from "@/pages/admin-panel";
-import AdminSettings from "@/pages/AdminSettings";
-import AdminDiditSettings from "@/pages/AdminDiditSettings"; // Import new page
+import AdminSettings from "@/pages/admin-settings";
+
+
 import IncidentReporting from "@/pages/incident-reporting";
 import ObserverAssignments from "@/pages/observer-assignments";
 import RealTimeAnalytics from "@/pages/real-time-analytics";
@@ -41,13 +42,14 @@ import LocationTracking from "@/pages/location-tracking";
 import AIIncidentClassifier from "@/pages/ai-incident-classifier";
 import EmergencyManagement from "@/pages/emergency-management";
 import PollingStationManagement from "@/pages/polling-station-management";
-import CentralAIIntelligence from "@/pages/central-ai-intelligence";
+
 import WeatherDashboard from "@/pages/weather-dashboard";
 import TrafficMonitoring from "@/pages/traffic-monitoring";
 import ParishHeatMapNew from "@/pages/parish-heat-map-new";
 import XSentimentDashboard from "@/pages/x-sentiment-dashboard";
 import CentralAIHub from "@/pages/central-ai-hub";
 import MonitoringConfig from "@/pages/monitoring-config";
+import ComprehensiveAnalytics from "@/pages/comprehensive-analytics";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -137,7 +139,7 @@ function Router() {
 
       <Route path="/analytics">
         <ProtectedLayout>
-          <Analytics />
+          <ComprehensiveAnalytics />
         </ProtectedLayout>
       </Route>
       <Route path="/check-in">
@@ -175,12 +177,8 @@ function Router() {
           <AdminSettings />
         </ProtectedLayout>
       </Route>
-      {/* New Route for Didit Settings */}
-      <Route path="/admin/didit-settings">
-        <ProtectedLayout>
-          <AdminDiditSettings />
-        </ProtectedLayout>
-      </Route>
+
+
 
       <Route path="/polling-station-management">
         <ProtectedLayout>
@@ -232,11 +230,7 @@ function Router() {
           <AIIncidentClassifier />
         </ProtectedLayout>
       </Route>
-      <Route path="/central-ai-intelligence">
-        <ProtectedLayout>
-          <CentralAIIntelligence />
-        </ProtectedLayout>
-      </Route>
+
       <Route path="/weather-dashboard">
         <ProtectedLayout>
           <WeatherDashboard />
