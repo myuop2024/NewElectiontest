@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, TrendingUp, Download, Calendar, Filter } from "lucide-react";
+import { BarChart3, TrendingUp, Download, Calendar, Filter, MapPin } from "lucide-react";
 import MetricsOverview from "@/components/analytics/metrics-overview";
 import Charts from "@/components/analytics/charts";
+import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("24h");
@@ -22,6 +24,8 @@ export default function Analytics() {
   const { data: stations, isLoading: stationsLoading } = useQuery({
     queryKey: ["/api/polling-stations"],
   });
+
+  const [selectedStation, setSelectedStation] = useState<any>(null);
 
   const exportData = () => {
     // In a real implementation, this would generate and download analytics report
@@ -110,12 +114,42 @@ export default function Analytics() {
       />
 
       {/* Charts and Visualizations */}
-      <Charts 
+      <Charts
         reports={reports || []}
         stations={stations || []}
         timeRange={timeRange}
         reportType={reportType}
       />
+
+      {/* Polling Stations Map */}
+      <Card className="government-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Polling Stations Map
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[500px] w-full">
+            <PollingStationsHeatMap
+              stations={stations || []}
+              selectedStation={selectedStation}
+              onStationSelect={setSelectedStation}
+            />
+          </div>
+          {selectedStation && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold">{selectedStation.stationCode}</h4>
+              <p className="text-sm text-muted-foreground">{selectedStation.address}</p>
+              <p className="text-sm mt-2">
+                <Badge variant={selectedStation.isActive ? 'default' : 'secondary'}>
+                  {selectedStation.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* AI Insights */}
       <Card className="government-card">
