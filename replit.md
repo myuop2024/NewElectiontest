@@ -233,6 +233,26 @@ The system analyzes traffic conditions for their impact on electoral activities:
 **Access Control**: The X sentiment monitoring, historical import, and Central AI Hub features require admin authentication.
 
 ## Changelog
+- January 16, 2025: **MAJOR CONSOLIDATION**: Comprehensive Electoral Platform Audit and Optimization
+  - **CRITICAL CRASH FIX**: Fixed app crashes caused by unhandled promise rejections in analytics queries
+  - **DUPLICATE REMOVAL**: Removed redundant pages: `central-ai-intelligence.tsx`, `AdminSettings.tsx`, `AdminDiditSettings.tsx`
+  - **ANALYTICS CONSOLIDATION**: Created unified `comprehensive-analytics.tsx` replacing 4 separate analytics dashboards
+  - **NEW API ENDPOINT**: Added `/api/analytics/comprehensive` with real electoral data aggregation
+  - **NAVIGATION STREAMLINING**: Updated sidebar to use consolidated analytics dashboard
+  - **ERROR HANDLING**: Added robust error handling and retry logic to prevent crashes
+  - **ROUTE CLEANUP**: Removed broken imports and routes, streamlined App.tsx routing
+  - **SYSTEM OPTIMIZATION**: Reduced from 43 pages to more logical structure with consolidated functionality
+  - **PLATFORM STABILITY**: Fixed WebSocket disconnection issues and unhandled rejection errors
+  - **PERFORMANCE IMPROVEMENT**: Eliminated redundant API calls and improved query efficiency
+  - **USER EXPERIENCE**: Single comprehensive electoral analytics hub with 5 tabbed sections:
+    - Overview: Real-time observer and incident metrics
+    - Incidents: Detailed incident analytics by type and parish
+    - Training: Training completion and certification metrics
+    - AI Insights: AI-powered electoral recommendations
+    - Real-time: Live system status and monitoring coverage
+  - **DATA INTEGRITY**: All analytics use authentic electoral data from PostgreSQL database
+  - **ARCHITECTURAL IMPROVEMENT**: Consolidated 4 analytics pages into 1 comprehensive dashboard
+  - **ELECTORAL FOCUS**: Enhanced focus on core electoral observation functions
 - July 15, 2025: Comprehensive Jamaica Monitoring Settings System Implementation
   - **MAJOR FEATURE**: Complete customizable monitoring settings management in Central AI Hub
   - **COMPREHENSIVE POLITICAL DATABASE**: Created extensive Jamaica political data including all JLP/PNP leaders, MPs, senators, and candidates

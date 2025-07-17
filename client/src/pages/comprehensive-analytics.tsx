@@ -52,29 +52,16 @@ export default function ComprehensiveAnalytics() {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Real-time analytics data
-  const { data: analytics, isLoading: analyticsLoading, refetch: refetchAnalytics } = useQuery<AnalyticsData>({
+  // Real-time analytics data with error handling
+  const { data: analytics, isLoading: analyticsLoading, refetch: refetchAnalytics, error } = useQuery<AnalyticsData>({
     queryKey: ["/api/analytics/comprehensive"],
-    refetchInterval: 30000 // Refresh every 30 seconds for real-time data
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time data
+    retry: 1, // Only retry once to avoid infinite loops
+    refetchOnWindowFocus: false // Prevent automatic refetch on focus
   });
 
-  // Election-specific metrics
-  const { data: electionMetrics, isLoading: electionLoading } = useQuery({
-    queryKey: ["/api/analytics/election-metrics"],
-    refetchInterval: 60000
-  });
-
-  // Training analytics
-  const { data: trainingData, isLoading: trainingLoading } = useQuery({
-    queryKey: ["/api/training/analytics"],
-    refetchInterval: 300000 // Refresh every 5 minutes
-  });
-
-  // AI-powered insights
-  const { data: aiInsights, isLoading: aiLoading } = useQuery({
-    queryKey: ["/api/central-ai/insights"],
-    refetchInterval: 120000 // Refresh every 2 minutes
-  });
+  // Simplified - use only the comprehensive endpoint to avoid multiple API calls
+  // Remove non-existent endpoints that cause crashes
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
@@ -85,7 +72,7 @@ export default function ComprehensiveAnalytics() {
     setRefreshing(false);
   };
 
-  if (analyticsLoading || electionLoading || trainingLoading || aiLoading) {
+  if (analyticsLoading) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -97,6 +84,25 @@ export default function ComprehensiveAnalytics() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Electoral Analytics Hub</h1>
+            <p className="text-muted-foreground">Comprehensive electoral observation insights</p>
+          </div>
+        </div>
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to load analytics data. Please check your connection and try again.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
