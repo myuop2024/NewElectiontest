@@ -20,6 +20,8 @@ import {
   Eye,
   Download
 } from "lucide-react";
+import SimpleHeatMap from "@/components/maps/simple-heat-map";
+import { toast } from "@/hooks/use-toast";
 
 interface AnalyticsData {
   realTimeMetrics: {
@@ -51,13 +53,29 @@ interface AnalyticsData {
 export default function ComprehensiveAnalytics() {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedStation, setSelectedStation] = useState<any>(null);
 
   // Real-time analytics data with error handling
   const { data: analytics, isLoading: analyticsLoading, refetch: refetchAnalytics, error } = useQuery<AnalyticsData>({
     queryKey: ["/api/analytics/comprehensive"],
     refetchInterval: 30000, // Refresh every 30 seconds for real-time data
     retry: 1, // Only retry once to avoid infinite loops
-    refetchOnWindowFocus: false // Prevent automatic refetch on focus
+    refetchOnWindowFocus: false, // Prevent automatic refetch on focus
+    onError: (error: any) => {
+      console.error('Analytics fetch error:', error);
+      toast({
+        title: "Error loading analytics",
+        description: "Unable to fetch analytics data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Fetch stations data for the map
+  const { data: stations = [], isLoading: stationsLoading } = useQuery<any[]>({
+    queryKey: ["/api/polling-stations"],
+    retry: 1,
+    refetchOnWindowFocus: false
   });
 
   // Simplified - use only the comprehensive endpoint to avoid multiple API calls
@@ -65,14 +83,27 @@ export default function ComprehensiveAnalytics() {
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
-    await Promise.all([
-      refetchAnalytics(),
-      // Add other refetch calls as needed
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        refetchAnalytics(),
+        // Add other refetch calls as needed
+      ]);
+      toast({
+        title: "Data refreshed",
+        description: "Analytics data has been updated successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Unable to refresh data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  if (analyticsLoading) {
+  if (analyticsLoading || stationsLoading) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -100,9 +131,63 @@ export default function ComprehensiveAnalytics() {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Unable to load analytics data. Please check your connection and try again.
+            Unable to load analytics data. Showing demo data mode.
           </AlertDescription>
         </Alert>
+        
+        {/* Show basic UI with demo data */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Observers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+              <p className="text-xs text-muted-foreground">Data unavailable</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Incidents Today</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+              <p className="text-xs text-muted-foreground">Data unavailable</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Stations Monitored</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+              <p className="text-xs text-muted-foreground">Data unavailable</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">--</div>
+              <p className="text-xs text-muted-foreground">Data unavailable</p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="flex justify-center">
+          <Button onClick={() => window.location.reload()} className="btn-caffe-primary">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry Loading
+          </Button>
+        </div>
       </div>
     );
   }
@@ -462,6 +547,37 @@ export default function ComprehensiveAnalytics() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Station Coverage Map */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Station Coverage Map
+              </CardTitle>
+              <CardDescription>Real-time visualization of monitored polling stations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[500px] w-full">
+                <SimpleHeatMap 
+                  stations={stations}
+                  selectedStation={selectedStation}
+                  onStationSelect={setSelectedStation}
+                />
+              </div>
+              {selectedStation && (
+                <div className="mt-4 p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold">{selectedStation.stationCode}</h4>
+                  <p className="text-sm text-muted-foreground">{selectedStation.address}</p>
+                  <p className="text-sm mt-2">
+                    <Badge variant={selectedStation.isActive ? "default" : "secondary"}>
+                      {selectedStation.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
