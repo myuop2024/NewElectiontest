@@ -39,10 +39,13 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const { toast } = useToast();
+  const { data: hereSettings } = useQuery({
+    queryKey: ['/api/settings/here-api'],
+  });
 
   // Initialize HERE Maps
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !hereSettings?.apiKey) return;
 
     const initializeMap = () => {
       const H = (window as any).H;
@@ -51,11 +54,11 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         return;
       }
 
-      const platform = new H.service.Platform({
-        'apikey': import.meta.env.VITE_HERE_API_KEY || 'demo-key'
+      const platformInstance = new H.service.Platform({
+        apikey: hereSettings.apiKey
       });
 
-      const defaultLayers = platform.createDefaultLayers();
+      const defaultLayers = platformInstance.createDefaultLayers();
       const map = new H.Map(
         mapRef.current,
         defaultLayers.vector.normal.map,
@@ -65,11 +68,11 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         }
       );
 
-      const behavior = new H.mapevents.Behavior();
+      const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
       const ui = new H.ui.UI.createDefault(map);
 
       setMap(map);
-      setPlatform(platform);
+      setPlatform(platformInstance);
       setIsLoading(false);
 
       // Initialize overlays
@@ -139,32 +142,41 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       setOverlays(heatMapOverlays);
     };
 
-    const script = document.createElement('script');
-    script.src = 'https://js.api.here.com/v3/3.1/mapsjs-core.js';
-    script.onload = () => {
-      const script2 = document.createElement('script');
-      script2.src = 'https://js.api.here.com/v3/3.1/mapsjs-service.js';
-      script2.onload = () => {
-        const script3 = document.createElement('script');
-        script3.src = 'https://js.api.here.com/v3/3.1/mapsjs-ui.js';
-        script3.onload = () => {
-          const script4 = document.createElement('script');
-          script4.src = 'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js';
-          script4.onload = initializeMap;
-          document.head.appendChild(script4);
-        };
-        document.head.appendChild(script3);
-      };
-      document.head.appendChild(script2);
+    if (!document.querySelector('link[href*="mapsjs-ui.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://js.api.here.com/v3/3.1/mapsjs-ui.css';
+      document.head.appendChild(link);
+    }
+
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = false;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
     };
-    document.head.appendChild(script);
+
+    loadScript('https://js.api.here.com/v3/3.1/mapsjs-core.js')
+      .then(() => loadScript('https://js.api.here.com/v3/3.1/mapsjs-service.js'))
+      .then(() => loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js'))
+      .then(() => loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'))
+      .then(initializeMap)
+      .catch(err => console.error('Failed to load HERE Maps API:', err));
 
     return () => {
       if (map) {
         map.dispose();
       }
     };
-  }, []);
+  }, [hereSettings]);
 
   // Create heat map markers with overlay data
   const createHeatMapMarkers = async () => {
@@ -325,6 +337,32 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       description: "Refreshed all overlay data"
     });
   };
+
+  if (!hereSettings) {
+    return (
+      <Card className="government-card">
+        <CardContent className="p-8">
+          <div className="flex items-center justify-center space-x-2">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+            <span>Loading heat map...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hereSettings.configured || !hereSettings.apiKey) {
+    return (
+      <Card className="government-card">
+        <CardContent className="p-6 text-center space-y-2">
+          <p className="font-semibold">HERE Maps Not Configured</p>
+          <p className="text-sm text-muted-foreground">
+            Please configure the HERE Maps API key in Admin Settings to view this map.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
