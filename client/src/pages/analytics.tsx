@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, TrendingUp, Download, Calendar, Filter, MapPin } from "lucide-react";
 import MetricsOverview from "@/components/analytics/metrics-overview";
 import Charts from "@/components/analytics/charts";
@@ -12,6 +12,7 @@ import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map"
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("24h");
   const [reportType, setReportType] = useState("all");
+  const queryClient = useQueryClient();
 
   const { data: dashboardStats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
@@ -25,6 +26,10 @@ export default function Analytics() {
     queryKey: ["/api/polling-stations"],
   });
 
+  const { data: heatMapData, isLoading: heatMapLoading, refetch: refetchHeatMapData } = useQuery({
+    queryKey: ["/api/maps/heatmap-data"],
+  });
+
   const [selectedStation, setSelectedStation] = useState<any>(null);
 
   const exportData = () => {
@@ -32,7 +37,7 @@ export default function Analytics() {
     console.log("Exporting analytics data...");
   };
 
-  if (statsLoading || reportsLoading || stationsLoading) {
+  if (statsLoading || reportsLoading || stationsLoading || heatMapLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-6">
@@ -135,6 +140,9 @@ export default function Analytics() {
               stations={stations || []}
               selectedStation={selectedStation}
               onStationSelect={setSelectedStation}
+              heatMapData={heatMapData || []}
+              isLoading={heatMapLoading}
+              onRefresh={refetchHeatMapData}
             />
           </div>
           {selectedStation && (

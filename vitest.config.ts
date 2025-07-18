@@ -19,7 +19,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './client/src/tests/setup.ts',
-    include: ['client/src/hooks/__tests__/**/*.test.ts', 'client/src/components/__tests__/**/*.test.tsx'],
+    include: ['client/src/hooks/__tests__/**/*.test.ts', 'client/src/components/__tests__/**/*.test.tsx', 'client/src/tests/**/*.tsx'],
     css: true,
   },
 });
