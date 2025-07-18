@@ -59,6 +59,7 @@ import { JamaicaNewsAggregator } from "./lib/jamaica-news-aggregator";
 import { getWeatherService } from "./lib/weather-service";
 import { parishAnalyticsService } from "./lib/parish-analytics-service";
 import { XSentimentService } from "./lib/x-sentiment-service";
+import { mapsService } from "./lib/maps-service";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service";
 import { APICreditManager } from "./lib/api-credit-manager";
@@ -6988,6 +6989,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Credit usage monitoring error:", error);
       res.status(500).json({ error: "Failed to get credit usage statistics" });
+    }
+  });
+
+  // Maps routes
+  app.get('/api/maps/heatmap-data', authenticateToken, async (req, res) => {
+    try {
+      const data = await mapsService.getHeatMapData();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching heatmap data:', error);
+      res.status(500).json({ message: 'Failed to fetch heatmap data' });
     }
   });
 

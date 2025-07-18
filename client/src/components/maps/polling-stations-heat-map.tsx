@@ -19,25 +19,42 @@ interface HeatMapProps {
   stations: any[];
   selectedStation?: any;
   onStationSelect?: (station: any) => void;
+  heatMapData: any[];
+  isLoading: boolean;
+  onRefresh: () => void;
 }
 
-interface HeatMapOverlay {
-  id: string;
-  name: string;
-  enabled: boolean;
-  color: string;
-  icon: React.ReactNode;
-  getData: (stationId: number) => Promise<any>;
-}
+const OVERLAYS = [
+  {
+    id: 'sentiment',
+    name: 'X Sentiment',
+    color: '#3b82f6',
+    icon: <MessageCircle className="h-4 w-4" />,
+  },
+  {
+    id: 'traffic',
+    name: 'Traffic',
+    color: '#ef4444',
+    icon: <Car className="h-4 w-4" />,
+  },
+  {
+    id: 'weather',
+    name: 'Weather',
+    color: '#10b981',
+    icon: <Thermometer className="h-4 w-4" />,
+  },
+  {
+    id: 'incidents',
+    name: 'Incidents',
+    color: '#f59e0b',
+    icon: <AlertTriangle className="h-4 w-4" />,
+  },
+];
 
-export default function PollingStationsHeatMap({ stations, selectedStation, onStationSelect }: HeatMapProps) {
+export default function PollingStationsHeatMap({ stations, selectedStation, onStationSelect, heatMapData, isLoading, onRefresh }: HeatMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
-  const [platform, setPlatform] = useState<any>(null);
-  const [overlays, setOverlays] = useState<HeatMapOverlay[]>([]);
   const [activeOverlays, setActiveOverlays] = useState<Set<string>>(new Set(['sentiment']));
-  const [isLoading, setIsLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
   const { toast } = useToast();
   const { data: hereSettings } = useQuery({
     queryKey: ['/api/settings/here-api'],
@@ -59,7 +76,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       });
 
       const defaultLayers = platformInstance.createDefaultLayers();
-      const map = new H.Map(
+      const newMap = new H.Map(
         mapRef.current,
         defaultLayers.vector.normal.map,
         {
@@ -68,78 +85,10 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         }
       );
 
-      const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-      const ui = new H.ui.UI.createDefault(map);
+      const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(newMap));
+      const ui = H.ui.UI.createDefault(newMap, defaultLayers);
 
-      setMap(map);
-      setPlatform(platformInstance);
-      setIsLoading(false);
-
-      // Initialize overlays
-      const heatMapOverlays: HeatMapOverlay[] = [
-        {
-          id: 'sentiment',
-          name: 'X Sentiment',
-          enabled: true,
-          color: '#3b82f6',
-          icon: <MessageCircle className="h-4 w-4" />,
-          getData: async (stationId) => {
-            const response = await fetch(`/api/x-sentiment/station/${stationId}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              }
-            });
-            return response.json();
-          }
-        },
-        {
-          id: 'traffic',
-          name: 'Traffic',
-          enabled: false,
-          color: '#ef4444',
-          icon: <Car className="h-4 w-4" />,
-          getData: async (stationId) => {
-            const response = await fetch(`/api/traffic/station/${stationId}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              }
-            });
-            return response.json();
-          }
-        },
-        {
-          id: 'weather',
-          name: 'Weather',
-          enabled: false,
-          color: '#10b981',
-          icon: <Thermometer className="h-4 w-4" />,
-          getData: async (stationId) => {
-            const response = await fetch(`/api/weather/station/${stationId}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              }
-            });
-            return response.json();
-          }
-        },
-        {
-          id: 'incidents',
-          name: 'Incidents',
-          enabled: false,
-          color: '#f59e0b',
-          icon: <AlertTriangle className="h-4 w-4" />,
-          getData: async (stationId) => {
-            const response = await fetch(`/api/incidents/station/${stationId}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              }
-            });
-            return response.json();
-          }
-        }
-      ];
-
-      setOverlays(heatMapOverlays);
+      setMap(newMap);
     };
 
     if (!document.querySelector('link[href*="mapsjs-ui.css"]')) {
@@ -176,105 +125,75 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         map.dispose();
       }
     };
-  }, [hereSettings]);
+  }, [hereSettings, map]);
 
   // Create heat map markers with overlay data
-  const createHeatMapMarkers = async () => {
-    if (!map || !stations.length) return;
+  useEffect(() => {
+    if (!map || !heatMapData?.length) return;
 
-    setIsLoading(true);
     const H = (window as any).H;
     const group = new H.map.Group();
 
-    // Process stations in batches to avoid overwhelming the API
-    const batchSize = 5;
-    for (let i = 0; i < stations.length; i += batchSize) {
-      const batch = stations.slice(i, i + batchSize);
-      
-      await Promise.all(batch.map(async (station) => {
-        if (!station.latitude || !station.longitude) return;
+    heatMapData.forEach((stationData) => {
+      if (!stationData.latitude || !stationData.longitude) return;
 
-        const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
-        
-        // Collect data for all active overlays with timeout
-        const overlayData: any = {};
-        
-        for (const overlay of overlays) {
-          if (activeOverlays.has(overlay.id)) {
-            try {
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout')), 5000)
-              );
-              overlayData[overlay.id] = await Promise.race([
-                overlay.getData(station.id),
-                timeoutPromise
-              ]);
-            } catch (error) {
-              console.error(`Error loading ${overlay.name} data for station ${station.id}:`, error);
-              // Provide fallback data
-              overlayData[overlay.id] = { severity: 'unknown', error: true };
-            }
-          }
-        }
-
-        // Create marker with heat map styling
-        const marker = createHeatMapMarker(H, position, station, overlayData);
-        group.addObject(marker);
-      }));
-      
-      // Small delay between batches
-      if (i + batchSize < stations.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
+      const position = { lat: parseFloat(stationData.latitude), lng: parseFloat(stationData.longitude) };
+      const marker = createHeatMapMarker(H, position, stationData);
+      group.addObject(marker);
+    });
 
     map.removeObjects(map.getObjects());
     map.addObject(group);
-    setIsLoading(false);
-  };
 
-  const createHeatMapMarker = (H: any, position: any, station: any, overlayData: any) => {
-    // Calculate overall intensity based on active overlays
+  }, [map, heatMapData, activeOverlays]);
+
+  const createHeatMapMarker = (H: any, position: any, stationData: any) => {
     let intensity = 0;
     let dominantColor = '#64748b'; // Default gray
-    
-    if (activeOverlays.has('sentiment') && overlayData.sentiment) {
-      const sentiment = overlayData.sentiment;
-      if (sentiment.risk_level === 'critical') intensity = Math.max(intensity, 1.0);
-      else if (sentiment.risk_level === 'high') intensity = Math.max(intensity, 0.8);
-      else if (sentiment.risk_level === 'medium') intensity = Math.max(intensity, 0.6);
-      else intensity = Math.max(intensity, 0.3);
-      
-      if (sentiment.risk_level === 'critical' || sentiment.risk_level === 'high') {
-        dominantColor = '#ef4444'; // Red for high risk
-      } else if (sentiment.overall_sentiment === 'positive') {
-        dominantColor = '#10b981'; // Green for positive
-      } else if (sentiment.overall_sentiment === 'negative') {
-        dominantColor = '#f59e0b'; // Orange for negative
+
+    if (activeOverlays.has('sentiment') && stationData.sentiment) {
+        const sentiment = stationData.sentiment.sentiment_analysis || {};
+        if (sentiment.risk_level === 'critical') intensity = Math.max(intensity, 1.0);
+        else if (sentiment.risk_level === 'high') intensity = Math.max(intensity, 0.8);
+        else if (sentiment.risk_level === 'medium') intensity = Math.max(intensity, 0.6);
+        else intensity = Math.max(intensity, 0.3);
+
+        if (sentiment.risk_level === 'critical' || sentiment.risk_level === 'high') {
+          dominantColor = '#ef4444';
+        } else if (sentiment.overall_sentiment === 'positive') {
+          dominantColor = '#10b981';
+        } else if (sentiment.overall_sentiment === 'negative') {
+          dominantColor = '#f59e0b';
+        }
       }
-    }
 
-    if (activeOverlays.has('traffic') && overlayData.traffic) {
-      const traffic = overlayData.traffic;
-      if (traffic.severity === 'severe') intensity = Math.max(intensity, 1.0);
-      else if (traffic.severity === 'heavy') intensity = Math.max(intensity, 0.8);
-      else if (traffic.severity === 'moderate') intensity = Math.max(intensity, 0.6);
-      else intensity = Math.max(intensity, 0.3);
-      
-      if (traffic.severity === 'severe' || traffic.severity === 'heavy') {
-        dominantColor = '#ef4444'; // Red for heavy traffic
+      if (activeOverlays.has('traffic') && stationData.traffic) {
+        const traffic = stationData.traffic;
+        if (traffic.severity === 'severe') intensity = Math.max(intensity, 1.0);
+        else if (traffic.severity === 'heavy') intensity = Math.max(intensity, 0.8);
+        else if (traffic.severity === 'moderate') intensity = Math.max(intensity, 0.6);
+        else intensity = Math.max(intensity, 0.3);
+
+        if (traffic.severity === 'severe' || traffic.severity === 'heavy') {
+          dominantColor = '#ef4444';
+        }
       }
-    }
 
-    if (activeOverlays.has('weather') && overlayData.weather) {
-      const weather = overlayData.weather;
-      if (weather.electoral_impact === 'high') intensity = Math.max(intensity, 0.8);
-      else if (weather.electoral_impact === 'medium') intensity = Math.max(intensity, 0.6);
-      else intensity = Math.max(intensity, 0.3);
-    }
+      if (activeOverlays.has('weather') && stationData.weather) {
+        const weather = stationData.weather;
+        if (weather.electoral_impact === 'high') intensity = Math.max(intensity, 0.8);
+        else if (weather.electoral_impact === 'medium') intensity = Math.max(intensity, 0.6);
+        else intensity = Math.max(intensity, 0.3);
+      }
 
-    // Create circular marker with heat map styling
-    const size = Math.max(10, intensity * 30); // Scale size based on intensity
+      if (activeOverlays.has('incidents') && stationData.incidents) {
+        const incidents = stationData.incidents;
+        if (incidents.severity === 'high') intensity = Math.max(intensity, 0.8);
+        else if (incidents.severity === 'medium') intensity = Math.max(intensity, 0.6);
+        else intensity = Math.max(intensity, 0.3);
+      }
+
+    const size = Math.max(10, intensity * 30);
     const opacity = Math.max(0.4, intensity);
 
     const svgMarkup = `
@@ -289,7 +208,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
               font-size="8" 
               fill="white" 
               font-weight="bold">
-          ${station.stationCode.substring(0, 3)}
+          ${stationData.stationCode.substring(0, 3)}
         </text>
       </svg>
     `;
@@ -301,22 +220,14 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
 
     const marker = new H.map.Marker(position, { icon });
     
-    // Add click event for station selection
     marker.addEventListener('tap', () => {
       if (onStationSelect) {
-        onStationSelect(station);
+        onStationSelect(stationData);
       }
     });
 
     return marker;
   };
-
-  // Refresh heat map when overlays change
-  useEffect(() => {
-    if (map && stations.length > 0) {
-      createHeatMapMarkers();
-    }
-  }, [map, stations, activeOverlays, lastRefresh]);
 
   const toggleOverlay = (overlayId: string) => {
     setActiveOverlays(prev => {
@@ -331,7 +242,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
   };
 
   const refreshData = () => {
-    setLastRefresh(Date.now());
+    onRefresh();
     toast({
       title: "Heat Map Updated",
       description: "Refreshed all overlay data"
@@ -344,7 +255,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         <CardContent className="p-8">
           <div className="flex items-center justify-center space-x-2">
             <RefreshCw className="h-6 w-6 animate-spin" />
-            <span>Loading heat map...</span>
+            <span>Loading heat map settings...</span>
           </div>
         </CardContent>
       </Card>
@@ -359,19 +270,6 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
           <p className="text-sm text-muted-foreground">
             Please configure the HERE Maps API key in Admin Settings to view this map.
           </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Card className="government-card">
-        <CardContent className="p-8">
-          <div className="flex items-center justify-center space-x-2">
-            <RefreshCw className="h-6 w-6 animate-spin" />
-            <span>Loading heat map...</span>
-          </div>
         </CardContent>
       </Card>
     );
