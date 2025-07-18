@@ -72,7 +72,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       }
 
       const platformInstance = new H.service.Platform({
-        apikey: hereSettings.apiKey
+        apikey: "5mjaLl2UAvNRzyp6sKny0T_sha-AGxeQs30AOaoGG0o"
       });
 
       const defaultLayers = platformInstance.createDefaultLayers();
