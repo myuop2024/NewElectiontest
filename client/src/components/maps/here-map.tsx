@@ -70,7 +70,7 @@ const HereMap: React.FC = () => {
             setIsLoading(false);
           } catch (error) {
             console.error('Error initializing HERE Maps:', error);
-            setApiError(`Failed to initialize map: ${error.message}`);
+            setApiError(`Failed to initialize map: ${error instanceof Error ? error.message : 'Unknown error'}`);
             setIsLoading(false);
           }
         };
@@ -83,7 +83,7 @@ const HereMap: React.FC = () => {
         document.head.appendChild(script);
       } catch (error) {
         console.error('Error initializing HERE Maps:', error);
-        setApiError(`Failed to initialize map: ${error.message}`);
+        setApiError(`Failed to initialize map: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setIsLoading(false);
       };
     };
@@ -98,6 +98,7 @@ const HereMap: React.FC = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading HERE map...</p>
+          </div>
         </div>
       )}
       {apiError && (

@@ -56,7 +56,11 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
   const [map, setMap] = useState<any>(null);
   const [activeOverlays, setActiveOverlays] = useState<Set<string>>(new Set(['sentiment']));
   const { toast } = useToast();
-  const { data: hereSettings } = useQuery({
+  const { data: hereSettings } = useQuery<{
+    configured: boolean;
+    hasKey: boolean;
+    apiKey?: string;
+  }>({
     queryKey: ['/api/settings/here-api'],
   });
 

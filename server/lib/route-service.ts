@@ -252,7 +252,7 @@ export class RouteService {
   }
 
   private static getTransportMode(vehicleType?: string): string {
-    const modes = {
+    const modes: { [key: string]: string } = {
       'car': 'car',
       'motorcycle': 'car', // HERE API uses car for motorcycles
       'walking': 'pedestrian'
