@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERE Maps Browser Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #map { width: 100%; height: 400px; margin: 20px 0; background: #f0f0f0; }
+        .log { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; font-family: monospace; font-size: 12px; }
+        .error { background: #fee; color: #c00; }
+        .success { background: #efe; color: #060; }
+        .info { background: #eef; color: #006; }
+    </style>
+</head>
+<body>
+    <h1>HERE Maps Browser Test</h1>
+    <div id="logs"></div>
+    <div id="map"></div>
+
+    <script>
+        const logs = document.getElementById('logs');
+        
+        function log(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(logEntry);
+            console.log(message);
+        }
+
+        async function testHereMaps() {
+            log('Starting HERE Maps test...');
+            
+            // 1. Check if API settings are available
+            try {
+                const response = await fetch('/api/settings/here-api');
+                const settings = await response.json();
+                log(`HERE API Settings: ${JSON.stringify(settings)}`, 'info');
+                
+                if (!settings.hasKey) {
+                    log('HERE API key not configured!', 'error');
+                    return;
+                }
+                
+                // 2. Load HERE Maps scripts
+                log('Loading HERE Maps scripts...');
+                
+                const scripts = [
+                    'https://js.api.here.com/v3/3.1/mapsjs-core.js',
+                    'https://js.api.here.com/v3/3.1/mapsjs-service.js',
+                    'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
+                    'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
+                ];
+                
+                // Load CSS
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://js.api.here.com/v3/3.1/mapsjs-ui.css';
+                document.head.appendChild(link);
+                log('HERE Maps CSS loaded');
+                
+                // Load scripts sequentially
+                for (const src of scripts) {
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.onload = () => {
+                            log(`Loaded: ${src.split('/').pop()}`, 'success');
+                            resolve();
+                        };
+                        script.onerror = () => {
+                            log(`Failed to load: ${src}`, 'error');
+                            reject();
+                        };
+                        document.head.appendChild(script);
+                    });
+                }
+                
+                // 3. Check if H object is available
+                if (typeof H === 'undefined') {
+                    log('H object not found after loading scripts!', 'error');
+                    return;
+                }
+                log('H object is available', 'success');
+                
+                // 4. Try to initialize HERE Maps
+                log('Creating HERE Maps platform...');
+                const platform = new H.service.Platform({
+                    'apikey': settings.apiKey
+                });
+                log('Platform created successfully', 'success');
+                
+                // 5. Create map
+                log('Creating map instance...');
+                const defaultLayers = platform.createDefaultLayers();
+                const map = new H.Map(
+                    document.getElementById('map'),
+                    defaultLayers.vector.normal.map,
+                    {
+                        zoom: 10,
+                        center: { lat: 18.1096, lng: -77.2975 } // Jamaica
+                    }
+                );
+                log('Map created successfully', 'success');
+                
+                // 6. Add behavior and UI
+                log('Adding map behavior and UI...');
+                const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+                const ui = H.ui.UI.createDefault(map, defaultLayers);
+                log('Map behavior and UI added successfully', 'success');
+                
+                // 7. Add a marker
+                const marker = new H.map.Marker({ lat: 18.1096, lng: -77.2975 });
+                map.addObject(marker);
+                log('Test marker added to map', 'success');
+                
+                log('HERE Maps test completed successfully!', 'success');
+                
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testHereMaps);
+    </script>
+</body>
+</html>

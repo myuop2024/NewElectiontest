@@ -71,19 +71,29 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
     if (!mapRef.current || !hereSettings?.apiKey) return;
 
     const initializeMap = () => {
+      console.log('HERE Maps initialization starting...');
+      console.log('HERE API Key:', hereSettings.apiKey ? 'Present' : 'Missing');
+      
       const H = (window as any).H;
       if (!H) {
-        console.error('HERE Maps not loaded');
+        console.error('HERE Maps not loaded - window.H is undefined');
+        setMapLoadError(true);
+        setMapProvider('google');
+        loadGoogleMapsAsFallback();
         return;
       }
 
       try {
+        console.log('Creating HERE Maps Platform...');
         // Use the dynamically provided HERE API key instead of a hard-coded test key
         const platformInstance = new H.service.Platform({
           apikey: hereSettings.apiKey,
         });
 
+        console.log('Creating default layers...');
         const defaultLayers = platformInstance.createDefaultLayers();
+        
+        console.log('Creating map instance...');
         const newMap = new H.Map(
           mapRef.current,
           defaultLayers.vector.normal.map,
@@ -93,20 +103,25 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
           }
         );
 
+        console.log('Adding map behavior and UI...');
         const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(newMap));
         const ui = H.ui.UI.createDefault(newMap, defaultLayers);
 
         // Add resize listener
         newMap.getViewPort().addResizeListener(() => newMap.getViewPort().update());
 
+        console.log('HERE Maps initialized successfully');
         setMap(newMap);
+        setMapProvider('here');
       } catch (error) {
         console.error('HERE Maps initialization error:', error);
-        toast({
-          title: "Map Error",
-          description: "Failed to initialize HERE Maps. Please refresh the page.",
-          variant: "destructive"
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
         });
+        setMapLoadError(true);
+        setMapProvider('google');
+        loadGoogleMapsAsFallback();
       }
     };
 
@@ -132,13 +147,27 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       });
     };
 
+    console.log('Starting HERE Maps script loading...');
     loadScript('https://js.api.here.com/v3/3.1/mapsjs-core.js')
-      .then(() => loadScript('https://js.api.here.com/v3/3.1/mapsjs-service.js'))
-      .then(() => loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js'))
-      .then(() => loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'))
-      .then(initializeMap)
+      .then(() => {
+        console.log('HERE Maps core loaded');
+        return loadScript('https://js.api.here.com/v3/3.1/mapsjs-service.js');
+      })
+      .then(() => {
+        console.log('HERE Maps service loaded');
+        return loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js');
+      })
+      .then(() => {
+        console.log('HERE Maps UI loaded');
+        return loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js');
+      })
+      .then(() => {
+        console.log('HERE Maps events loaded, waiting for initialization...');
+        // Small delay to ensure all scripts are fully loaded
+        setTimeout(initializeMap, 100);
+      })
       .catch(err => {
-        console.error('Failed to load HERE Maps API:', err);
+        console.error('Failed to load HERE Maps API scripts:', err);
         setMapLoadError(true);
         setMapProvider('google');
         loadGoogleMapsAsFallback();

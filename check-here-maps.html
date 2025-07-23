@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HERE Maps Debug Test</title>
+</head>
+<body>
+    <h1>HERE Maps Debug Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkHereAPI() {
+            const results = document.getElementById('results');
+            
+            // Check if HERE API key is configured
+            try {
+                const response = await fetch('/api/settings/here-api');
+                const data = await response.json();
+                results.innerHTML += `<p>HERE API Settings: ${JSON.stringify(data, null, 2)}</p>`;
+                
+                if (!data.hasKey) {
+                    results.innerHTML += `<p style="color: red;">❌ HERE API key is NOT configured</p>`;
+                } else {
+                    results.innerHTML += `<p style="color: green;">✅ HERE API key is configured</p>`;
+                    
+                    // Try to load HERE Maps
+                    results.innerHTML += `<p>Testing HERE Maps load...</p>`;
+                    
+                    const script = document.createElement('script');
+                    script.src = 'https://js.api.here.com/v3/3.1/mapsjs-core.js';
+                    script.onload = () => {
+                        results.innerHTML += `<p style="color: green;">✅ HERE Maps core loaded successfully</p>`;
+                        
+                        // Check if H object is available
+                        if (window.H) {
+                            results.innerHTML += `<p style="color: green;">✅ HERE Maps H object is available</p>`;
+                            
+                            // Try to create a platform
+                            try {
+                                const platform = new H.service.Platform({
+                                    apikey: data.apiKey
+                                });
+                                results.innerHTML += `<p style="color: green;">✅ HERE Maps Platform created successfully</p>`;
+                            } catch (e) {
+                                results.innerHTML += `<p style="color: red;">❌ Failed to create HERE Platform: ${e.message}</p>`;
+                            }
+                        } else {
+                            results.innerHTML += `<p style="color: red;">❌ HERE Maps H object not found</p>`;
+                        }
+                    };
+                    script.onerror = () => {
+                        results.innerHTML += `<p style="color: red;">❌ Failed to load HERE Maps core script</p>`;
+                    };
+                    document.head.appendChild(script);
+                }
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ Error fetching HERE API settings: ${error.message}</p>`;
+            }
+        }
+        
+        checkHereAPI();
+    </script>
+</body>
+</html>

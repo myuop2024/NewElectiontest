@@ -233,18 +233,27 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
 
   // Initialize HERE Maps with error handling
   const initializeHereMap = () => {
+    console.log('Advanced Jamaica Heat Map - HERE Maps initialization starting...');
     try {
       if (!window.H || !mapRef.current || !hereSettings?.apiKey) {
-        console.log('HERE Maps requirements not met, falling back to Google Maps');
+        console.log('HERE Maps requirements not met:', {
+          hasH: !!window.H,
+          hasMapRef: !!mapRef.current,
+          hasApiKey: !!hereSettings?.apiKey
+        });
         setMapProvider('google');
         return;
       }
 
+      console.log('Creating HERE Platform with API key...');
       const platform = new window.H.service.Platform({
         'apikey': hereSettings.apiKey
       });
 
+      console.log('Getting default map types...');
       const defaultMapTypes = platform.createDefaultMapTypes();
+      
+      console.log('Creating HERE Map instance...');
       const hereMap = new window.H.Map(
         mapRef.current,
         defaultMapTypes.vector.normal.map,
@@ -256,9 +265,11 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
 
       // Add behavior and UI with error handling
       try {
+        console.log('Adding map behavior and UI...');
         const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(hereMap));
         const ui = window.H.ui.UI.createDefault(hereMap, defaultMapTypes);
         
+        console.log('HERE Maps initialized successfully in Advanced Heat Map');
         setMap(hereMap);
         setIsMapLoaded(true);
 
