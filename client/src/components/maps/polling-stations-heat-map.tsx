@@ -71,8 +71,9 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         return;
       }
 
+      // Use the dynamically provided HERE API key instead of a hard-coded test key
       const platformInstance = new H.service.Platform({
-        apikey: "5mjaLl2UAvNRzyp6sKny0T_sha-AGxeQs30AOaoGG0o"
+        apikey: hereSettings.apiKey,
       });
 
       const defaultLayers = platformInstance.createDefaultLayers();
@@ -298,7 +299,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {overlays.map((overlay) => (
+            {OVERLAYS.map((overlay) => (
               <div key={overlay.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-2">
                   <div style={{ color: overlay.color }}>
