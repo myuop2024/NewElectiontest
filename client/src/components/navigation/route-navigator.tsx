@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Navigation, MapPin, ExternalLink, Route, Clock, Car, Smartphone } from "lucide-react";
 import EnhancedMap from "@/components/maps/enhanced-map";
+import { hereApiService } from "@/lib/here-api";
 
 interface RouteNavigatorProps {
   fromLocation: { lat: number; lng: number; name: string };
@@ -37,17 +38,36 @@ export default function RouteNavigator({ fromLocation, toLocation, onRouteCalcul
     setHasCalculated(true);
     
     try {
-      // Create immediate fallback route
-      const distance = calculateStraightLineDistance(fromLocation, toLocation);
-      const fallbackRoute = {
-        summary: {
-          duration: Math.round(distance * 60), // Estimate 1 minute per km
-          length: Math.round(distance * 1000) // Convert to meters
-        }
-      };
+      // Try to use HERE API for accurate route calculation
+      const hereRoute = await hereApiService.calculateRoute(
+        { lat: fromLocation.lat, lng: fromLocation.lng },
+        { lat: toLocation.lat, lng: toLocation.lng }
+      );
       
-      setRouteData(fallbackRoute);
-      onRouteCalculated?.(fallbackRoute);
+      if (hereRoute) {
+        const route = {
+          summary: {
+            duration: hereRoute.duration,
+            length: hereRoute.distance
+          },
+          polyline: hereRoute.polyline,
+          instructions: hereRoute.instructions
+        };
+        setRouteData(route);
+        onRouteCalculated?.(route);
+      } else {
+        // Fallback to straight-line calculation if HERE API fails
+        const distance = calculateStraightLineDistance(fromLocation, toLocation);
+        const fallbackRoute = {
+          summary: {
+            duration: Math.round(distance * 60), // Estimate 1 minute per km
+            length: Math.round(distance * 1000) // Convert to meters
+          }
+        };
+        
+        setRouteData(fallbackRoute);
+        onRouteCalculated?.(fallbackRoute);
+      }
       
     } catch (error) {
       console.error('Route calculation failed:', error);

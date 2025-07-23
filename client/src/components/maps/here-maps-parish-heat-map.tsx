@@ -60,7 +60,11 @@ export default function HereMapsParishHeatMap({
   const [platform, setPlatform] = useState<any>(null);
 
   // Get HERE Maps API key from settings
-  const { data: hereSettings } = useQuery({
+  const { data: hereSettings } = useQuery<{
+    configured: boolean;
+    hasKey: boolean;
+    apiKey?: string;
+  }>({
     queryKey: ["/api/settings/here-api"],
   });
 

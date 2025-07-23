@@ -50,12 +50,47 @@ export interface RouteResult {
 
 class HereApiService {
   private apiKey: string | null = null;
+  private apiKeyPromise: Promise<void> | null = null;
 
   setApiKey(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  private getApiKey(): string {
+  // Initialize the API key from the server
+  async initializeApiKey(): Promise<void> {
+    // If already initializing, return the existing promise
+    if (this.apiKeyPromise) {
+      return this.apiKeyPromise;
+    }
+
+    // If already initialized, return immediately
+    if (this.apiKey) {
+      return Promise.resolve();
+    }
+
+    // Create initialization promise
+    this.apiKeyPromise = (async () => {
+      try {
+        const response = await fetch('/api/settings/here-api');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.apiKey) {
+            this.apiKey = data.apiKey;
+            console.log('[HERE API] API key loaded from server');
+          }
+        }
+      } catch (error) {
+        console.error('[HERE API] Failed to load API key from server:', error);
+      }
+    })();
+
+    return this.apiKeyPromise;
+  }
+
+  private async getApiKey(): Promise<string> {
+    // Ensure API key is initialized
+    await this.initializeApiKey();
+    
     if (!this.apiKey) {
       throw new Error("HERE API key not configured. Please set it in admin settings.");
     }
@@ -66,7 +101,7 @@ class HereApiService {
     if (!query || query.length < 3) return [];
 
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = await this.getApiKey();
       let searchQuery = query;
       
       // Add parish context for Jamaican addresses
@@ -115,7 +150,7 @@ class HereApiService {
 
   async geocodeAddress(address: string): Promise<GeocodeResult | null> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = await this.getApiKey();
       const response = await fetch(
         `https://geocode.search.hereapi.com/v1/geocode?` +
         `q=${encodeURIComponent(address + ', Jamaica')}&` +
@@ -156,7 +191,7 @@ class HereApiService {
 
   async calculateRoute(origin: {lat: number, lng: number}, destination: {lat: number, lng: number}): Promise<RouteResult | null> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = await this.getApiKey();
       const response = await fetch(
         `https://router.hereapi.com/v8/routes?` +
         `transportMode=car&` +
@@ -193,7 +228,7 @@ class HereApiService {
 
   async reverseGeocode(lat: number, lng: number): Promise<GeocodeResult | null> {
     try {
-      const apiKey = this.getApiKey();
+      const apiKey = await this.getApiKey();
       const response = await fetch(
         `https://revgeocode.search.hereapi.com/v1/revgeocode?` +
         `at=${lat},${lng}&` +

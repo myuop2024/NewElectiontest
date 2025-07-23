@@ -52,16 +52,43 @@ export interface GpsPoint {
   altitude?: number;
 }
 
+import { storage } from "../storage";
+
 export class RouteService {
-  private static readonly HERE_API_KEY = process.env.HERE_API_KEY;
   private static readonly HERE_API_URL = 'https://router.hereapi.com/v8/routes';
   private static readonly GEOCODING_URL = 'https://geocode.search.hereapi.com/v1/geocode';
+  private static apiKey: string | null = null;
+
+  // Get HERE API key from environment or database
+  private static async getHereApiKey(): Promise<string> {
+    // Check if we already have it cached
+    if (this.apiKey) {
+      return this.apiKey;
+    }
+
+    // First check environment variable
+    if (process.env.HERE_API_KEY) {
+      this.apiKey = process.env.HERE_API_KEY;
+      return this.apiKey;
+    }
+
+    // Fall back to database
+    try {
+      const setting = await storage.getSettingByKey("HERE_API_KEY");
+      if (setting?.value) {
+        this.apiKey = setting.value;
+        return this.apiKey;
+      }
+    } catch (error) {
+      console.error("Failed to get HERE API key from database:", error);
+    }
+
+    throw new Error("HERE API key not configured in environment or database");
+  }
 
   // Optimize route using HERE API
   static async optimizeRoute(optimization: RouteOptimization): Promise<OptimizedRoute> {
-    if (!this.HERE_API_KEY) {
-      throw new Error("HERE API key not configured");
-    }
+    const apiKey = await this.getHereApiKey();
 
     try {
       const origin = `${optimization.startLocation.latitude},${optimization.startLocation.longitude}`;
@@ -77,7 +104,7 @@ export class RouteService {
       const transportMode = this.getTransportMode(optimization.constraints.vehicleType);
       const avoidFeatures = this.getAvoidFeatures(optimization.constraints);
 
-      const url = `${this.HERE_API_URL}?transportMode=${transportMode}&origin=${origin}&destination=${destination}${waypoints}&return=polyline,summary,instructions${avoidFeatures}&apikey=${this.HERE_API_KEY}`;
+      const url = `${this.HERE_API_URL}?transportMode=${transportMode}&origin=${origin}&destination=${destination}${waypoints}&return=polyline,summary,instructions${avoidFeatures}&apikey=${apiKey}`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -183,12 +210,10 @@ export class RouteService {
 
   // Geocoding for address lookup
   static async geocodeAddress(address: string): Promise<Location | null> {
-    if (!this.HERE_API_KEY) {
-      throw new Error("HERE API key not configured");
-    }
+    const apiKey = await this.getHereApiKey();
 
     try {
-      const url = `${this.GEOCODING_URL}?q=${encodeURIComponent(address)}&in=countryCode:JAM&apikey=${this.HERE_API_KEY}`;
+      const url = `${this.GEOCODING_URL}?q=${encodeURIComponent(address)}&in=countryCode:JAM&apikey=${apiKey}`;
       
       const response = await fetch(url);
       if (!response.ok) {
