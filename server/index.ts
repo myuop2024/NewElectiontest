@@ -2,8 +2,17 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { logError, getLogs } from "./lib/logger";
 
 const app = express();
+
+process.on('unhandledRejection', (reason) => {
+  logError(new Error(`Unhandled Rejection: ${reason}`));
+});
+
+process.on('uncaughtException', (err) => {
+  logError(err);
+});
 
 // Session configuration
 app.use(session({
@@ -64,11 +73,16 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  app.get('/logs', (_req, res) => {
+    res.json(getLogs());
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
+    logError(err);
     throw err;
   });
 
