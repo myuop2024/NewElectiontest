@@ -333,7 +333,16 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
     heatMapData.forEach((stationData) => {
       if (!stationData.latitude || !stationData.longitude) return;
 
-      const position = { lat: parseFloat(stationData.latitude), lng: parseFloat(stationData.longitude) };
+      // Validate coordinates before parsing
+      const lat = parseFloat(stationData.latitude);
+      const lng = parseFloat(stationData.longitude);
+      
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn('Invalid coordinates for heat map station:', stationData.name || stationData.id, 'lat:', stationData.latitude, 'lng:', stationData.longitude);
+        return;
+      }
+
+      const position = { lat, lng };
       
       // Add the station marker
       const marker = createHeatMapMarker(H, position, stationData);
@@ -341,6 +350,12 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
 
       // Add overlay visualizations around each station
       if (activeOverlays.has('traffic') && stationData.traffic) {
+        // Validate position before creating circle
+        if (isNaN(position.lat) || isNaN(position.lng) || !position.lat || !position.lng) {
+          console.warn('Skipping traffic overlay for invalid position:', position);
+          return;
+        }
+        
         // Add traffic circle around station
         const trafficCircle = new H.map.Circle(
           position,
@@ -357,6 +372,12 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       }
 
       if (activeOverlays.has('weather') && stationData.weather) {
+        // Validate position before creating circle
+        if (isNaN(position.lat) || isNaN(position.lng) || !position.lat || !position.lng) {
+          console.warn('Skipping weather overlay for invalid position:', position);
+          return;
+        }
+        
         // Add weather impact zone
         const weatherCircle = new H.map.Circle(
           position,
@@ -374,6 +395,12 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
       }
 
       if (activeOverlays.has('sentiment') && stationData.sentiment) {
+        // Validate position before creating circle
+        if (isNaN(position.lat) || isNaN(position.lng) || !position.lat || !position.lng) {
+          console.warn('Skipping sentiment overlay for invalid position:', position);
+          return;
+        }
+        
         // Add sentiment indicator
         const sentimentRadius = getSentimentRadius(stationData.sentiment.sentiment_analysis?.risk_level);
         const sentimentCircle = new H.map.Circle(
@@ -397,6 +424,12 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
             const angle = (index * 360) / stationData.incidents.recent.length;
             const offsetLat = position.lat + (0.02 * Math.cos(angle * Math.PI / 180));
             const offsetLng = position.lng + (0.02 * Math.sin(angle * Math.PI / 180));
+            
+            // Validate offset coordinates
+            if (isNaN(offsetLat) || isNaN(offsetLng)) {
+              console.warn('Invalid incident marker coordinates:', offsetLat, offsetLng);
+              return;
+            }
             
             const incidentMarker = new H.map.Marker(
               { lat: offsetLat, lng: offsetLng },

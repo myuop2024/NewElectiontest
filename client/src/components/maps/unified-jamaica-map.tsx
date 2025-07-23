@@ -327,7 +327,21 @@ export default function UnifiedJamaicaMap({
     // Weather overlays
     if (activeOverlays.has('weather') && weatherData?.parishes) {
       weatherData.parishes.forEach((parish: any) => {
-        const position = { lat: parish.lat, lng: parish.lng };
+        // Validate parish coordinates
+        if (!parish || typeof parish.lat === 'undefined' || typeof parish.lng === 'undefined') {
+          console.warn('Invalid parish coordinates:', parish);
+          return;
+        }
+        
+        const lat = parseFloat(parish.lat);
+        const lng = parseFloat(parish.lng);
+        
+        if (isNaN(lat) || isNaN(lng)) {
+          console.warn('Invalid weather overlay coordinates for parish:', parish.name, 'lat:', parish.lat, 'lng:', parish.lng);
+          return;
+        }
+
+        const position = { lat, lng };
         const color = getWeatherColor(parish.weather?.electoralImpact || 'low');
         const radius = 20000; // 20km radius for weather
 

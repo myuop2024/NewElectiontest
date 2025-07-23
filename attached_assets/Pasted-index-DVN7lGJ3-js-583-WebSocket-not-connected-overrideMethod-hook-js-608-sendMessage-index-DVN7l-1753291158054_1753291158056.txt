@@ -1,0 +1,88 @@
+index-DVN7lGJ3.js:583 WebSocket not connected
+overrideMethod @ hook.js:608
+sendMessage @ index-DVN7lGJ3.js:583
+(anonymous) @ index-DVN7lGJ3.js:724
+Mp @ index-DVN7lGJ3.js:40
+nl @ index-DVN7lGJ3.js:40
+iS @ index-DVN7lGJ3.js:40
+oi @ index-DVN7lGJ3.js:38
+SL @ index-DVN7lGJ3.js:40
+yi @ index-DVN7lGJ3.js:40
+Rk @ index-DVN7lGJ3.js:40
+w @ index-DVN7lGJ3.js:25
+k @ index-DVN7lGJ3.js:25Understand this warning
+index-DVN7lGJ3.js:583 Connecting to WebSocket: wss://caffejm.replit.app/ws?userId=13
+index-DVN7lGJ3.js:583 WebSocket not connected
+overrideMethod @ hook.js:608
+sendMessage @ index-DVN7lGJ3.js:583
+(anonymous) @ index-DVN7lGJ3.js:724
+gy @ index-DVN7lGJ3.js:40
+jd @ index-DVN7lGJ3.js:40
+nl @ index-DVN7lGJ3.js:40
+iS @ index-DVN7lGJ3.js:40
+oi @ index-DVN7lGJ3.js:38
+SL @ index-DVN7lGJ3.js:40
+yi @ index-DVN7lGJ3.js:40
+Rk @ index-DVN7lGJ3.js:40
+w @ index-DVN7lGJ3.js:25
+k @ index-DVN7lGJ3.js:25Understand this warning
+index-DVN7lGJ3.js:583 WebSocket connected
+index-DVN7lGJ3.js:632 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'maps')
+    at B (index-DVN7lGJ3.js:632:37590)
+    at index-DVN7lGJ3.js:632:37017
+    at index-DVN7lGJ3.js:632:37022
+    at Mp (index-DVN7lGJ3.js:40:24283)
+    at nl (index-DVN7lGJ3.js:40:42409)
+    at SL (index-DVN7lGJ3.js:40:41231)
+    at yi (index-DVN7lGJ3.js:40:40278)
+    at iS (index-DVN7lGJ3.js:40:36886)
+    at oi (index-DVN7lGJ3.js:38:3279)
+    at index-DVN7lGJ3.js:40:34263
+B @ index-DVN7lGJ3.js:632
+(anonymous) @ index-DVN7lGJ3.js:632
+(anonymous) @ index-DVN7lGJ3.js:632
+Mp @ index-DVN7lGJ3.js:40
+nl @ index-DVN7lGJ3.js:40
+SL @ index-DVN7lGJ3.js:40
+yi @ index-DVN7lGJ3.js:40
+iS @ index-DVN7lGJ3.js:40
+oi @ index-DVN7lGJ3.js:38
+(anonymous) @ index-DVN7lGJ3.js:40Understand this error
+11[Violation] Added non-passive event listener to a scroll-blocking <some> event. Consider marking event handler as 'passive' to make the page more responsive. See <URL>
+index-DVN7lGJ3.js:40 InvalidArgumentError: H.geo.Point (Argument #0 undefined)
+    at new D (mapsjs-core.js:39:376)
+    at Ic (mapsjs-core.js:51:290)
+    at new Nc (mapsjs-core.js:52:74)
+    at Pc (mapsjs-core.js:56:49)
+    at Kg.bo (mapsjs-core.js:175:729)
+    at new Kg (mapsjs-core.js:175:614)
+    at index-DVN7lGJ3.js:632:39614
+    at Array.forEach (<anonymous>)
+    at $ (index-DVN7lGJ3.js:632:39269)
+    at index-DVN7lGJ3.js:632:37732
+overrideMethod @ hook.js:608
+uy @ index-DVN7lGJ3.js:40
+n.callback @ index-DVN7lGJ3.js:40
+z1 @ index-DVN7lGJ3.js:38
+rS @ index-DVN7lGJ3.js:40
+Ik @ index-DVN7lGJ3.js:40
+yL @ index-DVN7lGJ3.js:40
+SL @ index-DVN7lGJ3.js:40
+yi @ index-DVN7lGJ3.js:40
+iS @ index-DVN7lGJ3.js:40
+oi @ index-DVN7lGJ3.js:38
+nl @ index-DVN7lGJ3.js:40
+(anonymous) @ index-DVN7lGJ3.js:40
+w @ index-DVN7lGJ3.js:25
+k @ index-DVN7lGJ3.js:25Understand this error
+index-DVN7lGJ3.js:38 Uncaught InvalidArgumentError: H.geo.Point (Argument #0 undefined)
+    at new D (mapsjs-core.js:39:376)
+    at Ic (mapsjs-core.js:51:290)
+    at new Nc (mapsjs-core.js:52:74)
+    at Pc (mapsjs-core.js:56:49)
+    at Kg.bo (mapsjs-core.js:175:729)
+    at new Kg (mapsjs-core.js:175:614)
+    at index-DVN7lGJ3.js:632:39614
+    at Array.forEach (<anonymous>)
+    at $ (index-DVN7lGJ3.js:632:39269)
+    at index-DVN7lGJ3.js:632:37732

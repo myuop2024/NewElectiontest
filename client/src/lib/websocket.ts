@@ -52,7 +52,13 @@ class WebSocketService {
 
   send(message: WebSocketMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
+      try {
+        this.ws.send(JSON.stringify(message));
+      } catch (error) {
+        console.error('WebSocket send error:', error);
+      }
+    } else {
+      console.warn('WebSocket not connected, cannot send message:', message.type);
     }
   }
 }
