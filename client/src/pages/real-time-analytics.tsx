@@ -37,26 +37,41 @@ export default function RealTimeAnalytics() {
 
   // Real-time WebSocket connection for live updates
   useEffect(() => {
+    if (!user?.id) return;
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
+    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
+    
+    try {
+      const socket = new WebSocket(wsUrl);
 
-    socket.onopen = () => {
-      console.log("Analytics WebSocket connected");
-    };
+      socket.onopen = () => {
+        console.log("Analytics WebSocket connected");
+      };
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'analytics_update') {
-        // Handle real-time analytics updates
-        console.log("Real-time analytics update:", data);
-      }
-    };
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'analytics_update') {
+            // Handle real-time analytics updates
+            console.log("Real-time analytics update:", data);
+          }
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+        }
+      };
 
-    return () => {
-      socket.close();
-    };
-  }, []);
+      socket.onerror = (error) => {
+        console.error("Analytics WebSocket error:", error);
+      };
+
+      return () => {
+        socket.close();
+      };
+    } catch (error) {
+      console.error("Failed to create WebSocket connection:", error);
+    }
+  }, [user?.id]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

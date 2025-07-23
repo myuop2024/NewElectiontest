@@ -16,7 +16,7 @@ export default function LiveChatWidget() {
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [chatMode, setChatMode] = useState<'room' | 'direct'>('room');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -151,7 +151,7 @@ export default function LiveChatWidget() {
               >
                 <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
                 <span className="text-sm font-medium">
-                  {chatMode === 'room' ? `${currentRoom?.icon} ${currentRoom?.name}` : `💬 ${selectedUser?.firstName} ${selectedUser?.lastName}`}
+                  {chatMode === 'room' ? `${currentRoom?.icon} ${currentRoom?.name}` : `💬 ${selectedUser?.firstName || ''} ${selectedUser?.lastName || ''}`}
                 </span>
                 <ChevronDown className="h-3 w-3" />
               </button>
@@ -189,7 +189,7 @@ export default function LiveChatWidget() {
                   />
                   
                   {/* Recent Conversations */}
-                  {conversations && conversations.length > 0 && (
+                  {Array.isArray(conversations) && conversations.length > 0 && (
                     <div>
                       <p className="text-xs font-medium text-gray-500 mb-1">Recent Conversations</p>
                       <div className="space-y-1">
@@ -219,7 +219,7 @@ export default function LiveChatWidget() {
                   )}
 
                   {/* Search Results */}
-                  {searchResults && searchResults.length > 0 && (
+                  {Array.isArray(searchResults) && searchResults.length > 0 && (
                     <div>
                       <p className="text-xs font-medium text-gray-500 mb-1">Search Results</p>
                       <div className="space-y-1">

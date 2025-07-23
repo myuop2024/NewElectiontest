@@ -389,10 +389,10 @@ export default function WeatherDashboard() {
                       <CardContent>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            {getWeatherIcon(parish.current.condition)}
+                            {getWeatherIcon(parish.current?.condition || 'Clear')}
                             <div>
-                              <p className="font-bold">{parish.current.temperature}</p>
-                              <p className="text-xs text-gray-600">{parish.current.condition}</p>
+                              <p className="font-bold">{parish.current?.temperature || 'N/A'}</p>
+                              <p className="text-xs text-gray-600">{parish.current?.condition || 'No data'}</p>
                             </div>
                           </div>
                           <Badge className={getSeverityColor(parish.electoralImpact?.severity || 'low')} variant="outline">
@@ -400,8 +400,8 @@ export default function WeatherDashboard() {
                           </Badge>
                         </div>
                         <div className="mt-2 text-xs text-gray-600">
-                          <p>Rain: {parish.current.rainProbability}</p>
-                          <p>Wind: {parish.current.windSpeed}</p>
+                          <p>Rain: {parish.current?.rainProbability || 'N/A'}</p>
+                          <p>Wind: {parish.current?.windSpeed || 'N/A'}</p>
                         </div>
                       </CardContent>
                     )}
