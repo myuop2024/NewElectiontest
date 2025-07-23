@@ -58,9 +58,18 @@ export default function AdminSettings() {
     queryKey: ['/api/settings']
   });
 
+  // Get current user info for debugging
+  const { data: userInfo } = useQuery({
+    queryKey: ['/api/auth/me']
+  });
+
+  console.log('[ADMIN SETTINGS DEBUG] Current user:', userInfo);
+  console.log('[ADMIN SETTINGS DEBUG] Settings data:', settings);
+
   // Update setting mutation
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      console.log('[ADMIN SETTINGS DEBUG] Attempting to update setting:', key, value);
       const response = await apiRequest('POST', '/api/settings', { key, value });
       return response.json();
     },
@@ -74,6 +83,11 @@ export default function AdminSettings() {
     },
     onError: (error: any) => {
       console.error('Setting update failed:', error);
+      console.error('[ADMIN SETTINGS DEBUG] Full error details:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      });
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update settings.",
@@ -111,6 +125,35 @@ export default function AdminSettings() {
         <Settings className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold">Admin Settings & Configuration</h1>
       </div>
+
+      {/* Debug Info */}
+      {userInfo && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-yellow-800 mb-2">Debug Information</h3>
+            <p className="text-sm text-yellow-700">
+              <strong>Current User:</strong> {userInfo.username} ({userInfo.role})
+            </p>
+            <p className="text-sm text-yellow-700">
+              <strong>User ID:</strong> {userInfo.id}
+            </p>
+            <p className="text-sm text-yellow-700">
+              <strong>Settings Count:</strong> {settings?.length || 0}
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                console.log('[DEBUG] Testing settings update...');
+                updateSettingMutation.mutate({ key: 'test_setting', value: 'test_value' });
+              }}
+              className="mt-2"
+            >
+              Test Settings Update
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="status" className="w-full">
         <TabsList className="grid w-full grid-cols-9">

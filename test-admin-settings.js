@@ -1,151 +1,104 @@
-#!/usr/bin/env node
-
+// Test script to check admin settings functionality
 const fetch = require('node-fetch');
-const fs = require('fs');
-const path = require('path');
-
-// Read cookies from file for authentication
-const cookiesPath = path.join(__dirname, 'cookies.txt');
-let authToken = '';
-
-try {
-  const cookieData = fs.readFileSync(cookiesPath, 'utf8');
-  const tokenMatch = cookieData.match(/auth_token=([^;]+)/);
-  if (tokenMatch) {
-    authToken = tokenMatch[1];
-  }
-} catch (error) {
-  console.error('Could not read auth token from cookies.txt');
-}
-
-const API_BASE = 'http://localhost:5000';
 
 async function testAdminSettings() {
-  console.log('Testing Admin Settings API...\n');
-
-  // Test 1: Get all settings
-  console.log('1. Testing GET /api/settings');
+  const baseUrl = 'http://localhost:5000'; // Replit runs on port 5000
+  
+  console.log('🔍 Testing Admin Settings...\n');
+  
   try {
-    const response = await fetch(`${API_BASE}/api/settings`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
+    // Test 1: Check if server is running
+    console.log('1️⃣ Testing server connectivity...');
+    const healthResponse = await fetch(`${baseUrl}/api/auth/me`);
+    console.log('   Health check status:', healthResponse.status);
     
-    if (response.ok) {
-      const settings = await response.json();
-      console.log(`✓ Successfully retrieved ${settings.length} settings`);
+    // Test 2: Try to get settings (should fail without auth)
+    console.log('\n2️⃣ Testing settings endpoint without auth...');
+    const settingsResponse = await fetch(`${baseUrl}/api/settings`);
+    console.log('   Settings endpoint status:', settingsResponse.status);
+    
+    if (settingsResponse.status === 401) {
+      console.log('   ✅ Expected: Authentication required');
     } else {
-      console.log(`✗ Failed to get settings: ${response.status} ${response.statusText}`);
+      console.log('   ❌ Unexpected status:', settingsResponse.status);
     }
-  } catch (error) {
-    console.log(`✗ Error getting settings: ${error.message}`);
-  }
-
-  // Test 2: Update a setting
-  console.log('\n2. Testing POST /api/settings');
-  try {
-    const response = await fetch(`${API_BASE}/api/settings`, {
+    
+    // Test 3: Check if admin account exists
+    console.log('\n3️⃣ Testing admin login...');
+    const loginResponse = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        key: 'test_setting',
-        value: 'test_value_' + Date.now()
+        email: 'admin@caffe.org.jm',
+        password: 'password'
       })
     });
     
-    if (response.ok) {
-      const result = await response.json();
-      console.log('✓ Successfully updated setting:', result);
-    } else {
-      const error = await response.text();
-      console.log(`✗ Failed to update setting: ${response.status} ${error}`);
-    }
-  } catch (error) {
-    console.log(`✗ Error updating setting: ${error.message}`);
-  }
-
-  // Test 3: Initialize default settings
-  console.log('\n3. Testing POST /api/admin/settings/initialize');
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/settings/initialize`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
+    console.log('   Login status:', loginResponse.status);
     
-    if (response.ok) {
-      const result = await response.json();
-      console.log('✓ Successfully initialized default settings:', result);
-    } else {
-      const error = await response.text();
-      console.log(`✗ Failed to initialize settings: ${response.status} ${error}`);
-    }
-  } catch (error) {
-    console.log(`✗ Error initializing settings: ${error.message}`);
-  }
-
-  // Test 4: Get feature status
-  console.log('\n4. Testing GET /api/admin/features/status');
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/features/status`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
-      }
-    });
-    
-    if (response.ok) {
-      const features = await response.json();
-      console.log(`✓ Successfully retrieved ${features.length} feature statuses`);
+    if (loginResponse.ok) {
+      const loginData = await loginResponse.json();
+      console.log('   ✅ Login successful');
+      console.log('   User role:', loginData.user.role);
       
-      // Show summary
-      const activeFeatures = features.filter(f => f.enabled && f.configured);
-      const needsConfig = features.filter(f => f.enabled && !f.configured);
-      const disabled = features.filter(f => !f.enabled);
+      // Test 4: Try to get settings with admin session
+      console.log('\n4️⃣ Testing settings with admin session...');
+      const cookies = loginResponse.headers.get('set-cookie');
       
-      console.log(`   - Active: ${activeFeatures.length}`);
-      console.log(`   - Needs Config: ${needsConfig.length}`);
-      console.log(`   - Disabled: ${disabled.length}`);
-    } else {
-      console.log(`✗ Failed to get feature status: ${response.status} ${response.statusText}`);
-    }
-  } catch (error) {
-    console.log(`✗ Error getting feature status: ${error.message}`);
-  }
-
-  // Test 5: Get system health
-  console.log('\n5. Testing GET /api/admin/system/health');
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/system/health`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`
+      const settingsWithAuthResponse = await fetch(`${baseUrl}/api/settings`, {
+        headers: {
+          'Cookie': cookies
+        }
+      });
+      
+      console.log('   Settings with auth status:', settingsWithAuthResponse.status);
+      
+      if (settingsWithAuthResponse.ok) {
+        const settingsData = await settingsWithAuthResponse.json();
+        console.log('   ✅ Settings retrieved successfully');
+        console.log('   Settings count:', settingsData.length);
+      } else {
+        const errorText = await settingsWithAuthResponse.text();
+        console.log('   ❌ Settings failed:', errorText);
       }
-    });
+      
+      // Test 5: Try to update a setting
+      console.log('\n5️⃣ Testing setting update...');
+      const updateResponse = await fetch(`${baseUrl}/api/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': cookies
+        },
+        body: JSON.stringify({
+          key: 'test_setting',
+          value: 'test_value'
+        })
+      });
+      
+      console.log('   Update status:', updateResponse.status);
+      
+      if (updateResponse.ok) {
+        const updateData = await updateResponse.json();
+        console.log('   ✅ Setting updated successfully');
+        console.log('   Response:', updateData);
+      } else {
+        const errorText = await updateResponse.text();
+        console.log('   ❌ Update failed:', errorText);
+      }
+      
+    } else {
+      console.log('   ❌ Login failed');
+      const errorText = await loginResponse.text();
+      console.log('   Error:', errorText);
+    }
     
-    if (response.ok) {
-      const health = await response.json();
-      console.log(`✓ System health status: ${health.overall}`);
-      if (health.warnings?.length > 0) {
-        console.log('   Warnings:', health.warnings);
-      }
-      if (health.errors?.length > 0) {
-        console.log('   Errors:', health.errors);
-      }
-    } else {
-      console.log(`✗ Failed to get system health: ${response.status} ${response.statusText}`);
-    }
   } catch (error) {
-    console.log(`✗ Error getting system health: ${error.message}`);
+    console.error('❌ Test failed with error:', error.message);
   }
+  
+  console.log('\n🏁 Test completed');
 }
 
-// Run the tests
-testAdminSettings().then(() => {
-  console.log('\nAdmin Settings API test completed.');
-}).catch(error => {
-  console.error('Test failed:', error);
-}); 
+// Run the test
+testAdminSettings(); 

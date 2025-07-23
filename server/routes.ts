@@ -189,8 +189,14 @@ async function initializeChatRooms() {
 }
 
 function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) {
++  console.log('[AUTH DEBUG] Session data:', {
++    userId: req.session.userId,
++    username: req.session.username,
++    role: req.session.role
++  });
   // Check if user is logged in via session
   if (!req.session.userId || !req.session.username || !req.session.role) {
++    console.log('[AUTH DEBUG] Authentication failed - missing session data');
     return res.status(401).json({ message: "Authentication required" });
   }
 
@@ -201,6 +207,7 @@ function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) 
     role: req.session.role
   };
   
++  console.log('[AUTH DEBUG] User authenticated:', req.user);
   next();
 }
 
@@ -1090,10 +1097,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Settings routes
   app.get("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log('[SETTINGS DEBUG] GET /api/settings - User:', req.user);
       if (req.user?.role !== 'admin') {
+        console.log('[SETTINGS DEBUG] Access denied - User role:', req.user?.role);
         return res.status(403).json({ message: "Admin access required" });
       }
-      const allSettings = await db.select().from(settings);
+      const allSettings = await storage.getSettings();
+      console.log('[SETTINGS DEBUG] Retrieved settings:', allSettings.length, 'items');
       res.json(allSettings);
     } catch (error) {
       console.error("Get settings error:", error);
@@ -1103,15 +1113,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log('[SETTINGS DEBUG] POST /api/settings - User:', req.user, 'Body:', req.body);
       if (req.user?.role !== 'admin') {
+        console.log('[SETTINGS DEBUG] Access denied - User role:', req.user?.role);
         return res.status(403).json({ message: "Admin access required" });
       }
       const { key, value } = req.body;
       if (!key || value === undefined) {
+        console.log('[SETTINGS DEBUG] Missing key or value:', { key, value });
         return res.status(400).json({ message: "Key and value are required" });
       }
-      await db.insert(settings).values({ key, value, updatedBy: req.user.id, updatedAt: new Date() })
-        .onConflictDoUpdate({ target: settings.key, set: { value, updatedBy: req.user.id, updatedAt: new Date() } });
+      console.log('[SETTINGS DEBUG] Updating setting:', key, '=', value);
+      await storage.updateSetting(key, value, req.user.id);
+      console.log('[SETTINGS DEBUG] Setting updated successfully');
       res.json({ message: "Setting updated successfully" });
     } catch (error) {
       console.error("Update setting error:", error);
