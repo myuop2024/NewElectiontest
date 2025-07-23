@@ -1,0 +1,674 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+import { 
+  Layers, 
+  RefreshCw, 
+  AlertTriangle, 
+  Cloud, 
+  Car, 
+  MessageSquare,
+  MapPin
+} from 'lucide-react';
+import MultiSyncIndicator from '@/components/ui/multi-sync-indicator';
+
+interface UnifiedJamaicaMapProps {
+  enabledOverlays?: string[];
+  showControls?: boolean;
+  onStationSelect?: (station: any) => void;
+  selectedStation?: any;
+  height?: string;
+  showLegend?: boolean;
+  className?: string;
+}
+
+export default function UnifiedJamaicaMap({
+  enabledOverlays = ['traffic', 'weather', 'sentiment', 'incidents'],
+  showControls = true,
+  onStationSelect,
+  selectedStation,
+  height = '600px',
+  showLegend = true,
+  className = ''
+}: UnifiedJamaicaMapProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<any>(null);
+  const [mapProvider, setMapProvider] = useState<'here' | 'google'>('here');
+  const [activeOverlays, setActiveOverlays] = useState<Set<string>>(new Set(enabledOverlays));
+  const overlayRefs = useRef<{ [key: string]: any[] }>({
+    traffic: [],
+    weather: [],
+    sentiment: [],
+    incidents: []
+  });
+
+  // Fetch HERE API settings
+  const { data: hereSettings } = useQuery({
+    queryKey: ['/api/settings/here-api'],
+    retry: 1
+  });
+
+  // Fetch all polling stations
+  const { data: stations = [], refetch: refetchStations } = useQuery({
+    queryKey: ['/api/polling-stations']
+  });
+
+  // Fetch overlay data
+  const { data: trafficData, isLoading: trafficLoading, refetch: refetchTraffic } = useQuery({
+    queryKey: ['/api/traffic/all-stations'],
+    enabled: activeOverlays.has('traffic'),
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+
+  const { data: weatherData, isLoading: weatherLoading, refetch: refetchWeather } = useQuery({
+    queryKey: ['/api/weather/all-parishes'],
+    enabled: activeOverlays.has('weather'),
+    refetchInterval: 60000 // Refresh every minute
+  });
+
+  const { data: sentimentData, isLoading: sentimentLoading, refetch: refetchSentiment } = useQuery({
+    queryKey: ['/api/x-sentiment/stations/all'],
+    enabled: activeOverlays.has('sentiment'),
+    refetchInterval: 30000
+  });
+
+  const { data: incidentsData, isLoading: incidentsLoading, refetch: refetchIncidents } = useQuery({
+    queryKey: ['/api/incidents/recent'],
+    enabled: activeOverlays.has('incidents'),
+    refetchInterval: 30000
+  });
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const initializeMap = async () => {
+      // Try HERE Maps first if API key is available
+      if (hereSettings?.hasKey) {
+        try {
+          await loadHereMaps();
+        } catch (error) {
+          console.error('Failed to load HERE Maps, falling back to Google:', error);
+          await loadGoogleMaps();
+        }
+      } else {
+        await loadGoogleMaps();
+      }
+    };
+
+    initializeMap();
+
+    return () => {
+      if (map) {
+        if (mapProvider === 'here' && map.dispose) {
+          map.dispose();
+        }
+      }
+    };
+  }, [hereSettings]);
+
+  // Load HERE Maps
+  const loadHereMaps = async () => {
+    const H = (window as any).H;
+    if (!H || !mapRef.current || !hereSettings?.apiKey) {
+      throw new Error('HERE Maps requirements not met');
+    }
+
+    const platform = new H.service.Platform({
+      apikey: hereSettings.apiKey
+    });
+
+    const defaultLayers = platform.createDefaultLayers();
+    const hereMap = new H.Map(
+      mapRef.current,
+      defaultLayers.vector.normal.map,
+      {
+        zoom: 9,
+        center: { lat: 18.1096, lng: -77.2975 } // Jamaica center
+      }
+    );
+
+    const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(hereMap));
+    const ui = H.ui.UI.createDefault(hereMap, defaultLayers);
+
+    // Add resize handling
+    window.addEventListener('resize', () => {
+      hereMap.getViewPort().resize();
+    });
+
+    setMap(hereMap);
+    setMapProvider('here');
+  };
+
+  // Load Google Maps as fallback
+  const loadGoogleMaps = async () => {
+    if (!mapRef.current) return;
+
+    const googleMap = new (window as any).google.maps.Map(mapRef.current, {
+      zoom: 9,
+      center: { lat: 18.1096, lng: -77.2975 },
+      mapTypeId: 'roadmap'
+    });
+
+    setMap(googleMap);
+    setMapProvider('google');
+  };
+
+  // Update overlays when data changes
+  useEffect(() => {
+    if (!map || !stations.length) return;
+
+    clearAllOverlays();
+    renderStations();
+    renderOverlays();
+  }, [map, stations, trafficData, weatherData, sentimentData, incidentsData, activeOverlays]);
+
+  // Clear all overlays
+  const clearAllOverlays = () => {
+    Object.keys(overlayRefs.current).forEach(type => {
+      overlayRefs.current[type].forEach(overlay => {
+        if (mapProvider === 'google' && overlay.setMap) {
+          overlay.setMap(null);
+        } else if (mapProvider === 'here' && map && overlay.dispose) {
+          map.removeObject(overlay);
+        }
+      });
+      overlayRefs.current[type] = [];
+    });
+  };
+
+  // Render polling stations
+  const renderStations = () => {
+    if (!map) return;
+
+    stations.forEach((station: any) => {
+      if (!station.latitude || !station.longitude) return;
+
+      const position = { 
+        lat: parseFloat(station.latitude), 
+        lng: parseFloat(station.longitude) 
+      };
+
+      if (mapProvider === 'google') {
+        const marker = new (window as any).google.maps.Marker({
+          position,
+          map,
+          title: station.name,
+          icon: {
+            path: (window as any).google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.8,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+          }
+        });
+
+        marker.addListener('click', () => {
+          if (onStationSelect) onStationSelect(station);
+        });
+
+        overlayRefs.current.incidents.push(marker);
+      } else if (mapProvider === 'here') {
+        const H = (window as any).H;
+        const marker = new H.map.Marker(position);
+        
+        marker.addEventListener('tap', () => {
+          if (onStationSelect) onStationSelect(station);
+        });
+
+        map.addObject(marker);
+        overlayRefs.current.incidents.push(marker);
+      }
+    });
+  };
+
+  // Render overlays based on active selections
+  const renderOverlays = () => {
+    if (!map) return;
+
+    // Traffic overlays
+    if (activeOverlays.has('traffic') && trafficData?.stations) {
+      trafficData.stations.forEach((stationTraffic: any) => {
+        const station = stations.find((s: any) => s.id === stationTraffic.stationId);
+        if (!station?.latitude || !station?.longitude) return;
+
+        const position = { 
+          lat: parseFloat(station.latitude), 
+          lng: parseFloat(station.longitude) 
+        };
+
+        const color = getTrafficColor(stationTraffic.analysis?.overallSeverity || 'light');
+        const radius = getTrafficRadius(stationTraffic.analysis?.overallSeverity || 'light');
+
+        if (mapProvider === 'google') {
+          const circle = new (window as any).google.maps.Circle({
+            strokeColor: color,
+            strokeOpacity: 0.8,
+            strokeWeight: 3,
+            fillColor: color,
+            fillOpacity: 0.25,
+            map,
+            center: position,
+            radius
+          });
+          overlayRefs.current.traffic.push(circle);
+        } else if (mapProvider === 'here') {
+          const H = (window as any).H;
+          const circle = new H.map.Circle(position, radius, {
+            style: {
+              strokeColor: color,
+              lineWidth: 3,
+              fillColor: color + '40'
+            }
+          });
+          map.addObject(circle);
+          overlayRefs.current.traffic.push(circle);
+        }
+      });
+    }
+
+    // Weather overlays
+    if (activeOverlays.has('weather') && weatherData?.parishes) {
+      weatherData.parishes.forEach((parish: any) => {
+        const position = { lat: parish.lat, lng: parish.lng };
+        const color = getWeatherColor(parish.weather?.electoralImpact || 'low');
+        const radius = 20000; // 20km radius for weather
+
+        if (mapProvider === 'google') {
+          const circle = new (window as any).google.maps.Circle({
+            strokeColor: color,
+            strokeOpacity: 0.6,
+            strokeWeight: 2,
+            fillColor: color,
+            fillOpacity: 0.15,
+            map,
+            center: position,
+            radius
+          });
+          overlayRefs.current.weather.push(circle);
+        } else if (mapProvider === 'here') {
+          const H = (window as any).H;
+          const circle = new H.map.Circle(position, radius, {
+            style: {
+              strokeColor: color,
+              lineWidth: 2,
+              fillColor: color + '26'
+            }
+          });
+          map.addObject(circle);
+          overlayRefs.current.weather.push(circle);
+        }
+      });
+    }
+
+    // Sentiment overlays
+    if (activeOverlays.has('sentiment') && sentimentData) {
+      stations.forEach((station: any) => {
+        if (!station.latitude || !station.longitude) return;
+
+        const stationSentiment = sentimentData.find((s: any) => s.stationId === station.id);
+        if (!stationSentiment?.sentimentAnalysis) return;
+
+        const position = { 
+          lat: parseFloat(station.latitude), 
+          lng: parseFloat(station.longitude) 
+        };
+
+        const color = getSentimentColor(stationSentiment.sentimentAnalysis.riskLevel);
+        const radius = getSentimentRadius(stationSentiment.sentimentAnalysis.riskLevel);
+
+        if (mapProvider === 'google') {
+          const circle = new (window as any).google.maps.Circle({
+            strokeColor: color,
+            strokeOpacity: 0.7,
+            strokeWeight: 2,
+            fillColor: color,
+            fillOpacity: 0.2,
+            map,
+            center: position,
+            radius
+          });
+          overlayRefs.current.sentiment.push(circle);
+        } else if (mapProvider === 'here') {
+          const H = (window as any).H;
+          const circle = new H.map.Circle(position, radius, {
+            style: {
+              strokeColor: color,
+              lineWidth: 2,
+              fillColor: color + '33'
+            }
+          });
+          map.addObject(circle);
+          overlayRefs.current.sentiment.push(circle);
+        }
+      });
+    }
+
+    // Incident markers
+    if (activeOverlays.has('incidents') && incidentsData?.incidents) {
+      incidentsData.incidents.forEach((incident: any) => {
+        if (!incident.latitude || !incident.longitude) return;
+
+        const position = { 
+          lat: parseFloat(incident.latitude), 
+          lng: parseFloat(incident.longitude) 
+        };
+
+        if (mapProvider === 'google') {
+          const marker = new (window as any).google.maps.Marker({
+            position,
+            map,
+            title: incident.title,
+            icon: {
+              path: 'M 0,-24 L -12,0 L 12,0 Z',
+              fillColor: getIncidentColor(incident.severity),
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+              scale: 1
+            }
+          });
+          overlayRefs.current.incidents.push(marker);
+        } else if (mapProvider === 'here') {
+          const H = (window as any).H;
+          const svgMarkup = `
+            <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2 L22 20 L2 20 Z" fill="${getIncidentColor(incident.severity)}" stroke="#fff" stroke-width="2"/>
+              <text x="12" y="16" text-anchor="middle" font-size="12" fill="white" font-weight="bold">!</text>
+            </svg>
+          `;
+          const icon = new H.map.Icon(`data:image/svg+xml,${encodeURIComponent(svgMarkup)}`, 
+            { size: { w: 24, h: 24 } }
+          );
+          const marker = new H.map.Marker(position, { icon });
+          map.addObject(marker);
+          overlayRefs.current.incidents.push(marker);
+        }
+      });
+    }
+  };
+
+  // Helper functions for colors and sizes
+  const getTrafficColor = (severity: string) => {
+    switch (severity) {
+      case 'severe': return '#dc2626';
+      case 'heavy': return '#ef4444';
+      case 'moderate': return '#f59e0b';
+      default: return '#10b981';
+    }
+  };
+
+  const getTrafficRadius = (severity: string) => {
+    switch (severity) {
+      case 'severe': return 8000;
+      case 'heavy': return 6000;
+      case 'moderate': return 4000;
+      default: return 3000;
+    }
+  };
+
+  const getWeatherColor = (impact: string) => {
+    switch (impact) {
+      case 'high': return '#ef4444';
+      case 'medium': return '#f59e0b';
+      default: return '#10b981';
+    }
+  };
+
+  const getSentimentColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'critical': return '#dc2626';
+      case 'high': return '#ef4444';
+      case 'medium': return '#f59e0b';
+      default: return '#10b981';
+    }
+  };
+
+  const getSentimentRadius = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'critical': return 10000;
+      case 'high': return 7000;
+      case 'medium': return 5000;
+      default: return 3000;
+    }
+  };
+
+  const getIncidentColor = (severity: string) => {
+    switch (severity) {
+      case 'high': return '#dc2626';
+      case 'medium': return '#f59e0b';
+      default: return '#fbbf24';
+    }
+  };
+
+  // Toggle overlay
+  const toggleOverlay = (type: string) => {
+    const newOverlays = new Set(activeOverlays);
+    if (newOverlays.has(type)) {
+      newOverlays.delete(type);
+    } else {
+      newOverlays.add(type);
+    }
+    setActiveOverlays(newOverlays);
+  };
+
+  // Refresh all data
+  const refreshAllData = () => {
+    refetchStations();
+    if (activeOverlays.has('traffic')) refetchTraffic();
+    if (activeOverlays.has('weather')) refetchWeather();
+    if (activeOverlays.has('sentiment')) refetchSentiment();
+    if (activeOverlays.has('incidents')) refetchIncidents();
+    
+    toast({
+      title: "Data Refreshed",
+      description: "All map data has been updated",
+    });
+  };
+
+  const isLoading = trafficLoading || weatherLoading || sentimentLoading || incidentsLoading;
+
+  return (
+    <div className={`space-y-4 ${className}`}>
+      {/* Controls */}
+      {showControls && (
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={activeOverlays.has('traffic') ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleOverlay('traffic')}
+                className="flex items-center gap-2"
+              >
+                <Car className="h-4 w-4" />
+                Traffic
+              </Button>
+              <Button
+                variant={activeOverlays.has('weather') ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleOverlay('weather')}
+                className="flex items-center gap-2"
+              >
+                <Cloud className="h-4 w-4" />
+                Weather
+              </Button>
+              <Button
+                variant={activeOverlays.has('sentiment') ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleOverlay('sentiment')}
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                X Sentiment
+              </Button>
+              <Button
+                variant={activeOverlays.has('incidents') ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleOverlay('incidents')}
+                className="flex items-center gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Incidents
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <MultiSyncIndicator
+                dataSources={[
+                  { name: 'Traffic', isActive: activeOverlays.has('traffic'), isLoading: trafficLoading },
+                  { name: 'Weather', isActive: activeOverlays.has('weather'), isLoading: weatherLoading },
+                  { name: 'Sentiment', isActive: activeOverlays.has('sentiment'), isLoading: sentimentLoading },
+                  { name: 'Incidents', isActive: activeOverlays.has('incidents'), isLoading: incidentsLoading },
+                ]}
+              />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={refreshAllData}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Map Container */}
+      <Card className="overflow-hidden">
+        <div 
+          ref={mapRef} 
+          style={{ height }}
+          className="w-full"
+        />
+      </Card>
+
+      {/* Legend */}
+      {showLegend && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Map Legend
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Traffic Legend */}
+              {activeOverlays.has('traffic') && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Traffic Conditions</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-600" />
+                      <span className="text-xs">Severe (8km)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <span className="text-xs">Heavy (6km)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-amber-500" />
+                      <span className="text-xs">Moderate (4km)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                      <span className="text-xs">Light (3km)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Weather Legend */}
+              {activeOverlays.has('weather') && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Weather Impact</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <span className="text-xs">High Impact</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-amber-500" />
+                      <span className="text-xs">Medium Impact</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                      <span className="text-xs">Low Impact</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sentiment Legend */}
+              {activeOverlays.has('sentiment') && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">X Sentiment Risk</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-600" />
+                      <span className="text-xs">Critical (10km)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <span className="text-xs">High (7km)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-amber-500" />
+                      <span className="text-xs">Medium (5km)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                      <span className="text-xs">Low (3km)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Incidents Legend */}
+              {activeOverlays.has('incidents') && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Incidents</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <AlertTriangle className="h-4 w-4 text-red-600 fill-red-600" />
+                      </div>
+                      <span className="text-xs">High Severity</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 fill-amber-500" />
+                      </div>
+                      <span className="text-xs">Medium Severity</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <AlertTriangle className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      </div>
+                      <span className="text-xs">Low Severity</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Station info */}
+            <div className="pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <span className="text-xs text-muted-foreground">
+                  {stations.length} polling stations • {mapProvider === 'here' ? 'HERE Maps' : 'Google Maps'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
