@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Filter, Download, Map, List, Navigation, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
-import HeatMapOverlay from "@/components/maps/heat-map-overlay";
+import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
@@ -248,15 +248,15 @@ export default function PollingStations() {
             onStationSelect={setSelectedStation}
           />
           
-          {/* Heat Map Risk Assessment */}
+          {/* Heat Map Risk Assessment with Overlays */}
           <div className="mt-6">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold">Risk Assessment Heat Map</h3>
+              <h3 className="text-lg font-semibold">Heat Map with Traffic, Weather & Sentiment Overlays</h3>
               <p className="text-sm text-muted-foreground">
                 Interactive risk analysis combining X sentiment, traffic, weather, and incident data
               </p>
             </div>
-            <HeatMapOverlay
+            <PollingStationsHeatMap
               stations={filteredStations}
               selectedStation={selectedStation}
               onStationSelect={setSelectedStation}

@@ -3701,7 +3701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Incidents API endpoint for recent incidents (Heat Map Overlay)
-  app.get("/api/incidents/recent", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/incidents/recent", async (req: Request, res: Response) => {
     try {
       console.log('[API] Recent incidents endpoint called');
       
@@ -3971,7 +3971,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/traffic/all-stations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/traffic/all-stations", async (req: Request, res: Response) => {
     try {
       const { getTrafficService } = await import("./lib/traffic-service");
       
