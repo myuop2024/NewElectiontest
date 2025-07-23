@@ -107,8 +107,10 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
         const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(newMap));
         const ui = H.ui.UI.createDefault(newMap, defaultLayers);
 
-        // Add resize listener
-        newMap.getViewPort().addResizeListener(() => newMap.getViewPort().update());
+        // Add resize handling
+        window.addEventListener('resize', () => {
+          newMap.getViewPort().resize();
+        });
 
         console.log('HERE Maps initialized successfully');
         setMap(newMap);

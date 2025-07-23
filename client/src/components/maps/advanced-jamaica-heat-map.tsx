@@ -292,7 +292,10 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
           group.addObjects([circle, marker]);
         });
 
-        hereMap.getViewPort().addResizeListener(() => hereMap.getViewPort().update());
+        // Add resize handling
+        window.addEventListener('resize', () => {
+          hereMap.getViewPort().resize();
+        });
         hereMap.addObject(group);
       } catch (uiError) {
         console.error('HERE Maps UI initialization error:', uiError);
