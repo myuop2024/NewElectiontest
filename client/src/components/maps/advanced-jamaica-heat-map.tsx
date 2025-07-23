@@ -19,6 +19,8 @@ import {
   Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SyncIndicator, MultiSyncIndicator } from '@/components/ui/sync-indicator';
+import { useHeatMapSyncStatus } from '@/hooks/use-sync-status';
 
 declare global {
   interface Window {
@@ -102,6 +104,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
     incidents: []
   });
   const { toast } = useToast();
+  const { combined: syncStatuses, refetchAll } = useHeatMapSyncStatus();
 
   // Fetch overlay data
   const { data: sentimentData, refetch: refetchSentiment } = useQuery<{
@@ -530,6 +533,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
     });
   };
 
+  // Function for individual refreshes (keeping legacy support)
   const refreshAllData = () => {
     if (activeOverlays.has('sentiment')) refetchSentiment();
     if (activeOverlays.has('traffic')) refetchTraffic();
@@ -573,7 +577,8 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
               <Layers className="h-5 w-5" />
               Advanced Heat Map Controls
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <MultiSyncIndicator sources={syncStatuses} />
               <Button
                 variant="outline"
                 size="sm"
@@ -584,7 +589,13 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
               <Button
                 variant="outline" 
                 size="sm"
-                onClick={refreshAllData}
+                onClick={() => {
+                  refetchAll();
+                  toast({
+                    title: "Heat Map Updated",
+                    description: "Refreshed all overlay data from live sources"
+                  });
+                }}
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />

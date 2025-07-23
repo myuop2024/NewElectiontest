@@ -22,6 +22,8 @@ import {
   Clock,
   RefreshCw
 } from "lucide-react";
+import { SyncIndicator } from '@/components/ui/sync-indicator';
+import { useSyncStatus } from '@/hooks/use-sync-status';
 
 interface WeatherData {
   parish: string;
@@ -61,6 +63,18 @@ interface AllWeatherData {
 export default function WeatherDashboard() {
   const [selectedParish, setSelectedParish] = useState<string>("Kingston");
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Weather sync status tracking
+  const { syncStatus: parishSyncStatus } = useSyncStatus({
+    queryKey: [`/api/weather/parish/${selectedParish}/summary`, refreshKey],
+    dataSource: `${selectedParish} Weather`,
+    enabled: !!selectedParish,
+  });
+
+  const { syncStatus: allWeatherSyncStatus } = useSyncStatus({
+    queryKey: ["/api/weather/all-parishes", refreshKey],
+    dataSource: 'All Parishes Weather',
+  });
 
   // Get list of available parishes with error handling
   const { data: parishesData, error: parishesError } = useQuery<{ parishes: string[] }>({
@@ -151,10 +165,13 @@ export default function WeatherDashboard() {
           <h1 className="text-3xl font-bold">Weather Dashboard</h1>
           <p className="text-gray-600">Real-time weather conditions for Jamaica parishes</p>
         </div>
-        <Button onClick={refreshWeatherData} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Data
-        </Button>
+        <div className="flex items-center gap-3">
+          <SyncIndicator status={allWeatherSyncStatus} size="md" />
+          <Button onClick={refreshWeatherData} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="parish" className="space-y-6">
@@ -164,19 +181,22 @@ export default function WeatherDashboard() {
         </TabsList>
 
         <TabsContent value="parish" className="space-y-6">
-          <div className="flex items-center space-x-4">
-            <Select value={selectedParish} onValueChange={setSelectedParish}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select Parish" />
-              </SelectTrigger>
-              <SelectContent>
-                {parishes.map((parish) => (
-                  <SelectItem key={parish} value={parish}>
-                    {parish}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Select value={selectedParish} onValueChange={setSelectedParish}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select Parish" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parishes.map((parish) => (
+                    <SelectItem key={parish} value={parish}>
+                      {parish}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <SyncIndicator status={parishSyncStatus} size="sm" />
           </div>
 
           {parishLoading && (

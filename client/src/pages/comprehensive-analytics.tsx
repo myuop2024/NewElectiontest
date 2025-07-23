@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import AdvancedJamaicaHeatMap from "@/components/maps/advanced-jamaica-heat-map";
 import { toast } from "@/hooks/use-toast";
+import { SyncIndicator } from '@/components/ui/sync-indicator';
+import { useSyncStatus } from '@/hooks/use-sync-status';
 
 interface AnalyticsData {
   realTimeMetrics: {
@@ -53,6 +55,13 @@ interface AnalyticsData {
 export default function ComprehensiveAnalytics() {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
+
+  // Real-time sync status for analytics data
+  const { syncStatus } = useSyncStatus({
+    queryKey: ['/api/analytics/comprehensive'],
+    dataSource: 'Comprehensive Analytics',
+    refetchInterval: 30000,
+  });
   const [selectedStation, setSelectedStation] = useState<any>(null);
 
   // Real-time analytics data with error handling
@@ -200,7 +209,8 @@ export default function ComprehensiveAnalytics() {
           <h1 className="text-3xl font-bold">Electoral Analytics Hub</h1>
           <p className="text-muted-foreground">Unified analytics and insights for electoral observation</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <SyncIndicator status={syncStatus} size="md" />
           <Button onClick={handleRefreshAll} disabled={refreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh All
