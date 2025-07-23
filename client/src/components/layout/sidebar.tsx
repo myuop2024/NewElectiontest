@@ -109,12 +109,12 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 government-sidebar">
+    <aside className="w-64 government-sidebar flex flex-col h-full">
       <div className="flex flex-col items-center p-4 border-b border-border">
         <h2 className="text-lg font-bold caffe-primary">Navigation</h2>
         <p className="text-xs text-muted-foreground text-center">Electoral Observer Platform</p>
       </div>
-      <nav className="mt-6 px-3">
+      <nav className="flex-1 mt-6 px-3 overflow-y-auto">
         <div className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
