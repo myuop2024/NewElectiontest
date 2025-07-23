@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -26,8 +26,7 @@ import QRScanner from "@/pages/qr-scanner";
 import CheckIn from "@/pages/check-in";
 import EmergencyAlert from "@/pages/emergency-alert";
 import Settings from "@/pages/settings";
-import UnifiedAdmin from "@/pages/unified-admin";
-import AdminPanel from "@/pages/admin-panel";
+// Removed duplicate admin imports - UnifiedAdmin and AdminPanel are now redirected to AdminSettings
 import AdminSettings from "@/pages/admin-settings";
 
 
@@ -177,7 +176,14 @@ function Router() {
           <AdminSettings />
         </ProtectedLayout>
       </Route>
-
+      
+      {/* Redirect duplicate admin pages to main admin-settings */}
+      <Route path="/admin-panel">
+        <Redirect to="/admin-settings" />
+      </Route>
+      <Route path="/unified-admin">
+        <Redirect to="/admin-settings" />
+      </Route>
 
 
       <Route path="/polling-station-management">
