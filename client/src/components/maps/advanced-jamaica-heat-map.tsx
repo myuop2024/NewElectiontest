@@ -95,34 +95,60 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
   const [activeOverlays, setActiveOverlays] = useState<Set<string>>(new Set(['sentiment', 'traffic']));
   const [mapProvider, setMapProvider] = useState<'google' | 'here'>('google');
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const overlayRefs = useRef<{ [key: string]: any[] }>({
+    sentiment: [],
+    traffic: [],
+    weather: [],
+    incidents: []
+  });
   const { toast } = useToast();
 
   // Fetch overlay data
-  const { data: sentimentData, refetch: refetchSentiment } = useQuery({
+  const { data: sentimentData, refetch: refetchSentiment } = useQuery<{
+    stations: Array<{ stationId: number; lat: number; lng: number; sentimentScore: number; }>
+  }>({
     queryKey: ['/api/x-sentiment/stations/all'],
     enabled: activeOverlays.has('sentiment'),
     refetchInterval: 30000
   });
 
-  const { data: trafficData, refetch: refetchTraffic } = useQuery({
+  const { data: trafficData, refetch: refetchTraffic } = useQuery<{
+    stations: Array<{ stationId: number; coordinates: { lat: number; lng: number; }; trafficSeverity: string; }>
+  }>({
     queryKey: ['/api/traffic/all-stations'],
     enabled: activeOverlays.has('traffic'),
     refetchInterval: 30000
   });
 
-  const { data: weatherData, refetch: refetchWeather } = useQuery({
+  const { data: weatherData, refetch: refetchWeather } = useQuery<{
+    success: boolean;
+    parishes: Array<{ 
+      parish: string; 
+      lat: number; 
+      lng: number; 
+      current: any;
+      electoralImpact: { severity: string };
+    }>
+  }>({
     queryKey: ['/api/weather/all-parishes'],
     enabled: activeOverlays.has('weather'),
     refetchInterval: 30000
   });
 
-  const { data: incidentData, refetch: refetchIncidents } = useQuery({
+  const { data: incidentData, refetch: refetchIncidents } = useQuery<{
+    success: boolean;
+    incidents: Array<{ lat: number; lng: number; severity: string; }>
+  }>({
     queryKey: ['/api/incidents/recent'],
     enabled: activeOverlays.has('incidents'),
     refetchInterval: 30000
   });
 
-  const { data: hereSettings } = useQuery({
+  const { data: hereSettings } = useQuery<{
+    configured: boolean;
+    hasKey: boolean;
+    apiKey?: string;
+  }>({
     queryKey: ['/api/settings/here-api']
   });
 
@@ -257,26 +283,35 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
       } catch (uiError) {
         console.error('HERE Maps UI initialization error:', uiError);
         setMapProvider('google');
-        toast({
-          title: "HERE Maps UI Error",
-          description: "Switching to Google Maps for better compatibility",
-          variant: "default"
-        });
+        // Silently switch to Google Maps
       }
     } catch (error) {
       console.error('HERE Maps initialization error:', error);
       setMapProvider('google');
-      toast({
-        title: "HERE Maps Error",
-        description: "Switching to Google Maps for better compatibility",
-        variant: "default"
-      });
+      // Silently switch to Google Maps
     }
+  };
+
+  // Clear overlays
+  const clearOverlays = (overlayType?: string) => {
+    const typesToClear = overlayType ? [overlayType] : Object.keys(overlayRefs.current);
+    
+    typesToClear.forEach(type => {
+      overlayRefs.current[type].forEach(overlay => {
+        if (mapProvider === 'google' && overlay.setMap) {
+          overlay.setMap(null);
+        }
+      });
+      overlayRefs.current[type] = [];
+    });
   };
 
   // Add overlay visualization
   const addOverlayVisualization = () => {
     if (!map || !isMapLoaded) return;
+
+    // Clear all overlays first
+    clearOverlays();
 
     // Add sentiment overlays
     if (activeOverlays.has('sentiment') && sentimentData?.stations) {
@@ -296,6 +331,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
               center: { lat: station.lat, lng: station.lng },
               radius: intensity * 8000
             });
+            overlayRefs.current.sentiment.push(circle);
           }
         }
       });
@@ -319,13 +355,73 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
               map: map,
               icon: {
                 path: window.google.maps.SymbolPath.CIRCLE,
-                scale: 6,
+                scale: 8,
                 fillColor: colors[severity as keyof typeof colors],
                 fillOpacity: 0.8,
+                strokeColor: '#ffffff',
+                strokeWeight: 2
+              }
+            });
+            overlayRefs.current.traffic.push(marker);
+          }
+        }
+      });
+    }
+
+    // Add weather overlays
+    if (activeOverlays.has('weather') && weatherData?.parishes) {
+      weatherData.parishes.forEach((parish: any) => {
+        if (parish.lat && parish.lng && !('error' in parish)) {
+          const severity = parish.electoralImpact?.severity || 'low';
+          const colors = {
+            low: '#10b981',
+            medium: '#f59e0b',
+            high: '#ef4444'
+          };
+          
+          if (mapProvider === 'google' && window.google) {
+            const circle = new window.google.maps.Circle({
+              strokeColor: colors[severity as keyof typeof colors],
+              strokeOpacity: 0.6,
+              strokeWeight: 2,
+              fillColor: colors[severity as keyof typeof colors],
+              fillOpacity: 0.2,
+              map: map,
+              center: { lat: parish.lat, lng: parish.lng },
+              radius: 20000
+            });
+            overlayRefs.current.weather.push(circle);
+          }
+        }
+      });
+    }
+
+    // Add incident overlays
+    if (activeOverlays.has('incidents') && incidentData?.incidents) {
+      incidentData.incidents.forEach((incident: any) => {
+        if (incident.lat && incident.lng) {
+          const severity = incident.severity || 'low';
+          const colors = {
+            low: '#fbbf24',
+            medium: '#f97316',
+            high: '#dc2626',
+            critical: '#7c2d12'
+          };
+          
+          if (mapProvider === 'google' && window.google) {
+            const marker = new window.google.maps.Marker({
+              position: { lat: incident.lat, lng: incident.lng },
+              map: map,
+              icon: {
+                path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+                scale: 6,
+                fillColor: colors[severity as keyof typeof colors],
+                fillOpacity: 0.9,
                 strokeColor: '#ffffff',
                 strokeWeight: 1
               }
             });
+            overlayRefs.current.incidents.push(marker);
           }
         }
       });
@@ -378,7 +474,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
         return;
       }
 
-      const loadScript = (src, onload) => {
+      const loadScript = (src: string, onload: () => void) => {
         const script = document.createElement('script');
         script.src = src;
         script.onload = onload;
@@ -411,6 +507,13 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
   // Update overlays when data changes
   useEffect(() => {
     if (isMapLoaded) {
+      console.log('Updating overlays - Active:', Array.from(activeOverlays));
+      console.log('Data availability:', {
+        sentiment: !!sentimentData?.stations,
+        traffic: !!trafficData?.stations, 
+        weather: !!weatherData?.parishes,
+        incidents: !!incidentData?.incidents
+      });
       addOverlayVisualization();
     }
   }, [isMapLoaded, activeOverlays, sentimentData, trafficData, weatherData, incidentData]);
