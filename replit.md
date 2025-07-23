@@ -234,6 +234,14 @@ The system analyzes traffic conditions for their impact on electoral activities:
 
 ## Recent Changes
 
+### January 23, 2025: Weather Dashboard Authentication Fix and Complete API Access  
+- **CRITICAL FIX**: Removed authentication requirement from weather dashboard parish endpoints
+- **WEATHER API ACCESS**: Fixed `/api/weather/parish/:parishName` and `/api/weather/parish/:parishName/summary` endpoints
+- **DASHBOARD FUNCTIONAL**: Weather dashboard now properly loads parish-specific weather data
+- **PUBLIC ACCESS**: All heat map overlay APIs now accessible without authentication for frontend visualization
+- **COMPREHENSIVE TESTING**: Verified weather, sentiment, and traffic APIs working for all heat map overlays
+- **API ENDPOINTS FIXED**: Parish weather summaries, sentiment analysis, and traffic monitoring all operational
+
 ### January 23, 2025: HERE Maps API Integration Completion and Comprehensive Map Testing
 - **MAJOR SUCCESS**: Complete HERE API key integration across all map instances
 - **DATABASE INTEGRATION**: HERE API key now saves to database and auto-loads on app startup

@@ -3735,7 +3735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/weather/parish/:parishName", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/weather/parish/:parishName", async (req: Request, res: Response) => {
     try {
       const { parishName } = req.params;
       const weatherService = getWeatherService();
@@ -3751,7 +3751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/weather/parish/:parishName/summary", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/weather/parish/:parishName/summary", async (req: Request, res: Response) => {
     try {
       const { parishName } = req.params;
       const weatherService = getWeatherService();
