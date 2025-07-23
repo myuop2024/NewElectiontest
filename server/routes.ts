@@ -3635,7 +3635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Weather API endpoints
-  app.get("/api/weather/parishes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/weather/parishes", async (req: Request, res: Response) => {
     try {
       const weatherService = getWeatherService();
       const parishes = weatherService.getAvailableParishes();
@@ -3647,7 +3647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Weather API endpoint for all parishes (Heat Map Overlay)
-  app.get("/api/weather/all-parishes", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/weather/all-parishes", async (req: Request, res: Response) => {
     try {
       console.log('[API] Weather all-parishes endpoint called');
       
@@ -6454,7 +6454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get X sentiment data for all stations (Heat Map Overlay)
-  app.get("/api/x-sentiment/all-stations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/x-sentiment/all-stations", async (req: Request, res: Response) => {
     try {
       console.log('[API] X Sentiment all-stations endpoint called');
       

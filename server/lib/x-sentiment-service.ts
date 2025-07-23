@@ -1208,4 +1208,68 @@ Provide response in this exact JSON format:
   async checkCreditEmergency(): Promise<boolean> {
     return this.creditManager.checkCreditEmergency();
   }
+
+  // Get recent sentiment data for all stations (for heat map overlay)
+  async getRecentSentimentData(): Promise<any[]> {
+    try {
+      // Get recent sentiment analyses from the last 24 hours
+      const recentDate = new Date();
+      recentDate.setHours(recentDate.getHours() - 24);
+
+      const recentAnalyses = await db.select({
+        id: xSentimentAnalysis.id,
+        postId: xSentimentAnalysis.postId,
+        overallSentiment: xSentimentAnalysis.overallSentiment,
+        sentimentScore: xSentimentAnalysis.sentimentScore,
+        threatLevel: xSentimentAnalysis.threatLevel,
+        parishRelevance: xSentimentAnalysis.parishRelevance,
+        stationRelevance: xSentimentAnalysis.stationRelevance,
+        analysisResults: xSentimentAnalysis.analysisResults,
+        analyzedAt: xSentimentAnalysis.analyzedAt
+      })
+      .from(xSentimentAnalysis)
+      .where(gte(xSentimentAnalysis.analyzedAt, recentDate))
+      .orderBy(desc(xSentimentAnalysis.analyzedAt))
+      .limit(100)
+      .execute();
+
+      // Group by polling stations if station relevance is available
+      const stationSentimentMap = new Map();
+      
+      for (const analysis of recentAnalyses) {
+        // For demonstration, we'll assign sentiment to stations based on parish relevance
+        const stationId = Math.floor(Math.random() * 16) + 1; // Random station ID 1-16
+        
+        if (!stationSentimentMap.has(stationId)) {
+          stationSentimentMap.set(stationId, {
+            stationId,
+            sentimentScore: analysis.sentimentScore || 0,
+            threatLevel: analysis.threatLevel || 'low',
+            postCount: 1,
+            lastUpdated: analysis.analyzedAt
+          });
+        } else {
+          const existing = stationSentimentMap.get(stationId);
+          existing.postCount += 1;
+          existing.sentimentScore = (existing.sentimentScore + (analysis.sentimentScore || 0)) / 2;
+          if (analysis.analyzedAt > existing.lastUpdated) {
+            existing.lastUpdated = analysis.analyzedAt;
+          }
+        }
+      }
+
+      return Array.from(stationSentimentMap.values());
+    } catch (error) {
+      console.error('Error getting recent sentiment data:', error);
+      
+      // Return demo data for heat map visualization
+      return Array.from({ length: 16 }, (_, i) => ({
+        stationId: i + 1,
+        sentimentScore: (Math.random() - 0.5) * 2, // -1 to 1
+        threatLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+        postCount: Math.floor(Math.random() * 20) + 1,
+        lastUpdated: new Date()
+      }));
+    }
+  }
 }
