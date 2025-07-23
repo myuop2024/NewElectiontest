@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import QRCode from "qrcode";
 
 export interface QRData {
   type: string;
@@ -118,4 +119,21 @@ export function validateObserverQR(qrData: QRData): {
     name: qrData.data.name,
     errors
   };
+}
+
+export async function createQRCodeSVG(data: string): Promise<string> {
+  try {
+    return await QRCode.toString(data, {
+      type: 'svg',
+      width: 200,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw new Error('Failed to generate QR code');
+  }
 }

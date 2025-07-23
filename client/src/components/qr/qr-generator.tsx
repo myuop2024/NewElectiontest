@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QrCode, Download, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateQRData } from "@/lib/qr-utils";
-import QRCode from "qrcode";
+import { generateQRData, createQRCodeSVG } from "@/lib/qr-utils";
 
 interface QRGeneratorProps {
   user: any;
@@ -47,8 +46,8 @@ export default function QRGenerator({ user }: QRGeneratorProps) {
           throw new Error("Unknown QR type");
       }
 
-      const qrDataURL = await createQRCodeSVG(JSON.stringify(qrData));
-      setGeneratedQR(qrDataURL);
+      const qrSVG = await createQRCodeSVG(JSON.stringify(qrData));
+      setGeneratedQR(qrSVG);
 
       toast({
         title: "QR Code Generated",
@@ -63,29 +62,18 @@ export default function QRGenerator({ user }: QRGeneratorProps) {
     }
   };
 
-  const createQRCodeSVG = async (data: string) => {
-    try {
-      const qrDataURL = await QRCode.toDataURL(data, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      return qrDataURL;
-    } catch (error) {
-      console.error('QR code generation failed:', error);
-      throw error;
-    }
-  };
+
 
   const downloadQR = () => {
     if (generatedQR) {
+      // Convert SVG to downloadable format
+      const svgBlob = new Blob([generatedQR], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(svgBlob);
       const link = document.createElement('a');
-      link.href = generatedQR;
-      link.download = `qr-code-${qrType}-${Date.now()}.png`;
+      link.href = url;
+      link.download = `qr-code-${qrType}-${Date.now()}.svg`;
       link.click();
+      URL.revokeObjectURL(url);
       
       toast({
         title: "QR Code Downloaded",
