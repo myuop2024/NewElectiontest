@@ -202,13 +202,24 @@ export default function UnifiedJamaicaMap({
   const loadGoogleMaps = async () => {
     if (!mapRef.current) return;
 
-    // Check if Google Maps is already loaded
-    if (!(window as any).google?.maps) {
-      console.warn('Google Maps not available, skipping Google Maps initialization');
-      return;
-    }
-
     try {
+      // Check if Google Maps is already loaded
+      if (!(window as any).google?.maps) {
+        console.warn('Google Maps not available, attempting to load Google Maps script');
+        
+        // Try to load Google Maps dynamically
+        await loadGoogleMapsScript();
+        
+        // Wait a moment for the script to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check again after loading
+        if (!(window as any).google?.maps) {
+          console.error('Google Maps failed to load after script injection');
+          return;
+        }
+      }
+
       const googleMap = new (window as any).google.maps.Map(mapRef.current, {
         zoom: 9,
         center: { lat: 18.1096, lng: -77.2975 },
@@ -220,6 +231,36 @@ export default function UnifiedJamaicaMap({
     } catch (error) {
       console.error('Failed to initialize Google Maps:', error);
     }
+  };
+
+  // Load Google Maps script dynamically
+  const loadGoogleMapsScript = async () => {
+    return new Promise<void>((resolve, reject) => {
+      // Check if script is already loaded
+      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      // Use a fallback approach - try to get key from environment or use default
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBvOkBwgGlbUiuS-oSim-sm_fXzyHx65Y8'; // Fallback key
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      
+      script.onload = () => {
+        console.log('Google Maps script loaded successfully');
+        resolve();
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load Google Maps script');
+        reject(new Error('Failed to load Google Maps script'));
+      };
+      
+      document.head.appendChild(script);
+    });
   };
 
   // Update overlays when data changes

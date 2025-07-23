@@ -51,6 +51,11 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             setIsConnected(true);
             reconnectAttempts = 0;
             console.log("WebSocket connected");
+            
+            // Small delay to ensure connection is fully established before components use it
+            setTimeout(() => {
+              setIsConnected(true);
+            }, 100);
           };
 
           ws.onclose = (event) => {

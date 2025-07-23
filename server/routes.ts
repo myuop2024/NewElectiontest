@@ -193,8 +193,10 @@ function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) 
   console.log('[AUTH DEBUG] Session data:', {
     userId: req.session.userId,
     username: req.session.username,
-    role: req.session.role
+    role: req.session.role,
+    sessionID: req.sessionID
   });
+  
   // Check if user is logged in via session
   if (!req.session.userId || !req.session.username || !req.session.role) {
     console.log('[AUTH DEBUG] Authentication failed - missing session data');
