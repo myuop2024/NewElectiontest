@@ -379,7 +379,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCoursesByRole(role: string): Promise<Course[]> {
-    return await db.select().from(courses).where(and(eq(courses.role, role), eq(courses.isActive, true)));
+    return await db.select().from(courses).where(eq(courses.isActive, true));
   }
 
   async createCourse(course: InsertCourse): Promise<Course> {
@@ -491,25 +491,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSetting(key: string, value: string, updatedBy?: number): Promise<Setting> {
-    // Try to update existing setting first
-    const [setting] = await db
-      .update(settings)
-      .set({ value, updatedBy, updatedAt: new Date() })
-      .where(eq(settings.key, key))
-      .returning();
+    // Check if setting exists first
+    const existingSetting = await this.getSettingByKey(key);
     
-    // If no setting was updated, create a new one
-    if (!setting) {
+    if (existingSetting) {
+      // Update existing setting
+      const [updatedSetting] = await db
+        .update(settings)
+        .set({ value, updatedBy, updatedAt: new Date() })
+        .where(eq(settings.key, key))
+        .returning();
+      
+      return updatedSetting;
+    } else {
+      // Create new setting with appropriate category
+      const category = this.determineCategoryForKey(key);
       return await this.createSetting({
         key,
         value,
-        category: "api",
-        description: `API configuration for ${key}`,
+        category,
+        description: `Configuration for ${key}`,
         updatedBy
       });
     }
-    
-    return setting;
+  }
+
+  private determineCategoryForKey(key: string): string {
+    if (key.startsWith('didit_')) return 'didit_settings';
+    if (key.startsWith('bigquery_')) return 'analytics';
+    if (key.startsWith('here_') || key.startsWith('google_')) return 'maps';
+    if (key.startsWith('twilio_') || key.startsWith('whatsapp_') || key.startsWith('smtp_')) return 'communication';
+    if (key.startsWith('openai_') || key.startsWith('gemini_') || key.startsWith('huggingface_') || key.startsWith('ai_')) return 'ai';
+    if (key.endsWith('_enabled') || key.includes('feature')) return 'features';
+    if (key.includes('security') || key.includes('auth') || key.includes('kyc')) return 'security';
+    return 'system';
   }
 
   async deleteSetting(key: string): Promise<void> {
@@ -567,7 +582,7 @@ export class DatabaseStorage implements IStorage {
     return message;
   }
 
-  async getOnlineUsersInRoom(roomId: string): Promise<any[]> {
+  async getChatRoomUsers(roomId: string): Promise<any[]> {
     try {
       // Get users who have sent messages in this room recently or are assigned to it
       const recentMessages = await db.select().from(chatMessages)
@@ -575,7 +590,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(chatMessages.createdAt))
         .limit(20);
 
-      const userIds = [...new Set(recentMessages.map(msg => msg.senderId))];
+      const userIds = Array.from(new Set(recentMessages.map(msg => msg.senderId)));
       
       if (userIds.length === 0) {
         // Return default users for empty rooms

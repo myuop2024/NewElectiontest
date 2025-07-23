@@ -189,14 +189,14 @@ async function initializeChatRooms() {
 }
 
 function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) {
-+  console.log('[AUTH DEBUG] Session data:', {
-+    userId: req.session.userId,
-+    username: req.session.username,
-+    role: req.session.role
-+  });
+  console.log('[AUTH DEBUG] Session data:', {
+    userId: req.session.userId,
+    username: req.session.username,
+    role: req.session.role
+  });
   // Check if user is logged in via session
   if (!req.session.userId || !req.session.username || !req.session.role) {
-+    console.log('[AUTH DEBUG] Authentication failed - missing session data');
+    console.log('[AUTH DEBUG] Authentication failed - missing session data');
     return res.status(401).json({ message: "Authentication required" });
   }
 
@@ -207,7 +207,7 @@ function authenticateToken(req: AuthenticatedRequest, res: Response, next: any) 
     role: req.session.role
   };
   
-+  console.log('[AUTH DEBUG] User authenticated:', req.user);
+  console.log('[AUTH DEBUG] User authenticated:', req.user);
   next();
 }
 
