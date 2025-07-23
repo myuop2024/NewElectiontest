@@ -7,6 +7,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
+import ThemeToggle from "./theme-toggle";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -70,7 +71,7 @@ export default function Header() {
                 {isConnected ? 'Live Monitoring' : 'Disconnected'}
               </span>
             </div>
-            
+
             {/* Notifications */}
             <div className="relative">
               <DropdownMenu onOpenChange={(open) => { if (open && unreadCount > 0) markReadMutation.mutate(); }}>
@@ -99,7 +100,10 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* User Profile */}
             <div className="flex items-center space-x-3">
               <div className="text-right">
