@@ -26,11 +26,22 @@ export default function HereApiSettings() {
 
   const updateApiKeyMutation = useMutation({
     mutationFn: async (newApiKey: string) => {
-      const response = await apiRequest("POST", "/api/settings/here-api", { apiKey: newApiKey });
-      return response.json();
+      console.log('[HERE API] Attempting to update API key');
+      try {
+        const response = await apiRequest("POST", "/api/settings/here-api", { apiKey: newApiKey });
+        
+        // apiRequest already throws if response is not OK, so if we get here, it's successful
+        console.log('[HERE API] Update successful');
+        return { success: true };
+      } catch (error) {
+        console.error('[HERE API] Update error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[HERE API] Mutation successful:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/settings/here-api"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] }); // Also invalidate general settings
       hereApiService.setApiKey(apiKey);
       toast({
         title: "HERE API Key Updated",
@@ -40,6 +51,7 @@ export default function HereApiSettings() {
       setShowKey(false);
     },
     onError: (error) => {
+      console.error('[HERE API] Mutation failed:', error);
       toast({
         title: "Update Failed",
         description: error instanceof Error ? error.message : "Failed to update HERE API key",
@@ -50,6 +62,7 @@ export default function HereApiSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[HERE API] Form submitted with key length:', apiKey.trim().length);
     if (!apiKey.trim()) {
       toast({
         title: "Invalid API Key",
@@ -58,6 +71,7 @@ export default function HereApiSettings() {
       });
       return;
     }
+    console.log('[HERE API] Submitting API key update');
     updateApiKeyMutation.mutate(apiKey.trim());
   };
 
