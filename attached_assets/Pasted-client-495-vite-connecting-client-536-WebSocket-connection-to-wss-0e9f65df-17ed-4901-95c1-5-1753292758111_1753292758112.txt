@@ -1,0 +1,54 @@
+client:495 [vite] connecting...
+client:536 WebSocket connection to 'wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/?token=3cqW79lKGQ_G' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=3cqW79lKGQ_G' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+api/auth/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+polling-stations:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) <input data-replit-metadata=​"client/​src/​pages/​login.tsx:​81:​14" data-component-name=​"Input" type=​"password" class=​"flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:​border-0 file:​bg-transparent file:​text-sm file:​font-medium file:​text-foreground placeholder:​text-muted-foreground focus-visible:​outline-none focus-visible:​ring-2 focus-visible:​ring-ring focus-visible:​ring-offset-2 disabled:​cursor-not-allowed disabled:​opacity-50 md:​text-sm form-input" id=​"password" placeholder=​"Enter your password" required value=​"password">​
+hook.js:608 WebSocket not connected, cannot send message: join_room Error Component Stack
+    at LiveChatWidget (src/components/layout/live-chat-widget.tsx:29:31)
+    at div (<anonymous>)
+    at ProtectedLayout (App.tsx:59:28)
+    at Route (wouter.js:323:16)
+    at Switch (wouter.js:379:17)
+    at Router (<anonymous>)
+    at WebSocketProvider (src/hooks/use-websocket.tsx:22:37)
+    at AuthProvider (src/hooks/use-auth.tsx:22:32)
+    at AppContent (App.tsx:279:25)
+    at LoadingProvider (src/hooks/use-loading.tsx:20:35)
+    at Provider (chunk-PLT6GTVM.js:38:15)
+    at TooltipProvider (@radix-ui_react-tooltip.js:64:5)
+    at QueryClientProvider (@tanstack_react-query.js:2805:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+ Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+hook.js:608 WebSocket not connected, cannot send message: leave_room Error Component Stack
+    at LiveChatWidget (src/components/layout/live-chat-widget.tsx:29:31)
+    at div (<anonymous>)
+    at ProtectedLayout (App.tsx:59:28)
+    at Route (wouter.js:323:16)
+    at Switch (wouter.js:379:17)
+    at Router (<anonymous>)
+    at WebSocketProvider (src/hooks/use-websocket.tsx:22:37)
+    at AuthProvider (src/hooks/use-auth.tsx:22:32)
+    at AppContent (App.tsx:279:25)
+    at LoadingProvider (src/hooks/use-loading.tsx:20:35)
+    at Provider (chunk-PLT6GTVM.js:38:15)
+    at TooltipProvider (@radix-ui_react-tooltip.js:64:5)
+    at QueryClientProvider (@tanstack_react-query.js:2805:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+ WebSocket connected
+src/components/maps/…jamaica-map.tsx:168 Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'maps')
+    at loadGoogleMaps (src/components/maps/unified-jamaica-map.tsx:168:41)
+    at initializeMap (src/components/maps/unified-jamaica-map.tsx:128:15)
+    at src/components/maps/unified-jamaica-map.tsx:131:5
+    at commitHookEffectListMount (chunk-WERSD76P.js:16915:34)
+    at commitPassiveMountOnFiber (chunk-WERSD76P.js:18156:19)
+    at commitPassiveMountEffects_complete (chunk-WERSD76P.js:18129:17)
+    at commitPassiveMountEffects_begin (chunk-WERSD76P.js:18119:15)
+    at commitPassiveMountEffects (chunk-WERSD76P.js:18109:11)
+    at flushPassiveEffectsImpl (chunk-WERSD76P.js:19490:11)
+    at flushPassiveEffects (chunk-WERSD76P.js:19447:22)

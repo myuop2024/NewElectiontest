@@ -117,11 +117,29 @@ export default function LiveChatWidget() {
     if (!isConnected) return;
 
     if (isOpen) {
-      sendMessage('join_room', { room: 'support' });
+      sendMessage({ 
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'join_room', 
+        roomId: 'support',
+        userId: user?.id || 0,
+        senderId: user?.id || 0,
+        content: '',
+        messageType: 'system',
+        timestamp: new Date()
+      });
     } else {
-      sendMessage('leave_room', { room: 'support' });
+      sendMessage({ 
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'leave_room', 
+        roomId: 'support',
+        userId: user?.id || 0,
+        senderId: user?.id || 0,
+        content: '',
+        messageType: 'system',
+        timestamp: new Date()
+      });
     }
-  }, [isOpen, isConnected, sendMessage]);
+  }, [isOpen, isConnected, sendMessage, user]);
 
   return (
     <>
