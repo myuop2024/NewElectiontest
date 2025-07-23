@@ -20,7 +20,7 @@ import {
   Eye,
   Download
 } from "lucide-react";
-import AdvancedJamaicaHeatMap from "@/components/maps/advanced-jamaica-heat-map";
+import UnifiedJamaicaMap from "@/components/maps/unified-jamaica-map";
 import { toast } from "@/hooks/use-toast";
 import { SyncIndicator } from '@/components/ui/sync-indicator';
 import { useSyncStatus } from '@/hooks/use-sync-status';
@@ -569,10 +569,13 @@ export default function ComprehensiveAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="h-[700px] w-full">
-                <AdvancedJamaicaHeatMap 
-                  stations={stations}
-                  selectedStation={selectedStation}
+                <UnifiedJamaicaMap 
+                  enabledOverlays={['traffic', 'weather', 'sentiment', 'incidents']}
+                  showControls={true}
                   onStationSelect={setSelectedStation}
+                  selectedStation={selectedStation}
+                  height="100%"
+                  showLegend={true}
                 />
               </div>
               {selectedStation && (

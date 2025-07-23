@@ -13,7 +13,7 @@ import {
   MessageSquare,
   MapPin
 } from 'lucide-react';
-import MultiSyncIndicator from '@/components/ui/multi-sync-indicator';
+// import { MultiSyncIndicator } from '@/components/ui/multi-sync-indicator';
 
 interface UnifiedJamaicaMapProps {
   enabledOverlays?: string[];
@@ -46,40 +46,83 @@ export default function UnifiedJamaicaMap({
   });
 
   // Fetch HERE API settings
-  const { data: hereSettings } = useQuery({
+  const { data: hereSettings } = useQuery<{configured: boolean; hasKey: boolean; apiKey?: string}>({
     queryKey: ['/api/settings/here-api'],
     retry: 1
   });
 
   // Fetch all polling stations
-  const { data: stations = [], refetch: refetchStations } = useQuery({
+  const { data: stations = [], refetch: refetchStations } = useQuery<any[]>({
     queryKey: ['/api/polling-stations']
   });
 
   // Fetch overlay data
-  const { data: trafficData, isLoading: trafficLoading, refetch: refetchTraffic } = useQuery({
+  const { data: trafficData, isLoading: trafficLoading, refetch: refetchTraffic } = useQuery<{stations: any[]}>({
     queryKey: ['/api/traffic/all-stations'],
     enabled: activeOverlays.has('traffic'),
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
-  const { data: weatherData, isLoading: weatherLoading, refetch: refetchWeather } = useQuery({
+  const { data: weatherData, isLoading: weatherLoading, refetch: refetchWeather } = useQuery<{parishes: any[]}>({
     queryKey: ['/api/weather/all-parishes'],
     enabled: activeOverlays.has('weather'),
     refetchInterval: 60000 // Refresh every minute
   });
 
-  const { data: sentimentData, isLoading: sentimentLoading, refetch: refetchSentiment } = useQuery({
+  const { data: sentimentData, isLoading: sentimentLoading, refetch: refetchSentiment } = useQuery<any[]>({
     queryKey: ['/api/x-sentiment/stations/all'],
     enabled: activeOverlays.has('sentiment'),
     refetchInterval: 30000
   });
 
-  const { data: incidentsData, isLoading: incidentsLoading, refetch: refetchIncidents } = useQuery({
+  const { data: incidentsData, isLoading: incidentsLoading, refetch: refetchIncidents } = useQuery<{incidents: any[]}>({
     queryKey: ['/api/incidents/recent'],
     enabled: activeOverlays.has('incidents'),
     refetchInterval: 30000
   });
+
+  // Load HERE Maps scripts
+  const loadHereScripts = async () => {
+    const scripts = [
+      'https://js.api.here.com/v3/3.1/mapsjs-core.js',
+      'https://js.api.here.com/v3/3.1/mapsjs-service.js',
+      'https://js.api.here.com/v3/3.1/mapsjs-ui.js',
+      'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js'
+    ];
+
+    // Load CSS
+    if (!document.querySelector('link[href*="mapsjs-ui.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://js.api.here.com/v3/3.1/mapsjs-ui.css';
+      document.head.appendChild(link);
+    }
+
+    // Load scripts sequentially
+    for (const src of scripts) {
+      if (!document.querySelector(`script[src="${src}"]`)) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = () => resolve(undefined);
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+    }
+
+    // Wait for H to be available
+    await new Promise(resolve => {
+      const checkH = () => {
+        if ((window as any).H) {
+          resolve(undefined);
+        } else {
+          setTimeout(checkH, 100);
+        }
+      };
+      checkH();
+    });
+  };
 
   // Initialize map
   useEffect(() => {
@@ -89,6 +132,7 @@ export default function UnifiedJamaicaMap({
       // Try HERE Maps first if API key is available
       if (hereSettings?.hasKey) {
         try {
+          await loadHereScripts();
           await loadHereMaps();
         } catch (error) {
           console.error('Failed to load HERE Maps, falling back to Google:', error);
@@ -201,7 +245,7 @@ export default function UnifiedJamaicaMap({
             path: (window as any).google.maps.SymbolPath.CIRCLE,
             scale: 8,
             fillColor: '#3b82f6',
-            fillOpacity: 0.8,
+            fillOpacity: 0.9,
             strokeColor: '#ffffff',
             strokeWeight: 2
           }
@@ -248,9 +292,9 @@ export default function UnifiedJamaicaMap({
           const circle = new (window as any).google.maps.Circle({
             strokeColor: color,
             strokeOpacity: 0.8,
-            strokeWeight: 3,
+            strokeWeight: 2,
             fillColor: color,
-            fillOpacity: 0.25,
+            fillOpacity: 0.1,
             map,
             center: position,
             radius
@@ -261,8 +305,8 @@ export default function UnifiedJamaicaMap({
           const circle = new H.map.Circle(position, radius, {
             style: {
               strokeColor: color,
-              lineWidth: 3,
-              fillColor: color + '40'
+              lineWidth: 2,
+              fillColor: color + '1A'
             }
           });
           map.addObject(circle);
@@ -284,7 +328,7 @@ export default function UnifiedJamaicaMap({
             strokeOpacity: 0.6,
             strokeWeight: 2,
             fillColor: color,
-            fillOpacity: 0.15,
+            fillOpacity: 0.08,
             map,
             center: position,
             radius
@@ -296,7 +340,7 @@ export default function UnifiedJamaicaMap({
             style: {
               strokeColor: color,
               lineWidth: 2,
-              fillColor: color + '26'
+              fillColor: color + '14'
             }
           });
           map.addObject(circle);
@@ -310,7 +354,7 @@ export default function UnifiedJamaicaMap({
       stations.forEach((station: any) => {
         if (!station.latitude || !station.longitude) return;
 
-        const stationSentiment = sentimentData.find((s: any) => s.stationId === station.id);
+        const stationSentiment = sentimentData?.find((s: any) => s.stationId === station.id);
         if (!stationSentiment?.sentimentAnalysis) return;
 
         const position = { 
@@ -327,7 +371,7 @@ export default function UnifiedJamaicaMap({
             strokeOpacity: 0.7,
             strokeWeight: 2,
             fillColor: color,
-            fillOpacity: 0.2,
+            fillOpacity: 0.1,
             map,
             center: position,
             radius
@@ -339,7 +383,7 @@ export default function UnifiedJamaicaMap({
             style: {
               strokeColor: color,
               lineWidth: 2,
-              fillColor: color + '33'
+              fillColor: color + '1A'
             }
           });
           map.addObject(circle);
@@ -518,14 +562,9 @@ export default function UnifiedJamaicaMap({
             </div>
             
             <div className="flex items-center gap-2">
-              <MultiSyncIndicator
-                dataSources={[
-                  { name: 'Traffic', isActive: activeOverlays.has('traffic'), isLoading: trafficLoading },
-                  { name: 'Weather', isActive: activeOverlays.has('weather'), isLoading: weatherLoading },
-                  { name: 'Sentiment', isActive: activeOverlays.has('sentiment'), isLoading: sentimentLoading },
-                  { name: 'Incidents', isActive: activeOverlays.has('incidents'), isLoading: incidentsLoading },
-                ]}
-              />
+              {isLoading && (
+                <span className="text-sm text-muted-foreground">Loading data...</span>
+              )}
               <Button 
                 variant="outline" 
                 size="sm"

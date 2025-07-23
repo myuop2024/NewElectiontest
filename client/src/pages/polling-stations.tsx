@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Filter, Download, Map, List, Navigation, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
-import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
+import UnifiedJamaicaMap from "@/components/maps/unified-jamaica-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
@@ -256,10 +256,13 @@ export default function PollingStations() {
                 Interactive risk analysis combining X sentiment, traffic, weather, and incident data
               </p>
             </div>
-            <PollingStationsHeatMap
-              stations={filteredStations}
-              selectedStation={selectedStation}
+            <UnifiedJamaicaMap
+              enabledOverlays={['traffic', 'weather', 'sentiment', 'incidents']}
+              showControls={true}
               onStationSelect={setSelectedStation}
+              selectedStation={selectedStation}
+              height="600px"
+              showLegend={true}
             />
           </div>
         </TabsContent>

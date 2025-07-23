@@ -132,12 +132,12 @@ export default function HereMapsParishHeatMap({
           'apikey': hereApiKey
         });
 
-        const defaultMapTypes = platformInstance.createDefaultMapTypes();
+        const defaultLayers = platformInstance.createDefaultLayers();
 
         // Initialize map
         const mapInstance = new window.H.Map(
           mapRef.current,
-          defaultMapTypes.vector.normal.map,
+          defaultLayers.vector.normal.map,
           {
             zoom: 9,
             center: { lat: 18.1096, lng: -77.2975 } // Center of Jamaica
