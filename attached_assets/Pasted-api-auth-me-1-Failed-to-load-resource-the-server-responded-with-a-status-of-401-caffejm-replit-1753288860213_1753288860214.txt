@@ -1,0 +1,96 @@
+api/auth/me:1  Failed to load resource: the server responded with a status of 401 ()
+caffejm.replit.app/:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) <input type=​"password" class=​"flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:​border-0 file:​bg-transparent file:​text-sm file:​font-medium file:​text-foreground placeholder:​text-muted-foreground focus-visible:​outline-none focus-visible:​ring-2 focus-visible:​ring-ring focus-visible:​ring-offset-2 disabled:​cursor-not-allowed disabled:​opacity-50 md:​text-sm form-input" id=​"password" placeholder=​"Enter your password" required value=​"password">​
+hook.js:608 WebSocket not connected
+overrideMethod @ hook.js:608
+index-DQSNK7Dn.js:583 Connecting to WebSocket: wss://caffejm.replit.app/ws?userId=13
+hook.js:608 WebSocket not connected
+overrideMethod @ hook.js:608
+index-DQSNK7Dn.js:583 WebSocket connected
+index-DQSNK7Dn.js:632 Starting HERE Maps script loading...
+index-DQSNK7Dn.js:632 HERE Maps core loaded
+index-DQSNK7Dn.js:632 HERE Maps service loaded
+index-DQSNK7Dn.js:632 HERE Maps UI loaded
+index-DQSNK7Dn.js:632 HERE Maps events loaded, waiting for initialization...
+index-DQSNK7Dn.js:632 HERE Maps initialization starting...
+index-DQSNK7Dn.js:632 HERE API Key: Present
+index-DQSNK7Dn.js:632 Creating HERE Maps Platform...
+index-DQSNK7Dn.js:632 Creating default layers...
+index-DQSNK7Dn.js:632 Creating map instance...
+index-DQSNK7Dn.js:632 Adding map behavior and UI...
+index-DQSNK7Dn.js:632 HERE Maps initialized successfully
+index-DQSNK7Dn.js:37 Uncaught TypeError: i is not a function
+    at k (index-DQSNK7Dn.js:652:518)
+    at Object.q5 (index-DQSNK7Dn.js:37:9864)
+    at Q5 (index-DQSNK7Dn.js:37:10018)
+    at Y5 (index-DQSNK7Dn.js:37:10075)
+    at _1 (index-DQSNK7Dn.js:37:31462)
+    at KO (index-DQSNK7Dn.js:37:31879)
+    at index-DQSNK7Dn.js:37:36792
+    at kb (index-DQSNK7Dn.js:40:36957)
+    at mO (index-DQSNK7Dn.js:37:8999)
+    at Ag (index-DQSNK7Dn.js:37:33166)
+hook.js:608 Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading
+overrideMethod @ hook.js:608
+hook.js:608 As of February 21st, 2024, google.maps.Marker is deprecated. Please use google.maps.marker.AdvancedMarkerElement instead. At this time, google.maps.Marker is not scheduled to be discontinued, but google.maps.marker.AdvancedMarkerElement is recommended over google.maps.Marker. While google.maps.Marker will continue to receive bug fixes for any major regressions, existing bugs in google.maps.Marker will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/deprecations for additional details and https://developers.google.com/maps/documentation/javascript/advanced-markers/migration for the migration guide.
+overrideMethod @ hook.js:608
+index-DQSNK7Dn.js:744 Updating overlays - Active: Array(2)
+index-DQSNK7Dn.js:744 Data availability: Object
+index-DQSNK7Dn.js:744 Updating overlays - Active: Array(2)
+index-DQSNK7Dn.js:744 Data availability: Object
+index-DQSNK7Dn.js:744 Advanced Jamaica Heat Map - HERE Maps initialization starting...
+index-DQSNK7Dn.js:744 Creating HERE Platform with API key...
+index-DQSNK7Dn.js:744 Getting default map types...
+hook.js:608 HERE Maps initialization error: TypeError: M.createDefaultMapTypes is not a function
+    at _ (index-DQSNK7Dn.js:744:499)
+    at U (index-DQSNK7Dn.js:744:4451)
+    at index-DQSNK7Dn.js:744:4935
+    at Rp (index-DQSNK7Dn.js:40:24283)
+    at rl (index-DQSNK7Dn.js:40:42409)
+    at EL (index-DQSNK7Dn.js:40:41231)
+    at ji (index-DQSNK7Dn.js:40:40278)
+    at oS (index-DQSNK7Dn.js:40:36886)
+    at li (index-DQSNK7Dn.js:38:3279)
+    at index-DQSNK7Dn.js:40:34263
+overrideMethod @ hook.js:608
+index-DQSNK7Dn.js:744 Advanced Jamaica Heat Map - HERE Maps initialization starting...
+index-DQSNK7Dn.js:744 Creating HERE Platform with API key...
+index-DQSNK7Dn.js:744 Getting default map types...
+hook.js:608 HERE Maps initialization error: TypeError: M.createDefaultMapTypes is not a function
+    at _ (index-DQSNK7Dn.js:744:499)
+    at U (index-DQSNK7Dn.js:744:4451)
+    at index-DQSNK7Dn.js:744:4935
+    at Rp (index-DQSNK7Dn.js:40:24283)
+    at rl (index-DQSNK7Dn.js:40:42409)
+    at EL (index-DQSNK7Dn.js:40:41231)
+    at ji (index-DQSNK7Dn.js:40:40278)
+    at oS (index-DQSNK7Dn.js:40:36886)
+    at li (index-DQSNK7Dn.js:38:3279)
+    at index-DQSNK7Dn.js:40:34263
+overrideMethod @ hook.js:608
+index-DQSNK7Dn.js:744 Advanced Jamaica Heat Map - HERE Maps initialization starting...
+index-DQSNK7Dn.js:744 Creating HERE Platform with API key...
+index-DQSNK7Dn.js:744 Getting default map types...
+hook.js:608 HERE Maps initialization error: TypeError: M.createDefaultMapTypes is not a function
+    at _ (index-DQSNK7Dn.js:744:499)
+    at U (index-DQSNK7Dn.js:744:4451)
+    at index-DQSNK7Dn.js:744:4935
+    at Rp (index-DQSNK7Dn.js:40:24283)
+    at rl (index-DQSNK7Dn.js:40:42409)
+    at EL (index-DQSNK7Dn.js:40:41231)
+    at ji (index-DQSNK7Dn.js:40:40278)
+    at oS (index-DQSNK7Dn.js:40:36886)
+    at li (index-DQSNK7Dn.js:38:3279)
+    at index-DQSNK7Dn.js:40:34263
+overrideMethod @ hook.js:608
+index-DQSNK7Dn.js:744 Updating overlays - Active: (2) ['sentiment', 'traffic']0: "sentiment"1: "traffic"length: 2[[Prototype]]: Array(0)
+index-DQSNK7Dn.js:744 Data availability: {sentiment: false, traffic: true, weather: true, incidents: true}
+index-DQSNK7Dn.js:744 Updating overlays - Active: (2) ['sentiment', 'traffic']0: "sentiment"1: "traffic"length: 2[[Prototype]]: Array(0)
+index-DQSNK7Dn.js:744 Data availability: {sentiment: false, traffic: true, weather: true, incidents: true}
+index-DQSNK7Dn.js:744 Updating overlays - Active: (2) ['sentiment', 'traffic']
+index-DQSNK7Dn.js:744 Data availability: {sentiment: false, traffic: true, weather: true, incidents: true}incidents: truesentiment: falsetraffic: trueweather: true[[Prototype]]: Objectconstructor: ƒ Object()assign: ƒ assign()length: 2name: "assign"arguments: (...)caller: (...)[[Prototype]]: ƒ ()[[Scopes]]: Scopes[0]create: ƒ create()defineProperties: ƒ defineProperties()defineProperty: ƒ defineProperty()entries: ƒ entries()freeze: ƒ freeze()fromEntries: ƒ fromEntries()getOwnPropertyDescriptor: ƒ getOwnPropertyDescriptor()getOwnPropertyDescriptors: ƒ getOwnPropertyDescriptors()getOwnPropertyNames: ƒ getOwnPropertyNames()getOwnPropertySymbols: ƒ getOwnPropertySymbols()getPrototypeOf: ƒ getPrototypeOf()groupBy: ƒ groupBy()hasOwn: ƒ hasOwn()is: ƒ is()isExtensible: ƒ isExtensible()isFrozen: ƒ isFrozen()isSealed: ƒ isSealed()keys: ƒ keys()length: 1name: "Object"preventExtensions: ƒ preventExtensions()prototype: {__defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, __lookupSetter__: ƒ, …}seal: ƒ seal()setPrototypeOf: ƒ setPrototypeOf()values: ƒ values()arguments: (...)caller: (...)[[Prototype]]: ƒ ()[[Scopes]]: Scopes[0]hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
+index-DQSNK7Dn.js:744 Updating overlays - Active: (2) ['sentiment', 'traffic']
+index-DQSNK7Dn.js:744 Data availability: {sentiment: false, traffic: true, weather: true, incidents: true}
+index-DQSNK7Dn.js:744 Updating overlays - Active: (2) ['sentiment', 'traffic']
+index-DQSNK7Dn.js:744 Data availability: {sentiment: false, traffic: true, weather: true, incidents: true}
+index-DQSNK7Dn.js:744 Updating overlays - Active: (2) ['sentiment', 'traffic']
+index-DQSNK7Dn.js:744 Data availability: {sentiment: false, traffic: true, weather: true, incidents: true}

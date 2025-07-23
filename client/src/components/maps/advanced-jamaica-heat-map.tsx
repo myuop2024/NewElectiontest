@@ -250,13 +250,13 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
         'apikey': hereSettings.apiKey
       });
 
-      console.log('Getting default map types...');
-      const defaultMapTypes = platform.createDefaultMapTypes();
+      console.log('Getting default layers...');
+      const defaultLayers = platform.createDefaultLayers();
       
       console.log('Creating HERE Map instance...');
       const hereMap = new window.H.Map(
         mapRef.current,
-        defaultMapTypes.vector.normal.map,
+        defaultLayers.vector.normal.map,
         {
           zoom: 8,
           center: JAMAICA_CENTER
@@ -267,7 +267,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
       try {
         console.log('Adding map behavior and UI...');
         const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(hereMap));
-        const ui = window.H.ui.UI.createDefault(hereMap, defaultMapTypes);
+        const ui = window.H.ui.UI.createDefault(hereMap, defaultLayers);
         
         console.log('HERE Maps initialized successfully in Advanced Heat Map');
         setMap(hereMap);

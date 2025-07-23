@@ -419,46 +419,46 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
     let dominantColor = '#64748b'; // Default gray
 
     if (activeOverlays.has('sentiment') && stationData.sentiment) {
-        const sentiment = stationData.sentiment.sentiment_analysis || {};
-        if (sentiment.risk_level === 'critical') intensity = Math.max(intensity, 1.0);
-        else if (sentiment.risk_level === 'high') intensity = Math.max(intensity, 0.8);
-        else if (sentiment.risk_level === 'medium') intensity = Math.max(intensity, 0.6);
-        else intensity = Math.max(intensity, 0.3);
+      const sentiment = stationData.sentiment.sentiment_analysis || {};
+      if (sentiment.risk_level === 'critical') intensity = Math.max(intensity, 1.0);
+      else if (sentiment.risk_level === 'high') intensity = Math.max(intensity, 0.8);
+      else if (sentiment.risk_level === 'medium') intensity = Math.max(intensity, 0.6);
+      else intensity = Math.max(intensity, 0.3);
 
-        if (sentiment.risk_level === 'critical' || sentiment.risk_level === 'high') {
-          dominantColor = '#ef4444';
-        } else if (sentiment.overall_sentiment === 'positive') {
-          dominantColor = '#10b981';
-        } else if (sentiment.overall_sentiment === 'negative') {
-          dominantColor = '#f59e0b';
-        }
+      if (sentiment.risk_level === 'critical' || sentiment.risk_level === 'high') {
+        dominantColor = '#ef4444';
+      } else if (sentiment.overall_sentiment === 'positive') {
+        dominantColor = '#10b981';
+      } else if (sentiment.overall_sentiment === 'negative') {
+        dominantColor = '#f59e0b';
       }
+    }
 
-      if (activeOverlays.has('traffic') && stationData.traffic) {
-        const traffic = stationData.traffic;
-        if (traffic.severity === 'severe') intensity = Math.max(intensity, 1.0);
-        else if (traffic.severity === 'heavy') intensity = Math.max(intensity, 0.8);
-        else if (traffic.severity === 'moderate') intensity = Math.max(intensity, 0.6);
-        else intensity = Math.max(intensity, 0.3);
+    if (activeOverlays.has('traffic') && stationData.traffic) {
+      const traffic = stationData.traffic;
+      if (traffic.severity === 'severe') intensity = Math.max(intensity, 1.0);
+      else if (traffic.severity === 'heavy') intensity = Math.max(intensity, 0.8);
+      else if (traffic.severity === 'moderate') intensity = Math.max(intensity, 0.6);
+      else intensity = Math.max(intensity, 0.3);
 
-        if (traffic.severity === 'severe' || traffic.severity === 'heavy') {
-          dominantColor = '#ef4444';
-        }
+      if (traffic.severity === 'severe' || traffic.severity === 'heavy') {
+        dominantColor = '#ef4444';
       }
+    }
 
-      if (activeOverlays.has('weather') && stationData.weather) {
-        const weather = stationData.weather;
-        if (weather.electoral_impact === 'high') intensity = Math.max(intensity, 0.8);
-        else if (weather.electoral_impact === 'medium') intensity = Math.max(intensity, 0.6);
-        else intensity = Math.max(intensity, 0.3);
-      }
+    if (activeOverlays.has('weather') && stationData.weather) {
+      const weather = stationData.weather;
+      if (weather.electoral_impact === 'high') intensity = Math.max(intensity, 0.8);
+      else if (weather.electoral_impact === 'medium') intensity = Math.max(intensity, 0.6);
+      else intensity = Math.max(intensity, 0.3);
+    }
 
-      if (activeOverlays.has('incidents') && stationData.incidents) {
-        const incidents = stationData.incidents;
-        if (incidents.severity === 'high') intensity = Math.max(intensity, 0.8);
-        else if (incidents.severity === 'medium') intensity = Math.max(intensity, 0.6);
-        else intensity = Math.max(intensity, 0.3);
-      }
+    if (activeOverlays.has('incidents') && stationData.incidents) {
+      const incidents = stationData.incidents;
+      if (incidents.severity === 'high') intensity = Math.max(intensity, 0.8);
+      else if (incidents.severity === 'medium') intensity = Math.max(intensity, 0.6);
+      else intensity = Math.max(intensity, 0.3);
+    }
 
     const size = Math.max(10, intensity * 30);
     const opacity = Math.max(0.4, intensity);
