@@ -33,6 +33,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ChatRoomManager from "@/components/admin/chat-room-manager";
 import FeatureStatusDashboard from "@/components/admin/feature-status-dashboard";
+import HereApiSettings from "@/components/admin/here-api-settings";
+import GoogleMapsApiSettings from "@/components/admin/google-maps-api-settings";
 
 export default function AdminSettings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({
@@ -189,82 +191,6 @@ export default function AdminSettings() {
                     onCheckedChange={(checked) => handleUpdateSetting('bigquery_enabled', checked.toString())}
                   />
                   <Label>Enable BigQuery Analytics</Label>
-                </div>
-              </div>
-
-              {/* HERE Maps API */}
-              <div className="space-y-3 border-t pt-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">HERE Maps & Routing</Label>
-                  <Badge variant={getSettingValue('here_maps_enabled') === 'true' ? 'default' : 'secondary'}>
-                    {getSettingValue('here_maps_enabled') === 'true' ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </div>
-                <div>
-                  <Label>HERE API Key</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="your-here-api-key"
-                      type={showSecrets['here_key'] ? 'text' : 'password'}
-                      defaultValue={getSettingValue('here_api_key')}
-                      onBlur={(e) => handleUpdateSetting('here_api_key', e.target.value)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleShowSecret('here_key')}
-                    >
-                      {showSecrets['here_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Get your API key from <a href="https://developer.here.com" target="_blank" className="text-blue-500 hover:underline">HERE Developer Portal</a>
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={getSettingValue('here_maps_enabled') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('here_maps_enabled', checked.toString())}
-                  />
-                  <Label>Enable HERE Maps Integration</Label>
-                </div>
-              </div>
-
-              {/* Google Maps API */}
-              <div className="space-y-3 border-t pt-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Google Maps API</Label>
-                  <Badge variant={getSettingValue('GOOGLE_MAPS_ENABLED') === 'true' ? 'default' : 'secondary'}>
-                    {getSettingValue('GOOGLE_MAPS_ENABLED') === 'true' ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </div>
-                <div>
-                  <Label>Google Maps API Key</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="your-google-maps-api-key"
-                      type={showSecrets['google_maps_key'] ? 'text' : 'password'}
-                      defaultValue={getSettingValue('GOOGLE_MAPS_API_KEY')}
-                      onBlur={(e) => handleUpdateSetting('GOOGLE_MAPS_API_KEY', e.target.value)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleShowSecret('google_maps_key')}
-                    >
-                      {showSecrets['google_maps_key'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Get your API key from <a href="https://developers.google.com/maps" target="_blank" className="text-blue-500 hover:underline">Google Maps Platform</a>
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={getSettingValue('GOOGLE_MAPS_ENABLED') === 'true'}
-                    onCheckedChange={(checked) => handleUpdateSetting('GOOGLE_MAPS_ENABLED', checked.toString())}
-                  />
-                  <Label>Enable Google Maps Integration</Label>
                 </div>
               </div>
 
@@ -835,6 +761,8 @@ export default function AdminSettings() {
 
         {/* Location & Mapping Settings */}
         <TabsContent value="mapping" className="space-y-6">
+          <HereApiSettings />
+          <GoogleMapsApiSettings />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
