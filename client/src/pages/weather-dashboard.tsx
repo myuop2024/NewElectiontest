@@ -62,20 +62,35 @@ export default function WeatherDashboard() {
   const [selectedParish, setSelectedParish] = useState<string>("Kingston");
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Get list of available parishes
-  const { data: parishesData } = useQuery<{ parishes: string[] }>({
-    queryKey: ["/api/weather/parishes"]
+  // Get list of available parishes with error handling
+  const { data: parishesData, error: parishesError } = useQuery<{ parishes: string[] }>({
+    queryKey: ["/api/weather/parishes"],
+    retry: 1,
+    refetchOnWindowFocus: false,
+    onError: (error: any) => {
+      console.error('Parishes fetch error:', error);
+    }
   });
 
-  // Get weather data for selected parish
+  // Get weather data for selected parish with error handling
   const { data: parishWeather, isLoading: parishLoading, error: parishError } = useQuery<WeatherData>({
     queryKey: [`/api/weather/parish/${selectedParish}/summary`, refreshKey],
-    enabled: !!selectedParish
+    enabled: !!selectedParish,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    onError: (error: any) => {
+      console.error('Parish weather fetch error:', error);
+    }
   });
 
-  // Get weather data for all parishes
-  const { data: allWeatherData, isLoading: allWeatherLoading } = useQuery<AllWeatherData>({
-    queryKey: ["/api/weather/all-parishes", refreshKey]
+  // Get weather data for all parishes with error handling
+  const { data: allWeatherData, isLoading: allWeatherLoading, error: allError } = useQuery<AllWeatherData>({
+    queryKey: ["/api/weather/all-parishes", refreshKey],
+    retry: 1,
+    refetchOnWindowFocus: false,
+    onError: (error: any) => {
+      console.error('Weather data fetch error:', error);
+    }
   });
 
   const parishes = parishesData?.parishes || [];
