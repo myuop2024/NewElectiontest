@@ -79,7 +79,8 @@ const GoogleMapsJamaica: React.FC = () => {
         setRetryCount(0);
       } catch (error) {
         console.error('[MAPS DEBUG] Error initializing Google Maps:', error);
-        setApiError(`Failed to initialize map: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setApiError(`Failed to initialize map: ${errorMessage}`);
         setRetryCount(prev => prev + 1);
         setTimeout(() => initializeMap(), 1000 * (retryCount + 1));
       };
@@ -138,6 +139,7 @@ const GoogleMapsJamaica: React.FC = () => {
           <div className="text-center">
             <div className="spinner"></div>
             <p className="mt-2 text-sm text-gray-600">Loading map...</p>
+          </div>
         </div>
       )}
       {apiError && (
