@@ -26,6 +26,24 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
       const connectWebSocket = () => {
         try {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const host = window.location.hostname;
+          const port = window.location.port;
+
+          // Handle different environments (development vs production)
+          let wsUrl;
+          if (host.includes('replit.dev')) {
+            // Production Replit environment
+            wsUrl = `${protocol}//${host}/ws?userId=${user?.id}`;
+          } else if (port && port !== '80' && port !== '443') {
+            // Development with specific port
+            wsUrl = `${protocol}//${host}:${port}/ws?userId=${user?.id}`;
+          } else {
+            // Fallback
+            wsUrl = `${protocol}//${host}/ws?userId=${user?.id}`;
+          }
+
+          console.log('Connecting to WebSocket:', wsUrl);
           const ws = webSocketService.connect(user.id.toString());
           setSocket(ws);
 

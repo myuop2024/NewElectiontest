@@ -113,6 +113,16 @@ export default function LiveChatWidget() {
     setIsOpen(!isOpen);
   };
 
+  useEffect(() => {
+    if (!isConnected) return;
+
+    if (isOpen) {
+      sendMessage('join_room', { room: 'support' });
+    } else {
+      sendMessage('leave_room', { room: 'support' });
+    }
+  }, [isOpen, isConnected, sendMessage]);
+
   return (
     <>
       {/* Chat Widget */}
@@ -175,7 +185,7 @@ export default function LiveChatWidget() {
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-0">
             {/* User Search Panel */}
             {showUserSearch && (
@@ -187,7 +197,7 @@ export default function LiveChatWidget() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="text-sm"
                   />
-                  
+
                   {/* Recent Conversations */}
                   {Array.isArray(conversations) && conversations.length > 0 && (
                     <div>
@@ -276,7 +286,7 @@ export default function LiveChatWidget() {
                   </div>
                 </div>
               )}
-              
+
               {messages.map((msg, index) => (
                 <div 
                   key={index} 
@@ -300,7 +310,7 @@ export default function LiveChatWidget() {
               ))}
               <div ref={messagesEndRef} />
             </div>
-            
+
             {/* Input Area */}
             <div className="p-4 border-t border-gray-200">
               <div className="flex space-x-2">

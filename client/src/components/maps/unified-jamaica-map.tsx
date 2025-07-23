@@ -134,13 +134,24 @@ export default function UnifiedJamaicaMap({
         try {
           await loadHereScripts();
           await loadHereMaps();
+          return;
         } catch (error) {
-          console.error('Failed to load HERE Maps, falling back to Google:', error);
-          await loadGoogleMaps();
+          console.error('Failed to load HERE Maps:', error);
         }
-      } else {
-        await loadGoogleMaps();
       }
+      
+      // Try Google Maps as fallback
+      if ((window as any).google?.maps) {
+        try {
+          await loadGoogleMaps();
+          return;
+        } catch (error) {
+          console.error('Failed to load Google Maps:', error);
+        }
+      }
+      
+      // If both fail, show error
+      console.warn('No map provider available. Please ensure HERE API key is configured or Google Maps is loaded.');
     };
 
     initializeMap();
@@ -191,14 +202,24 @@ export default function UnifiedJamaicaMap({
   const loadGoogleMaps = async () => {
     if (!mapRef.current) return;
 
-    const googleMap = new (window as any).google.maps.Map(mapRef.current, {
-      zoom: 9,
-      center: { lat: 18.1096, lng: -77.2975 },
-      mapTypeId: 'roadmap'
-    });
+    // Check if Google Maps is already loaded
+    if (!(window as any).google?.maps) {
+      console.warn('Google Maps not available, skipping Google Maps initialization');
+      return;
+    }
 
-    setMap(googleMap);
-    setMapProvider('google');
+    try {
+      const googleMap = new (window as any).google.maps.Map(mapRef.current, {
+        zoom: 9,
+        center: { lat: 18.1096, lng: -77.2975 },
+        mapTypeId: 'roadmap'
+      });
+
+      setMap(googleMap);
+      setMapProvider('google');
+    } catch (error) {
+      console.error('Failed to initialize Google Maps:', error);
+    }
   };
 
   // Update overlays when data changes
