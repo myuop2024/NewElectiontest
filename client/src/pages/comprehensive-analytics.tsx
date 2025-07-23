@@ -20,7 +20,7 @@ import {
   Eye,
   Download
 } from "lucide-react";
-import SimpleHeatMap from "@/components/maps/simple-heat-map";
+import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
 import { toast } from "@/hooks/use-toast";
 
 interface AnalyticsData {
@@ -553,13 +553,13 @@ export default function ComprehensiveAnalytics() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Station Coverage Map
+                Jamaica Electoral Heat Map
               </CardTitle>
-              <CardDescription>Real-time visualization of monitored polling stations</CardDescription>
+              <CardDescription>Interactive Jamaica map with real-time heat map overlays</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[500px] w-full">
-                <SimpleHeatMap 
+                <PollingStationsHeatMap 
                   stations={stations}
                   selectedStation={selectedStation}
                   onStationSelect={setSelectedStation}
