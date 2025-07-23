@@ -234,6 +234,16 @@ The system analyzes traffic conditions for their impact on electoral activities:
 
 ## Recent Changes
 
+### January 23, 2025: Fixed WebSocket and HERE Maps Coordinate Validation Issues
+- **CRITICAL FIX**: Added comprehensive coordinate validation in unified-jamaica-map.tsx to prevent HERE Maps InvalidArgumentError
+- **COORDINATE VALIDATION**: All latitude/longitude values now validated with isNaN() checks before passing to HERE Maps
+- **WEBSOCKET ENHANCEMENT**: Improved WebSocket error handling with try-catch blocks and better logging
+- **HERE MAPS STABILITY**: Fixed "H.geo.Point (Argument #0 undefined)" errors by validating coordinates in renderStations, traffic overlays, and sentiment overlays
+- **TRANSPARENCY OPTIMIZATION**: Updated all overlay circles to 10% opacity for better map visibility
+- **ERROR PREVENTION**: Added console warnings for invalid coordinates to help debug data issues
+- **UNIFIED MAP INTEGRATION**: Replaced PollingStationsHeatMap with UnifiedJamaicaMap in polling-stations.tsx for consistent mapping
+- **SYSTEM STABILITY**: Application now handles undefined coordinate data gracefully without crashes
+
 ### January 23, 2025: Fixed Analytics Heat Map Jamaica Display
 - **CRITICAL FIX**: Replaced non-functional SimpleHeatMap component in /analytics with proper PollingStationsHeatMap
 - **JAMAICA MAP DISPLAY**: Analytics page now shows actual Jamaica map instead of just overlay controls

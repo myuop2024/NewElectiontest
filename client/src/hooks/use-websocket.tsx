@@ -103,14 +103,22 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = (message: WebSocketMessage) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
+      try {
+        socket.send(JSON.stringify(message));
+      } catch (error) {
+        console.error("Error sending WebSocket message:", error);
+      }
     } else if (socket && socket.readyState === WebSocket.CONNECTING) {
       // Queue message until connection is ready
       socket.addEventListener('open', () => {
-        socket.send(JSON.stringify(message));
+        try {
+          socket.send(JSON.stringify(message));
+        } catch (error) {
+          console.error("Error sending queued WebSocket message:", error);
+        }
       }, { once: true });
     } else {
-      console.warn("WebSocket not connected");
+      console.warn("WebSocket not connected, cannot send message:", message.type);
     }
   };
 

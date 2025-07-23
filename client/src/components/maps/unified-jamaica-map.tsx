@@ -229,12 +229,16 @@ export default function UnifiedJamaicaMap({
     if (!map) return;
 
     stations.forEach((station: any) => {
-      if (!station.latitude || !station.longitude) return;
+      // Validate coordinates before processing
+      const lat = parseFloat(station.latitude);
+      const lng = parseFloat(station.longitude);
+      
+      if (isNaN(lat) || isNaN(lng) || !station.latitude || !station.longitude) {
+        console.warn('Invalid coordinates for station:', station.id, 'lat:', station.latitude, 'lng:', station.longitude);
+        return;
+      }
 
-      const position = { 
-        lat: parseFloat(station.latitude), 
-        lng: parseFloat(station.longitude) 
-      };
+      const position = { lat, lng };
 
       if (mapProvider === 'google') {
         const marker = new (window as any).google.maps.Marker({
@@ -280,10 +284,15 @@ export default function UnifiedJamaicaMap({
         const station = stations.find((s: any) => s.id === stationTraffic.stationId);
         if (!station?.latitude || !station?.longitude) return;
 
-        const position = { 
-          lat: parseFloat(station.latitude), 
-          lng: parseFloat(station.longitude) 
-        };
+        const lat = parseFloat(station.latitude);
+        const lng = parseFloat(station.longitude);
+        
+        if (isNaN(lat) || isNaN(lng)) {
+          console.warn('Invalid traffic overlay coordinates for station:', station.id);
+          return;
+        }
+
+        const position = { lat, lng };
 
         const color = getTrafficColor(stationTraffic.analysis?.overallSeverity || 'light');
         const radius = getTrafficRadius(stationTraffic.analysis?.overallSeverity || 'light');
@@ -357,10 +366,15 @@ export default function UnifiedJamaicaMap({
         const stationSentiment = sentimentData?.find((s: any) => s.stationId === station.id);
         if (!stationSentiment?.sentimentAnalysis) return;
 
-        const position = { 
-          lat: parseFloat(station.latitude), 
-          lng: parseFloat(station.longitude) 
-        };
+        const lat = parseFloat(station.latitude);
+        const lng = parseFloat(station.longitude);
+        
+        if (isNaN(lat) || isNaN(lng)) {
+          console.warn('Invalid sentiment overlay coordinates for station:', station.id);
+          return;
+        }
+
+        const position = { lat, lng };
 
         const color = getSentimentColor(stationSentiment.sentimentAnalysis.riskLevel);
         const radius = getSentimentRadius(stationSentiment.sentimentAnalysis.riskLevel);
