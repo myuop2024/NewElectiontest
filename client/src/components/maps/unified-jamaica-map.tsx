@@ -303,7 +303,7 @@ export default function UnifiedJamaicaMap({
             strokeOpacity: 0.8,
             strokeWeight: 2,
             fillColor: color,
-            fillOpacity: 0.1,
+            fillOpacity: 0.7,
             map,
             center: position,
             radius
@@ -315,7 +315,7 @@ export default function UnifiedJamaicaMap({
             style: {
               strokeColor: color,
               lineWidth: 2,
-              fillColor: color + '1A'
+              fillColor: color + 'B3'
             }
           });
           map.addObject(circle);
@@ -326,20 +326,33 @@ export default function UnifiedJamaicaMap({
 
     // Weather overlays
     if (activeOverlays.has('weather') && weatherData?.parishes) {
+      // Parish coordinate mapping for Jamaica
+      const parishCoordinates: { [key: string]: { lat: number; lng: number } } = {
+        'Kingston': { lat: 17.9970, lng: -76.7936 },
+        'St. Andrew': { lat: 18.0747, lng: -76.7936 },
+        'St. Thomas': { lat: 17.9518, lng: -76.3421 },
+        'Portland': { lat: 18.1745, lng: -76.4591 },
+        'St. Mary': { lat: 18.3678, lng: -76.9602 },
+        'St. Ann': { lat: 18.4647, lng: -77.1873 },
+        'Trelawny': { lat: 18.3811, lng: -77.5747 },
+        'St. James': { lat: 18.4762, lng: -77.9218 },
+        'Hanover': { lat: 18.4212, lng: -78.1336 },
+        'Westmoreland': { lat: 18.2433, lng: -78.1336 },
+        'St. Elizabeth': { lat: 18.0292, lng: -77.7422 },
+        'Manchester': { lat: 18.0542, lng: -77.5114 },
+        'Clarendon': { lat: 17.9402, lng: -77.2419 },
+        'St. Catherine': { lat: 17.9970, lng: -76.9602 }
+      };
+
       weatherData.parishes.forEach((parish: any) => {
-        // Validate parish coordinates
-        if (!parish || typeof parish.lat === 'undefined' || typeof parish.lng === 'undefined') {
-          console.warn('Invalid parish coordinates:', parish);
+        const coords = parishCoordinates[parish.parish];
+        if (!coords) {
+          console.warn('No coordinates found for parish:', parish.parish);
           return;
         }
         
-        const lat = parseFloat(parish.lat);
-        const lng = parseFloat(parish.lng);
-        
-        if (isNaN(lat) || isNaN(lng)) {
-          console.warn('Invalid weather overlay coordinates for parish:', parish.name, 'lat:', parish.lat, 'lng:', parish.lng);
-          return;
-        }
+        const lat = coords.lat;
+        const lng = coords.lng;
 
         const position = { lat, lng };
         const color = getWeatherColor(parish.weather?.electoralImpact || 'low');
