@@ -256,8 +256,8 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
 
       // Add behavior and UI with error handling
       try {
-        const behavior = new window.H.mapevents.Behavior();
-        const ui = new window.H.ui.UI.createDefault(hereMap);
+        const behavior = new window.H.mapevents.Behavior(new window.H.mapevents.MapEvents(hereMap));
+        const ui = window.H.ui.UI.createDefault(hereMap, defaultMapTypes);
         
         setMap(hereMap);
         setIsMapLoaded(true);
@@ -340,7 +340,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
       });
     }
 
-    // Add traffic overlays
+    // Add traffic overlays around polling stations
     if (activeOverlays.has('traffic') && trafficData?.stations) {
       trafficData.stations.forEach((station: any) => {
         if (station.coordinates?.lat && station.coordinates?.lng) {
@@ -351,8 +351,23 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
             heavy: '#ef4444',
             severe: '#dc2626'
           };
+          const radius = severity === 'severe' ? 8000 : severity === 'heavy' ? 6000 : severity === 'moderate' ? 4000 : 3000;
           
           if (mapProvider === 'google' && window.google) {
+            // Add traffic impact circle around station
+            const trafficCircle = new window.google.maps.Circle({
+              strokeColor: colors[severity as keyof typeof colors],
+              strokeOpacity: 0.8,
+              strokeWeight: 3,
+              fillColor: colors[severity as keyof typeof colors],
+              fillOpacity: 0.25,
+              map: map,
+              center: { lat: station.coordinates.lat, lng: station.coordinates.lng },
+              radius: radius
+            });
+            overlayRefs.current.traffic.push(trafficCircle);
+
+            // Add traffic marker at station
             const marker = new window.google.maps.Marker({
               position: { lat: station.coordinates.lat, lng: station.coordinates.lng },
               map: map,
@@ -360,10 +375,11 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
                 path: window.google.maps.SymbolPath.CIRCLE,
                 scale: 8,
                 fillColor: colors[severity as keyof typeof colors],
-                fillOpacity: 0.8,
+                fillOpacity: 0.9,
                 strokeColor: '#ffffff',
                 strokeWeight: 2
-              }
+              },
+              title: `Traffic: ${severity}`
             });
             overlayRefs.current.traffic.push(marker);
           }
@@ -371,7 +387,7 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
       });
     }
 
-    // Add weather overlays
+    // Add weather overlays around parishes with impact zones
     if (activeOverlays.has('weather') && weatherData?.parishes) {
       weatherData.parishes.forEach((parish: any) => {
         if (parish.lat && parish.lng && !('error' in parish)) {
@@ -381,19 +397,35 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
             medium: '#f59e0b',
             high: '#ef4444'
           };
+          const radius = severity === 'high' ? 25000 : severity === 'medium' ? 20000 : 15000;
           
           if (mapProvider === 'google' && window.google) {
-            const circle = new window.google.maps.Circle({
+            // Add weather impact zone
+            const weatherZone = new window.google.maps.Circle({
               strokeColor: colors[severity as keyof typeof colors],
               strokeOpacity: 0.6,
               strokeWeight: 2,
+              strokeDashArray: [10, 5],
               fillColor: colors[severity as keyof typeof colors],
-              fillOpacity: 0.2,
+              fillOpacity: 0.15,
               map: map,
               center: { lat: parish.lat, lng: parish.lng },
-              radius: 20000
+              radius: radius
             });
-            overlayRefs.current.weather.push(circle);
+            overlayRefs.current.weather.push(weatherZone);
+
+            // Add weather condition marker
+            const weatherIcon = severity === 'high' ? '⛈️' : severity === 'medium' ? '🌧️' : '☁️';
+            const marker = new window.google.maps.Marker({
+              position: { lat: parish.lat, lng: parish.lng },
+              map: map,
+              label: {
+                text: weatherIcon,
+                fontSize: '20px'
+              },
+              title: `${parish.parish} - Weather Impact: ${severity}`
+            });
+            overlayRefs.current.weather.push(marker);
           }
         }
       });
