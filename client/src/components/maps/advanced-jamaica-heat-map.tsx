@@ -202,51 +202,76 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
     });
   };
 
-  // Initialize HERE Maps
+  // Initialize HERE Maps with error handling
   const initializeHereMap = () => {
-    if (!window.H || !mapRef.current || !hereSettings?.apiKey) return;
-
-    const platform = new window.H.service.Platform({
-      'apikey': hereSettings.apiKey
-    });
-
-    const defaultMapTypes = platform.createDefaultMapTypes();
-    const hereMap = new window.H.Map(
-      mapRef.current,
-      defaultMapTypes.vector.normal.map,
-      {
-        zoom: 8,
-        center: JAMAICA_CENTER
+    try {
+      if (!window.H || !mapRef.current || !hereSettings?.apiKey) {
+        console.log('HERE Maps requirements not met, falling back to Google Maps');
+        setMapProvider('google');
+        return;
       }
-    );
 
-    const behavior = new window.H.mapevents.Behavior();
-    const ui = new window.H.ui.UI.createDefault(hereMap);
+      const platform = new window.H.service.Platform({
+        'apikey': hereSettings.apiKey
+      });
 
-    setMap(hereMap);
-    setIsMapLoaded(true);
-
-    // Add parish markers for HERE Maps
-    const group = new window.H.map.Group();
-    JAMAICA_PARISHES.forEach(parish => {
-      const circle = new window.H.map.Circle(
-        { lat: parish.lat, lng: parish.lng },
-        15000,
+      const defaultMapTypes = platform.createDefaultMapTypes();
+      const hereMap = new window.H.Map(
+        mapRef.current,
+        defaultMapTypes.vector.normal.map,
         {
-          style: {
-            strokeColor: parish.color,
-            lineWidth: 2,
-            fillColor: parish.color.replace('#', 'rgba(') + '0.2)'
-          }
+          zoom: 8,
+          center: JAMAICA_CENTER
         }
       );
-      
-      const marker = new window.H.map.Marker({ lat: parish.lat, lng: parish.lng });
-      group.addObjects([circle, marker]);
-    });
 
-    hereMap.getViewPort().addResizeListener(() => hereMap.getViewPort().update());
-    hereMap.addObject(group);
+      // Add behavior and UI with error handling
+      try {
+        const behavior = new window.H.mapevents.Behavior();
+        const ui = new window.H.ui.UI.createDefault(hereMap);
+        
+        setMap(hereMap);
+        setIsMapLoaded(true);
+
+        // Add parish markers for HERE Maps
+        const group = new window.H.map.Group();
+        JAMAICA_PARISHES.forEach(parish => {
+          const circle = new window.H.map.Circle(
+            { lat: parish.lat, lng: parish.lng },
+            15000,
+            {
+              style: {
+                strokeColor: parish.color,
+                lineWidth: 2,
+                fillColor: parish.color + '33' // Add alpha
+              }
+            }
+          );
+          
+          const marker = new window.H.map.Marker({ lat: parish.lat, lng: parish.lng });
+          group.addObjects([circle, marker]);
+        });
+
+        hereMap.getViewPort().addResizeListener(() => hereMap.getViewPort().update());
+        hereMap.addObject(group);
+      } catch (uiError) {
+        console.error('HERE Maps UI initialization error:', uiError);
+        setMapProvider('google');
+        toast({
+          title: "HERE Maps UI Error",
+          description: "Switching to Google Maps for better compatibility",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error('HERE Maps initialization error:', error);
+      setMapProvider('google');
+      toast({
+        title: "HERE Maps Error",
+        description: "Switching to Google Maps for better compatibility",
+        variant: "default"
+      });
+    }
   };
 
   // Add overlay visualization
@@ -307,11 +332,21 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
     }
   };
 
-  // Load map scripts and initialize
+  // Load map scripts and initialize with better error handling
   useEffect(() => {
     const loadGoogleMaps = () => {
       if (window.google) {
         initializeGoogleMap();
+        return;
+      }
+
+      if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
+        console.error('Google Maps API key not configured');
+        toast({
+          title: "Map Configuration Error",
+          description: "Google Maps API key not configured",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -320,42 +355,56 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
       script.async = true;
       script.defer = true;
       script.onload = initializeGoogleMap;
+      script.onerror = () => {
+        console.error('Failed to load Google Maps');
+        toast({
+          title: "Map Loading Error",
+          description: "Failed to load Google Maps",
+          variant: "destructive"
+        });
+      };
       document.head.appendChild(script);
     };
 
     const loadHereMaps = () => {
+      if (!hereSettings?.apiKey) {
+        console.log('HERE API key not available, using Google Maps');
+        loadGoogleMaps();
+        return;
+      }
+
       if (window.H) {
         initializeHereMap();
         return;
       }
 
-      const coreScript = document.createElement('script');
-      coreScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-core.js';
-      coreScript.onload = () => {
-        const serviceScript = document.createElement('script');
-        serviceScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-service.js';
-        serviceScript.onload = () => {
-          const uiScript = document.createElement('script');
-          uiScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-ui.js';
-          uiScript.onload = () => {
-            const mapeventsScript = document.createElement('script');
-            mapeventsScript.src = 'https://js.api.here.com/v3/3.1/mapsjs-mapevents.js';
-            mapeventsScript.onload = initializeHereMap;
-            document.head.appendChild(mapeventsScript);
-          };
-          document.head.appendChild(uiScript);
+      const loadScript = (src, onload) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = onload;
+        script.onerror = () => {
+          console.error(`Failed to load HERE Maps script: ${src}`);
+          loadGoogleMaps(); // Fallback to Google Maps
         };
-        document.head.appendChild(serviceScript);
+        document.head.appendChild(script);
       };
-      document.head.appendChild(coreScript);
+
+      loadScript('https://js.api.here.com/v3/3.1/mapsjs-core.js', () => {
+        loadScript('https://js.api.here.com/v3/3.1/mapsjs-service.js', () => {
+          loadScript('https://js.api.here.com/v3/3.1/mapsjs-ui.js', () => {
+            loadScript('https://js.api.here.com/v3/3.1/mapsjs-mapevents.js', () => {
+              setTimeout(initializeHereMap, 100); // Small delay to ensure all scripts loaded
+            });
+          });
+        });
+      });
     };
 
-    if (mapProvider === 'google') {
+    // Initialize based on provider preference  
+    if (mapProvider === 'google' || !hereSettings?.hasKey) {
       loadGoogleMaps();
-    } else if (hereSettings?.hasKey) {
-      loadHereMaps();
     } else {
-      loadGoogleMaps(); // Fallback to Google
+      loadHereMaps();
     }
   }, [mapProvider, hereSettings]);
 
@@ -503,16 +552,18 @@ export default function AdvancedJamaicaHeatMap({ stations = [], selectedStation,
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div 
-            ref={mapRef} 
-            className="w-full h-[600px] rounded-lg border border-gray-200"
-            style={{ background: '#f8fafc' }}
-          >
+          <div className="relative w-full h-[600px] rounded-lg border border-gray-200 overflow-hidden">
+            <div 
+              ref={mapRef} 
+              className="w-full h-full"
+              style={{ background: '#f8fafc' }}
+            />
             {!isMapLoaded && (
-              <div className="flex items-center justify-center h-full">
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                   <p className="text-muted-foreground">Loading advanced Jamaica map...</p>
+                  <p className="text-sm text-gray-500 mt-2">Using {mapProvider === 'google' ? 'Google Maps' : 'HERE Maps'}</p>
                 </div>
               </div>
             )}

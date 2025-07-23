@@ -201,6 +201,7 @@ export default function WeatherDashboard() {
               <AlertTitle>Error Loading Weather Data</AlertTitle>
               <AlertDescription>
                 Unable to fetch weather data for {selectedParish}. Please try again later.
+                {parishError?.message && ` Error: ${parishError.message}`}
               </AlertDescription>
             </Alert>
           )}
