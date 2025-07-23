@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -372,7 +372,7 @@ export default function AdminSettings() {
                 You can manage all DidIT settings, including API credentials, liveness checks, AML features, and more,
                 by navigating to the "Didit Settings" page from the sidebar.
               </p>
-              <Link href="/admin/didit-settings" className="mt-4">
+              <Link to="/admin/didit-settings" className="mt-4">
                 <Button variant="outline">
                   Go to Didit Settings <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>

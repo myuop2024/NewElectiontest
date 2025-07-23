@@ -53,7 +53,7 @@ import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
 import LiveChatWidget from "@/components/layout/live-chat-widget";
-import Redirect from "@/components/redirect";
+
 import { useAuth } from "@/hooks/use-auth";
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -162,14 +162,10 @@ function Router() {
         </ProtectedLayout>
       </Route>
       <Route path="/admin">
-        <ProtectedLayout>
-          <UnifiedAdmin />
-        </ProtectedLayout>
+        <Redirect to="/admin-settings" />
       </Route>
       <Route path="/admin-panel">
-        <ProtectedLayout>
-          <AdminPanel />
-        </ProtectedLayout>
+        <Redirect to="/admin-settings" />
       </Route>
       <Route path="/admin-settings">
         <ProtectedLayout>

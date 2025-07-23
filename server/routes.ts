@@ -128,6 +128,7 @@ async function initializeAdminAccount() {
       username: "admin",
       email: "admin@caffe.org.jm",
       password: hashedPassword,
+      observerId: observerId,
       firstName: "CAFFE",
       lastName: "Administrator",
       phone: "876-000-0000",
@@ -888,9 +889,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalStations = await db.select({ count: sql`count(*)` }).from(pollingStations);
       
       // Get recent reports (simplified - just count all reports)
-      const reportsCount = totalReports[0]?.count || 0;
-      const usersCount = totalUsers[0]?.count || 0;
-      const stationsCount = totalStations[0]?.count || 0;
+      const reportsCount = Number(totalReports[0]?.count) || 0;
+      const usersCount = Number(totalUsers[0]?.count) || 0;
+      const stationsCount = Number(totalStations[0]?.count) || 0;
 
       // Return working analytics data
       const analyticsData = {
@@ -1158,6 +1159,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Enhanced OCR and AI processing
       setTimeout(async () => {
         try {
+          // Check if file exists
+          if (!req.file) {
+            return;
+          }
+
           // Simulate OCR extraction (in production, integrate with actual OCR service)
           const ocrText = `Extracted content from ${req.file.originalname}: 
           Document Type: ${documentType}
@@ -1415,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(xSocialPosts)
           .where(gte(xSocialPosts.createdAt, timeThreshold));
 
-        xPostsCount = xPosts[0]?.count || 0;
+        xPostsCount = Number(xPosts[0]?.count) || 0;
 
         const lastAnalysis = await db.select({ 
           createdAt: xSentimentAnalysis.createdAt 
