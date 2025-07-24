@@ -155,7 +155,10 @@
   }
   
   .government-sidebar {
-    @apply bg-sidebar-background text-sidebar-foreground border-r border-sidebar-border shadow-lg;
+    background-color: var(--sidebar-background);
+    color: var(--sidebar-foreground);
+    @apply border-r shadow-lg;
+    border-color: var(--sidebar-border);
   }
   
   .status-indicator {

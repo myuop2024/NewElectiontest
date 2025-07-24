@@ -129,29 +129,34 @@ export default function UnifiedJamaicaMap({
     if (!mapRef.current) return;
 
     const initializeMap = async () => {
-      // Try HERE Maps first if API key is available
+      console.log('Initializing map...', { hereSettings, hasWindow: !!window });
+      
+      // Always try to load Google Maps first for better reliability
+      try {
+        console.log('Attempting to load Google Maps...');
+        await loadGoogleMaps();
+        console.log('Google Maps loaded successfully');
+        return;
+      } catch (error) {
+        console.error('Failed to load Google Maps:', error);
+      }
+      
+      // Try HERE Maps if Google Maps fails and API key is available
       if (hereSettings?.hasKey) {
         try {
+          console.log('Attempting to load HERE Maps...');
           await loadHereScripts();
           await loadHereMaps();
+          console.log('HERE Maps loaded successfully');
           return;
         } catch (error) {
           console.error('Failed to load HERE Maps:', error);
         }
       }
       
-      // Try Google Maps as fallback
-      if ((window as any).google?.maps) {
-        try {
-          await loadGoogleMaps();
-          return;
-        } catch (error) {
-          console.error('Failed to load Google Maps:', error);
-        }
-      }
-      
-      // If both fail, show error
-      console.warn('No map provider available. Please ensure HERE API key is configured or Google Maps is loaded.');
+      // If both fail, show error and try simple fallback
+      console.warn('No map provider available. Attempting to create simple map fallback...');
+      createFallbackMap();
     };
 
     initializeMap();
@@ -164,6 +169,33 @@ export default function UnifiedJamaicaMap({
       }
     };
   }, [hereSettings]);
+
+  // Create a simple fallback map when both providers fail
+  const createFallbackMap = () => {
+    if (!mapRef.current) return;
+    
+    // Create a simple placeholder map interface
+    const fallbackElement = document.createElement('div');
+    fallbackElement.className = 'w-full h-full bg-gray-100 flex items-center justify-center text-center p-4';
+    fallbackElement.innerHTML = `
+      <div>
+        <div class="text-lg font-semibold mb-2">Jamaica Electoral Map</div>
+        <div class="text-sm text-gray-600 mb-4">Loading map provider...</div>
+        <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          Reload Map
+        </button>
+      </div>
+    `;
+    
+    // Clear existing content and add fallback
+    mapRef.current.innerHTML = '';
+    mapRef.current.appendChild(fallbackElement);
+    
+    // Try to reload after a delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 5000);
+  };
 
   // Load HERE Maps
   const loadHereMaps = async () => {
