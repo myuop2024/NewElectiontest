@@ -42,7 +42,8 @@ export default function UnifiedJamaicaMap({
     traffic: [],
     weather: [],
     sentiment: [],
-    incidents: []
+    incidents: [],
+    stations: []
   });
 
   // Fetch HERE API settings
@@ -299,14 +300,21 @@ export default function UnifiedJamaicaMap({
   useEffect(() => {
     if (!map || !stations.length) return;
 
-    clearAllOverlays();
+    // Clear and re-render stations when map or stations change
+    clearStations();
     renderStations();
+    
+    // Clear and re-render overlays when data or active overlays change
+    clearAllOverlays();
     renderOverlays();
   }, [map, stations, trafficData, weatherData, sentimentData, incidentsData, activeOverlays]);
 
-  // Clear all overlays
+  // Clear all overlays (but preserve stations)
   const clearAllOverlays = () => {
-    Object.keys(overlayRefs.current).forEach(type => {
+    // Only clear overlay types, not stations
+    const overlayTypes = ['traffic', 'weather', 'sentiment', 'incidents'];
+    
+    overlayTypes.forEach(type => {
       overlayRefs.current[type].forEach(overlay => {
         if (mapProvider === 'google' && overlay.setMap) {
           overlay.setMap(null);
@@ -318,9 +326,26 @@ export default function UnifiedJamaicaMap({
     });
   };
 
+  // Clear stations separately when needed
+  const clearStations = () => {
+    overlayRefs.current.stations.forEach(overlay => {
+      if (mapProvider === 'google' && overlay.setMap) {
+        overlay.setMap(null);
+      } else if (mapProvider === 'here' && map && overlay.dispose) {
+        map.removeObject(overlay);
+      }
+    });
+    overlayRefs.current.stations = [];
+  };
+
   // Render polling stations
   const renderStations = () => {
-    if (!map) return;
+    if (!map) {
+      console.warn('No map available for renderStations');
+      return;
+    }
+
+    console.log('Rendering stations:', stations.length, 'stations on', mapProvider, 'map');
 
     stations.forEach((station: any) => {
       // Validate coordinates before processing
@@ -333,6 +358,7 @@ export default function UnifiedJamaicaMap({
       }
 
       const position = { lat, lng };
+      console.log('Creating marker for station:', station.name, 'at', position);
 
       if (mapProvider === 'google') {
         const marker = new (window as any).google.maps.Marker({
@@ -353,7 +379,11 @@ export default function UnifiedJamaicaMap({
           if (onStationSelect) onStationSelect(station);
         });
 
-        overlayRefs.current.incidents.push(marker);
+        // Initialize stations array if it doesn't exist
+        if (!overlayRefs.current.stations) {
+          overlayRefs.current.stations = [];
+        }
+        overlayRefs.current.stations.push(marker);
       } else if (mapProvider === 'here') {
         const H = (window as any).H;
         const marker = new H.map.Marker(position);
@@ -363,9 +393,15 @@ export default function UnifiedJamaicaMap({
         });
 
         map.addObject(marker);
-        overlayRefs.current.incidents.push(marker);
+        // Initialize stations array if it doesn't exist
+        if (!overlayRefs.current.stations) {
+          overlayRefs.current.stations = [];
+        }
+        overlayRefs.current.stations.push(marker);
       }
     });
+
+    console.log('Finished rendering stations. Total markers created:', overlayRefs.current.stations?.length || 0);
   };
 
   // Render overlays based on active selections
