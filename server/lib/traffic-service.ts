@@ -54,7 +54,7 @@ export class TrafficService {
   /**
    * Get real-time traffic conditions around a specific location
    */
-  async getTrafficConditions(latitude: number, longitude: number, radiusKm: number = 2): Promise<TrafficCondition> {
+  async getTrafficConditions(latitude: number, longitude: number, radiusKm: number = 1): Promise<TrafficCondition> {
     try {
       // Use Google Maps Roads API to get traffic data
       const url = `${this.baseUrl}/directions/json`;
