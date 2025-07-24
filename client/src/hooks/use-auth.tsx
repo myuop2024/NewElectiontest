@@ -47,9 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
           setUser(response.user);
           localStorage.setItem("auth_token", "session-based");
-          console.log('Auto-login successful');
+          console.log('Auto-login successful:', response.user.firstName);
         } catch (loginError) {
-          console.log('Auto-login failed, user needs to manually login');
+          console.error('Auto-login failed:', loginError);
+          console.log('User needs to manually login');
         }
       } else {
         // Only log non-401 errors as these indicate real problems

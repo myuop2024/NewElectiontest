@@ -192,7 +192,7 @@ export class TrafficService {
    */
   async getPollingStationTraffic(stationId: number): Promise<PollingStationTrafficData> {
     try {
-      const station = await storage.getPollingStation(stationId);
+      const station = await storage.getPollingStationById(stationId);
       if (!station) {
         const errorMsg = `[STATION TRAFFIC ERROR] Station ${stationId} not found`;
         console.error(errorMsg);
@@ -207,15 +207,19 @@ export class TrafficService {
         throw new Error(`Station ${station.stationCode} missing coordinates`);
       }
 
-      const trafficConditions = await this.getTrafficConditions(station.latitude, station.longitude);
+      // Convert string coordinates to numbers
+      const lat = parseFloat(station.latitude);
+      const lng = parseFloat(station.longitude);
+
+      const trafficConditions = await this.getTrafficConditions(lat, lng);
       
       return {
         stationId: station.id,
         stationCode: station.stationCode,
-        stationName: station.stationName,
+        stationName: station.name, // Use 'name' field from schema
         location: {
-          latitude: station.latitude,
-          longitude: station.longitude
+          latitude: lat,
+          longitude: lng
         },
         nearbyTraffic: trafficConditions,
         accessRoutes: [],
