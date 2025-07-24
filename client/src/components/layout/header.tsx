@@ -1,4 +1,4 @@
-import { Bell, Vote, User, LogOut } from "lucide-react";
+import { Bell, Vote, User, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
 import ThemeToggle from "./theme-toggle";
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, logout } = useAuth();
   const { isConnected } = useWebSocket();
   const queryClient = useQueryClient();
@@ -49,6 +49,17 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
+            {/* Mobile menu */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={onMenuClick}
+              aria-label="Open sidebar"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+
             {/* CAFFE Logo */}
             <div className="flex items-center space-x-3">
               <img 

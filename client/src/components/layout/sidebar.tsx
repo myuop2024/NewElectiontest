@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -89,7 +90,13 @@ const adminNavigationGroups = [
   }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  mobileOpen,
+  setMobileOpen,
+}: {
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
+}) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { data: appSettings } = useQuery<{ value: string }[]>({ queryKey: ["/api/settings/app"] });
@@ -108,25 +115,24 @@ export default function Sidebar() {
     return appSettings?.find((s: any) => s.key === key)?.value || '';
   };
 
-  return (
-    <aside className="w-64 government-sidebar">
+  const sidebarInner = (
+    <>
       <div className="flex flex-col items-center p-4 border-b border-border">
         <h2 className="text-lg font-bold caffe-primary">Navigation</h2>
         <p className="text-xs text-muted-foreground text-center">Electoral Observer Platform</p>
       </div>
-      <nav className="mt-6 px-3">
+      <nav className="flex-1 mt-6 px-3 overflow-y-auto">
         <div className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.name} href={item.href}>
-                <div 
+              <Link key={item.name} href={item.href} onClick={() => setMobileOpen(false)}>
+                <div
                   className={cn(
-                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
-                  isActive(item.href)
-                    ? "caffe-bg-primary text-white"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}>
+                    "sidebar-link",
+                    isActive(item.href) && "sidebar-link-active"
+                  )}
+                >
                   <Icon className="mr-3 h-5 w-5" />
                   {item.name}
                 </div>
@@ -136,25 +142,24 @@ export default function Sidebar() {
 
           {canAccessAdmin && (
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">
+              <div className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider mb-2 px-3">
                 Admin Panel
               </div>
               {adminNavigationGroups.map((group) => (
                 <div key={group.title} className="mb-4">
-                  <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 px-3">
+                  <div className="text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wider mb-1 px-3">
                     {group.title}
                   </div>
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <Link key={item.name} href={item.href}>
-                        <div 
+                      <Link key={item.name} href={item.href} onClick={() => setMobileOpen(false)}>
+                        <div
                           className={cn(
-                          "group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ml-2",
-                          isActive(item.href)
-                            ? "caffe-bg-primary text-white"
-                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                        )}>
+                            "sidebar-link ml-2",
+                            isActive(item.href) && "sidebar-link-active"
+                          )}
+                        >
                           <Icon className="mr-3 h-4 w-4" />
                           {item.name}
                         </div>
@@ -170,7 +175,7 @@ export default function Sidebar() {
         {/* Emergency Contact */}
         <div className="mt-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
           <h4 className="text-sm font-semibold text-destructive mb-2">Emergency Contact</h4>
-          <Button 
+          <Button
             className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={() => window.open('tel:+1876-CAFFE-01', '_self')}
           >
@@ -190,6 +195,21 @@ export default function Sidebar() {
           </div>
         </div>
       </nav>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      <aside className="hidden md:flex w-64 government-sidebar flex-col h-full bg-gradient-to-b from-sidebar-background via-sidebar-accent/20 to-background">
+        {sidebarInner}
+      </aside>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="p-0 w-64 overflow-y-auto">
+          <div className="government-sidebar flex flex-col h-full bg-gradient-to-b from-sidebar-background via-sidebar-accent/20 to-background">
+            {sidebarInner}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
