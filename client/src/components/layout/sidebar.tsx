@@ -55,6 +55,7 @@ const adminNavigationGroups = [
       { name: 'Admin Dashboard', href: '/admin', icon: Shield },
       { name: 'Observer Management', href: '/observer-assignments', icon: Users },
       { name: 'Station Management', href: '/polling-station-management', icon: MapPin },
+      { name: 'Station Geocoding', href: '/admin/polling-station-geocoder', icon: Navigation },
     ]
   },
   {

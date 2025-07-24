@@ -41,6 +41,7 @@ import LocationTracking from "@/pages/location-tracking";
 import AIIncidentClassifier from "@/pages/ai-incident-classifier";
 import EmergencyManagement from "@/pages/emergency-management";
 import PollingStationManagement from "@/pages/polling-station-management";
+import PollingStationGeocoder from "@/components/admin/polling-station-geocoder";
 
 import WeatherDashboard from "@/pages/weather-dashboard";
 import TrafficMonitoring from "@/pages/traffic-monitoring";
@@ -100,6 +101,11 @@ function Router() {
       <Route path="/polling-stations">
         <ProtectedLayout>
           <PollingStations />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin/polling-station-geocoder">
+        <ProtectedLayout>
+          <PollingStationGeocoder />
         </ProtectedLayout>
       </Route>
       <Route path="/reports">

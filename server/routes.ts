@@ -372,6 +372,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create polling station with automatic geocoding
+  app.post("/api/polling-stations", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { stationCode, name, address, parishId, capacity } = req.body;
+      
+      if (!stationCode || !name || !address || !parishId) {
+        return res.status(400).json({ message: "Station code, name, address, and parish are required" });
+      }
+
+      console.log(`[POLLING STATIONS] Creating new station: ${name} at ${address}`);
+
+      // Create the station first
+      const newStation = await storage.createPollingStation({
+        stationCode,
+        name,
+        address,
+        parishId: parseInt(parishId),
+        capacity: capacity ? parseInt(capacity) : null,
+        isActive: true
+      });
+
+      // Automatically geocode the new station
+      console.log(`[POLLING STATIONS] Auto-geocoding station ${newStation.id}`);
+      const geocodeResult = await storage.geocodePollingStation(newStation.id);
+      
+      if (geocodeResult.success) {
+        console.log(`[POLLING STATIONS] Successfully geocoded station ${newStation.id}:`, geocodeResult.coordinates);
+        // Fetch the updated station with coordinates
+        const updatedStation = await storage.getPollingStationById(newStation.id);
+        res.json({
+          ...updatedStation,
+          geocoded: true,
+          geocodeMessage: "Station location automatically determined from address"
+        });
+      } else {
+        console.warn(`[POLLING STATIONS] Geocoding failed for station ${newStation.id}:`, geocodeResult.error);
+        res.json({
+          ...newStation,
+          geocoded: false,
+          geocodeMessage: `Could not determine location automatically: ${geocodeResult.error}. You can manually set coordinates later.`
+        });
+      }
+    } catch (error) {
+      console.error("Create polling station error:", error);
+      res.status(500).json({ message: "Failed to create polling station" });
+    }
+  });
+
+  // Geocode a single polling station
+  app.post("/api/polling-stations/:id/geocode", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const stationId = parseInt(req.params.id);
+      if (isNaN(stationId)) {
+        return res.status(400).json({ message: "Invalid station ID" });
+      }
+
+      console.log(`[GEOCODING] Geocoding polling station ${stationId}`);
+      const result = await storage.geocodePollingStation(stationId);
+      
+      if (result.success) {
+        console.log(`[GEOCODING] Successfully geocoded station ${stationId}:`, result.coordinates);
+        const updatedStation = await storage.getPollingStationById(stationId);
+        res.json({
+          success: true,
+          station: updatedStation,
+          coordinates: result.coordinates,
+          message: "Station coordinates updated successfully"
+        });
+      } else {
+        console.warn(`[GEOCODING] Failed to geocode station ${stationId}:`, result.error);
+        res.status(400).json({
+          success: false,
+          error: result.error,
+          message: "Failed to determine coordinates from address"
+        });
+      }
+    } catch (error) {
+      console.error("Geocode polling station error:", error);
+      res.status(500).json({ message: "Failed to geocode polling station" });
+    }
+  });
+
+  // Batch geocode all polling stations
+  app.post("/api/polling-stations/batch-geocode", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      console.log(`[GEOCODING] Starting batch geocoding of all polling stations`);
+      const result = await storage.batchGeocodePollingStations();
+      
+      console.log(`[GEOCODING] Batch geocoding completed: ${result.success} success, ${result.failed} failed`);
+      
+      res.json({
+        success: true,
+        results: {
+          successful: result.success,
+          failed: result.failed,
+          errors: result.errors
+        },
+        message: `Batch geocoding completed: ${result.success} stations updated successfully${result.failed > 0 ? `, ${result.failed} failed` : ''}`
+      });
+    } catch (error) {
+      console.error("Batch geocode error:", error);
+      res.status(500).json({ message: "Failed to batch geocode polling stations" });
+    }
+  });
+
   // Reports
   app.get("/api/reports", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

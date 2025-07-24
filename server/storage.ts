@@ -40,8 +40,11 @@ export interface IStorage {
   // Polling stations
   getPollingStations(): Promise<PollingStation[]>;
   getPollingStationsByParish(parishId: number): Promise<PollingStation[]>;
+  getPollingStationById(id: number): Promise<PollingStation | undefined>;
   createPollingStation(station: InsertPollingStation): Promise<PollingStation>;
   updatePollingStation(id: number, updates: Partial<PollingStation>): Promise<PollingStation>;
+  geocodePollingStation(id: number): Promise<{ success: boolean; coordinates?: { latitude: number; longitude: number }; error?: string }>;
+  batchGeocodePollingStations(): Promise<{ success: number; failed: number; errors: string[] }>;
   
   // Assignments
   getAssignments(): Promise<Assignment[]>;
@@ -236,6 +239,112 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pollingStations.id, id))
       .returning();
     return station;
+  }
+
+  async geocodePollingStation(id: number): Promise<{ success: boolean; coordinates?: { latitude: number; longitude: number }; error?: string }> {
+    try {
+      const station = await this.getPollingStationById(id);
+      if (!station) {
+        return { success: false, error: 'Polling station not found' };
+      }
+
+      const { getGeocodingService } = await import('./lib/geocoding-service');
+      const geocodingService = getGeocodingService();
+
+      // Get parish name for better geocoding results
+      const parish = await db.select().from(parishes).where(eq(parishes.id, station.parishId));
+      const parishName = parish[0]?.name;
+
+      const result = await geocodingService.geocodeAddress(station.address, parishName);
+      
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      // Update station with new coordinates
+      await this.updatePollingStation(id, {
+        latitude: result.data.latitude.toString(),
+        longitude: result.data.longitude.toString()
+      });
+
+      return { 
+        success: true, 
+        coordinates: { 
+          latitude: result.data.latitude, 
+          longitude: result.data.longitude 
+        } 
+      };
+    } catch (error) {
+      console.error('[STORAGE] Error geocoding polling station:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown geocoding error' 
+      };
+    }
+  }
+
+  async batchGeocodePollingStations(): Promise<{ success: number; failed: number; errors: string[] }> {
+    try {
+      const stations = await this.getPollingStations();
+      const parishesData = await this.getParishes();
+      const parishMap = Object.fromEntries(parishesData.map(p => [p.id, p.name]));
+
+      // Filter stations that need geocoding (missing coordinates)
+      const stationsToGeocode = stations.filter(station => 
+        !station.latitude || !station.longitude || 
+        station.latitude === '0' || station.longitude === '0'
+      );
+
+      if (stationsToGeocode.length === 0) {
+        return { success: 0, failed: 0, errors: ['No stations require geocoding'] };
+      }
+
+      const { getGeocodingService } = await import('./lib/geocoding-service');
+      const geocodingService = getGeocodingService();
+
+      // Prepare addresses for batch geocoding
+      const addresses = stationsToGeocode.map(station => ({
+        id: station.id,
+        address: station.address,
+        parish: parishMap[station.parishId]
+      }));
+
+      console.log(`[STORAGE] Batch geocoding ${addresses.length} polling stations`);
+      const results = await geocodingService.batchGeocode(addresses);
+
+      let successCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
+
+      // Process results and update stations
+      for (const result of results) {
+        if (result.result.success) {
+          try {
+            await this.updatePollingStation(result.id!, {
+              latitude: result.result.data.latitude.toString(),
+              longitude: result.result.data.longitude.toString()
+            });
+            successCount++;
+          } catch (updateError) {
+            failedCount++;
+            errors.push(`Station ${result.id}: Failed to update database - ${updateError instanceof Error ? updateError.message : 'Unknown error'}`);
+          }
+        } else {
+          failedCount++;
+          errors.push(`Station ${result.id}: ${result.result.error}`);
+        }
+      }
+
+      console.log(`[STORAGE] Batch geocoding completed: ${successCount} success, ${failedCount} failed`);
+      return { success: successCount, failed: failedCount, errors };
+    } catch (error) {
+      console.error('[STORAGE] Error in batch geocoding:', error);
+      return { 
+        success: 0, 
+        failed: 0, 
+        errors: [error instanceof Error ? error.message : 'Unknown batch geocoding error'] 
+      };
+    }
   }
 
   async getAssignments(): Promise<Assignment[]> {
