@@ -155,7 +155,7 @@
   }
   
   .government-sidebar {
-    @apply bg-white border-r border-gray-200 shadow-lg;
+    @apply bg-sidebar-background text-sidebar-foreground border-r border-sidebar-border shadow-lg;
   }
   
   .status-indicator {
@@ -255,5 +255,17 @@
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+  }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors;
+  }
+  .sidebar-link:hover {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+  }
+  .sidebar-link-active {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
   }
 }

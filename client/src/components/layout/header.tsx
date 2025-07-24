@@ -1,4 +1,4 @@
-import { Bell, Vote, User, LogOut } from "lucide-react";
+import { Bell, Vote, User, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,9 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import caffeLogo from "@assets/caffe-logo-1__2_-removebg-preview_1749433945433.png";
+import ThemeToggle from "./theme-toggle";
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, logout } = useAuth();
   const { isConnected } = useWebSocket();
   const queryClient = useQueryClient();
@@ -48,6 +49,17 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
+            {/* Mobile menu */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={onMenuClick}
+              aria-label="Open sidebar"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+
             {/* CAFFE Logo */}
             <div className="flex items-center space-x-3">
               <img 
@@ -70,7 +82,7 @@ export default function Header() {
                 {isConnected ? 'Live Monitoring' : 'Disconnected'}
               </span>
             </div>
-            
+
             {/* Notifications */}
             <div className="relative">
               <DropdownMenu onOpenChange={(open) => { if (open && unreadCount > 0) markReadMutation.mutate(); }}>
@@ -99,7 +111,10 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* User Profile */}
             <div className="flex items-center space-x-3">
               <div className="text-right">

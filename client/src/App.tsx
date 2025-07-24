@@ -58,6 +58,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -73,9 +74,9 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onMenuClick={() => setMobileSidebarOpen(true)} />
       <div className="flex h-[calc(100vh-4rem)]">
-        <Sidebar />
+        <Sidebar mobileOpen={mobileSidebarOpen} setMobileOpen={setMobileSidebarOpen} />
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
