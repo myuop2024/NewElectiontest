@@ -418,6 +418,10 @@ export default function EnhancedMap({
                   <div className="text-xs text-blue-600 mt-1">
                     {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}
                   </div>
+                  {/* Traffic warning if data is missing */}
+                  {(!marker.info || marker.info.includes('N/A') || marker.info.includes('unavailable')) && (
+                    <div className="text-xs text-red-600 mt-1 font-semibold">Traffic data unavailable</div>
+                  )}
                   {/* Arrow pointing down */}
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-white"></div>
                 </div>

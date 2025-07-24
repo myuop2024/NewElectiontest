@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Users, MapPin, AlertTriangle, Activity, Eye, Clock, CheckCircle } from "lucide-react";
+import EnhancedMap from "@/components/maps/enhanced-map";
 
 const CHART_COLORS = ['#1E3A8A', '#059669', '#DC2626', '#D97706', '#7C3AED', '#BE185D'];
 
@@ -33,6 +34,11 @@ export default function RealTimeAnalytics() {
   const { data: liveUpdates = [] } = useQuery<any[]>({
     queryKey: ["/api/analytics/live-updates"],
     refetchInterval: 5000 // Refresh every 5 seconds
+  });
+
+  const { data: stationsData = { stations: [] } } = useQuery<any>({
+    queryKey: ["/api/traffic/all-stations"],
+    refetchInterval: 60000 // Refresh every minute
   });
 
   // Real-time WebSocket connection for live updates
@@ -125,6 +131,27 @@ export default function RealTimeAnalytics() {
             </Select>
           </div>
         </div>
+
+        {/* Real-Time Polling Stations Map */}
+        <Card className="government-card">
+          <CardHeader>
+            <CardTitle>Polling Stations Map</CardTitle>
+            <CardDescription>Live map of all polling stations with real-time traffic overlay</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EnhancedMap
+              markers={stationsData.stations.map((station: any) => ({
+                lat: station.location.latitude,
+                lng: station.location.longitude,
+                title: station.stationName,
+                info: `Traffic: ${station.nearbyTraffic?.description || 'N/A'}\nDelay: ${station.nearbyTraffic?.delayMinutes || 0} min`,
+                stationId: station.stationId
+              }))}
+              showTrafficOverlay={true}
+              height="500px"
+            />
+          </CardContent>
+        </Card>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
