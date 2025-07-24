@@ -18,6 +18,30 @@ interface TrafficData {
     delayMinutes: number;
     description: string;
   };
+  approachRoutes: {
+    from: string;
+    route: {
+      origin: { latitude: number; longitude: number };
+      destination: { latitude: number; longitude: number };
+      distance: string;
+      duration: string;
+      durationInTraffic: string;
+      trafficCondition: {
+        severity: 'light' | 'moderate' | 'heavy' | 'severe';
+        speed: number;
+        delayMinutes: number;
+        description: string;
+      };
+      alternativeRoutes: number;
+    };
+    importance: 'high' | 'medium' | 'low';
+  }[];
+  locationBusyness: {
+    currentLevel: 'quiet' | 'moderate' | 'busy' | 'very_busy';
+    percentageBusy: number;
+    usuallyBusyAt: string[];
+    liveData: boolean;
+  };
   publicTransportAccess: {
     busStops: number;
     busRoutes: string[];
@@ -80,7 +104,7 @@ export default function StationTrafficStatus({ stationId, compact = false }: Sta
     );
   }
 
-  const { nearbyTraffic, publicTransportAccess, parkingAvailability } = trafficData;
+  const { nearbyTraffic, approachRoutes, locationBusyness, publicTransportAccess, parkingAvailability } = trafficData;
 
   if (compact) {
     return (
@@ -158,6 +182,59 @@ export default function StationTrafficStatus({ stationId, compact = false }: Sta
                 <Badge variant="outline" className="text-xs capitalize">
                   {publicTransportAccess.accessibility}
                 </Badge>
+              </div>
+            </div>
+          )}
+
+          {/* Location Busyness */}
+          {locationBusyness && (
+            <div className="border-t pt-3 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Current Busyness:</span>
+                <Badge className={`text-xs capitalize ${
+                  locationBusyness.currentLevel === 'very_busy' ? 'bg-red-100 text-red-800' :
+                  locationBusyness.currentLevel === 'busy' ? 'bg-orange-100 text-orange-800' :
+                  locationBusyness.currentLevel === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {locationBusyness.currentLevel.replace('_', ' ')}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Activity Level:</span>
+                <span className="text-sm font-medium">{locationBusyness.percentageBusy}%</span>
+              </div>
+              {locationBusyness.usuallyBusyAt.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Usually busy: {locationBusyness.usuallyBusyAt.join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Approach Routes */}
+          {approachRoutes && approachRoutes.length > 0 && (
+            <div className="border-t pt-3 mt-3">
+              <h5 className="text-sm font-medium mb-2">Traffic from Key Areas:</h5>
+              <div className="space-y-2">
+                {approachRoutes.slice(0, 3).map((approach, index) => (
+                  <div key={index} className="text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{approach.from}:</span>
+                      <div className="flex items-center gap-1">
+                        <Badge className={`text-xs ${getSeverityColor(approach.route.trafficCondition.severity)}`}>
+                          {approach.route.trafficCondition.severity}
+                        </Badge>
+                        <span className="text-muted-foreground">
+                          {approach.route.durationInTraffic}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-muted-foreground">
+                      {approach.route.distance} • {approach.route.trafficCondition.speed} km/h
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

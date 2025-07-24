@@ -30,6 +30,17 @@ interface PollingStationTrafficData {
   location: TrafficLocation;
   nearbyTraffic: TrafficCondition;
   accessRoutes: RouteTraffic[];
+  approachRoutes: {
+    from: string; // area name
+    route: RouteTraffic;
+    importance: 'high' | 'medium' | 'low';
+  }[];
+  locationBusyness: {
+    currentLevel: 'quiet' | 'moderate' | 'busy' | 'very_busy';
+    percentageBusy: number; // 0-100
+    usuallyBusyAt: string[]; // time periods
+    liveData: boolean;
+  };
   publicTransportAccess: {
     busStops: number;
     busRoutes: string[];
@@ -223,6 +234,8 @@ export class TrafficService {
         },
         nearbyTraffic: trafficConditions,
         accessRoutes: [],
+        approachRoutes: await this.getApproachRoutes(lat, lng),
+        locationBusyness: await this.getLocationBusyness(station.name, station.address || ''),
         publicTransportAccess: {
           busStops: 0,
           busRoutes: [],
@@ -242,6 +255,118 @@ export class TrafficService {
       logError(new Error(errorMsg));
       throw error;
     }
+  }
+
+  /**
+   * Get approach routes to a polling station from key population centers
+   */
+  async getApproachRoutes(stationLat: number, stationLng: number): Promise<{from: string; route: RouteTraffic; importance: 'high' | 'medium' | 'low'}[]> {
+    const destination = { latitude: stationLat, longitude: stationLng };
+    
+    // Define key population centers in Jamaica (major towns/cities)
+    const populationCenters = [
+      { name: 'Kingston', lat: 17.9714, lng: -76.7931, importance: 'high' as const },
+      { name: 'Spanish Town', lat: 17.9911, lng: -76.9569, importance: 'high' as const },
+      { name: 'Montego Bay', lat: 18.4762, lng: -77.8938, importance: 'high' as const },
+      { name: 'Mandeville', lat: 18.0431, lng: -77.5069, importance: 'medium' as const },
+      { name: 'May Pen', lat: 17.9647, lng: -77.2411, importance: 'medium' as const },
+      { name: 'Half Way Tree', lat: 18.0175, lng: -76.7947, importance: 'medium' as const }
+    ];
+
+    const routes = [];
+    
+    for (const center of populationCenters) {
+      // Only check routes from centers that are reasonably close (within ~50km)
+      const distance = this.calculateDistance(center.lat, center.lng, stationLat, stationLng);
+      if (distance > 50) continue; // Skip if too far
+      
+      try {
+        const origin = { latitude: center.lat, longitude: center.lng };
+        const routeTraffic = await this.getRouteTraffic(origin, destination);
+        
+        routes.push({
+          from: center.name,
+          route: routeTraffic,
+          importance: center.importance
+        });
+      } catch (error) {
+        console.warn(`Failed to get route from ${center.name} to polling station:`, error);
+      }
+    }
+
+    return routes;
+  }
+
+  /**
+   * Get location busyness data for a polling station
+   */
+  async getLocationBusyness(locationName: string, address: string): Promise<{currentLevel: 'quiet' | 'moderate' | 'busy' | 'very_busy'; percentageBusy: number; usuallyBusyAt: string[]; liveData: boolean}> {
+    try {
+      // For now, we'll use Google Places to check if the location exists
+      // In the future, we can integrate with BestTime.app API for actual busyness data
+      const placesUrl = `${this.baseUrl}/place/findplacefromtext/json`;
+      const params = new URLSearchParams({
+        input: `${locationName} ${address}`,
+        inputtype: 'textquery',
+        fields: 'place_id,name,rating,user_ratings_total',
+        key: this.apiKey
+      });
+
+      const response = await fetch(`${placesUrl}?${params}`);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.candidates.length > 0) {
+        const place = data.candidates[0];
+        
+        // Estimate busyness based on ratings and reviews (basic heuristic)
+        const ratingsCount = place.user_ratings_total || 0;
+        let busynessLevel: 'quiet' | 'moderate' | 'busy' | 'very_busy' = 'quiet';
+        let percentageBusy = 20; // Default low busyness
+
+        if (ratingsCount > 500) {
+          busynessLevel = 'very_busy';
+          percentageBusy = 80;
+        } else if (ratingsCount > 200) {
+          busynessLevel = 'busy';
+          percentageBusy = 60;
+        } else if (ratingsCount > 50) {
+          busynessLevel = 'moderate';
+          percentageBusy = 40;
+        }
+
+        return {
+          currentLevel: busynessLevel,
+          percentageBusy,
+          usuallyBusyAt: ['8:00 AM - 10:00 AM', '4:00 PM - 6:00 PM'], // Typical voting hours
+          liveData: false // We don't have live data yet
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get location busyness:', error);
+    }
+
+    // Default fallback
+    return {
+      currentLevel: 'moderate',
+      percentageBusy: 30,
+      usuallyBusyAt: ['8:00 AM - 10:00 AM', '4:00 PM - 6:00 PM'],
+      liveData: false
+    };
+  }
+
+  /**
+   * Calculate distance between two coordinates (Haversine formula)
+   */
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Radius of Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
 
   /**
