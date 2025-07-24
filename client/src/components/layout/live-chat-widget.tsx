@@ -40,30 +40,39 @@ export default function LiveChatWidget() {
 
   // Handle room join/leave when selectedRoom changes
   useEffect(() => {
-    if (sendMessage && selectedRoom && chatMode === 'room') {
-      // Join the new room
-      sendMessage({
-        type: 'join_room',
-        roomId: selectedRoom,
-        userId: user?.id || 0,
-        content: '',
-        id: Math.random().toString(36).substr(2, 9),
-        timestamp: new Date()
-      });
+    if (!isConnected || !sendMessage || !selectedRoom || !user?.id || chatMode !== 'room') {
+      return;
+    }
 
-      // Leave the room when component unmounts or room changes
-      return () => {
+    // Add a delay to ensure WebSocket is fully ready
+    const timer = setTimeout(() => {
+      if (isConnected) {
         sendMessage({
-          type: 'leave_room',
+          type: 'join_room',
           roomId: selectedRoom,
-          userId: user?.id || 0,
+          userId: user.id,
           content: '',
           id: Math.random().toString(36).substr(2, 9),
           timestamp: new Date()
         });
-      };
-    }
-  }, [sendMessage, selectedRoom, chatMode, user?.id]);
+      }
+    }, 500);
+
+    // Leave the room when component unmounts or room changes
+    return () => {
+      clearTimeout(timer);
+      if (isConnected && sendMessage) {
+        sendMessage({
+          type: 'leave_room',
+          roomId: selectedRoom,
+          userId: user.id,
+          content: '',
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date()
+        });
+      }
+    };
+  }, [isConnected, sendMessage, selectedRoom, chatMode, user?.id]);
 
   const handleSendMessage = () => {
     if (!message.trim() || !user) return;
@@ -114,34 +123,36 @@ export default function LiveChatWidget() {
   };
 
   useEffect(() => {
-    if (!isConnected || !user) return;
+    if (!isConnected || !user || !sendMessage) return;
 
-    // Add a small delay to ensure WebSocket is fully ready
+    // Add a delay to ensure WebSocket is fully ready
     const timer = setTimeout(() => {
-      if (isOpen) {
-        sendMessage({ 
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'join_room', 
-          roomId: 'support',
-          userId: user.id,
-          senderId: user.id,
-          content: '',
-          messageType: 'system',
-          timestamp: new Date()
-        });
-      } else {
-        sendMessage({ 
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'leave_room', 
-          roomId: 'support',
-          userId: user.id,
-          senderId: user.id,
-          content: '',
-          messageType: 'system',
-          timestamp: new Date()
-        });
+      if (isConnected && sendMessage) {
+        if (isOpen) {
+          sendMessage({ 
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'join_room', 
+            roomId: 'support',
+            userId: user.id,
+            senderId: user.id,
+            content: '',
+            messageType: 'system',
+            timestamp: new Date()
+          });
+        } else {
+          sendMessage({ 
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'leave_room', 
+            roomId: 'support',
+            userId: user.id,
+            senderId: user.id,
+            content: '',
+            messageType: 'system',
+            timestamp: new Date()
+          });
+        }
       }
-    }, 200);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [isOpen, isConnected, sendMessage, user]);

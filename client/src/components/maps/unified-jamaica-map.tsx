@@ -275,8 +275,8 @@ export default function UnifiedJamaicaMap({
       }
 
       const script = document.createElement('script');
-      // Use a fallback approach - try to get key from environment or use default
-      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBvOkBwgGlbUiuS-oSim-sm_fXzyHx65Y8'; // Fallback key
+      // Use import.meta.env for browser environment
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBvOkBwgGlbUiuS-oSim-sm_fXzyHx65Y8'; // Fallback key
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
       script.defer = true;
