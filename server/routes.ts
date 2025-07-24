@@ -63,6 +63,7 @@ import { mapsService } from "./lib/maps-service";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service";
 import { APICreditManager } from "./lib/api-credit-manager";
+import { logError, getLogs } from './lib/logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -4103,7 +4104,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastUpdated: new Date().toISOString()
       });
     } catch (error) {
-      console.error("Error getting traffic data for all stations:", error);
+      const errorMsg = `[TRAFFIC ENDPOINT ERROR] Failed to get traffic data for all stations: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       res.status(500).json({ 
         error: "Failed to get traffic data for all stations",
         message: error instanceof Error ? error.message : "Unknown error"
@@ -4127,7 +4130,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(conditions);
     } catch (error) {
-      console.error(`Error getting traffic conditions for ${req.params.latitude},${req.params.longitude}:`, error);
+      const errorMsg = `[TRAFFIC CONDITIONS ERROR] Failed to get traffic conditions for ${req.params.latitude},${req.params.longitude}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       res.status(500).json({ 
         error: "Failed to get traffic conditions",
         message: error instanceof Error ? error.message : "Unknown error"
@@ -4140,6 +4145,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { originLat, originLng, destLat, destLng } = req.query;
       
       if (!originLat || !originLng || !destLat || !destLng) {
+        const errorMsg = `[TRAFFIC ROUTE ERROR] Missing required parameters: originLat=${originLat}, originLng=${originLng}, destLat=${destLat}, destLng=${destLng}`;
+        console.error(errorMsg);
+        logError(new Error(errorMsg));
         return res.status(400).json({ 
           error: "Missing required parameters: originLat, originLng, destLat, destLng" 
         });
@@ -4155,7 +4163,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(routeTraffic);
     } catch (error) {
-      console.error("Error getting route traffic:", error);
+      const errorMsg = `[TRAFFIC ROUTE ERROR] Failed to get route traffic: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       res.status(500).json({ 
         error: "Failed to get route traffic data",
         message: error instanceof Error ? error.message : "Unknown error"
@@ -4179,7 +4189,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ alerts, location: { latitude, longitude }, radius: radiusKm });
     } catch (error) {
-      console.error(`Error getting traffic alerts for ${req.params.latitude},${req.params.longitude}:`, error);
+      const errorMsg = `[TRAFFIC ALERTS ERROR] Failed to get traffic alerts for ${req.params.latitude},${req.params.longitude}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       res.status(500).json({ 
         error: "Failed to get traffic alerts",
         message: error instanceof Error ? error.message : "Unknown error"
@@ -4515,6 +4527,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Feature toggle error:', error);
       res.status(500).json({ message: 'Failed to toggle feature' });
+    }
+  });
+
+  // Traffic error logs endpoint
+  app.get("/api/logs/traffic-errors", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const logs = getLogs();
+      const trafficLogs = logs.filter(log => 
+        log.message.includes('[TRAFFIC') || 
+        log.message.includes('traffic') ||
+        log.message.includes('Traffic')
+      );
+      
+      res.json({
+        trafficErrors: trafficLogs,
+        totalErrors: trafficLogs.length,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error retrieving traffic logs:", error);
+      res.status(500).json({ 
+        error: "Failed to retrieve traffic logs",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

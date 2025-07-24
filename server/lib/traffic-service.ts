@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { logError } from './logger';
 
 interface TrafficLocation {
   latitude: number;
@@ -67,12 +68,19 @@ export class TrafficService {
 
       const response = await fetch(`${url}?${params}`);
       if (!response.ok) {
+        const errorMsg = `[TRAFFIC API ERROR] HTTP ${response.status} ${response.statusText} for location ${latitude},${longitude}`;
+        console.error(errorMsg);
+        logError(new Error(errorMsg));
         throw new Error(`Traffic API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('[TRAFFIC API RESPONSE]', JSON.stringify(data, null, 2));
       
       if (data.status !== 'OK' || !data.routes || data.routes.length === 0) {
+        const errorMsg = `[TRAFFIC API ERROR] status: ${data.status}, routes: ${data.routes ? data.routes.length : 0} for location ${latitude},${longitude}`;
+        console.error(errorMsg);
+        logError(new Error(errorMsg));
         throw new Error(`Traffic data unavailable: ${data.status}`);
       }
 
@@ -112,7 +120,9 @@ export class TrafficService {
       };
 
     } catch (error) {
-      console.error('Error fetching traffic conditions:', error);
+      const errorMsg = `[TRAFFIC SERVICE ERROR] Failed to get traffic conditions for ${latitude},${longitude}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       // Return default conditions instead of throwing
       return {
         severity: 'light',
@@ -182,82 +192,50 @@ export class TrafficService {
    */
   async getPollingStationTraffic(stationId: number): Promise<PollingStationTrafficData> {
     try {
-      // Get polling station data from database
-      const stations = await storage.getPollingStations();
-      const station = stations.find(s => s.id === stationId);
-      
+      const station = await storage.getPollingStation(stationId);
       if (!station) {
-        throw new Error(`Polling station not found: ${stationId}`);
+        const errorMsg = `[STATION TRAFFIC ERROR] Station ${stationId} not found`;
+        console.error(errorMsg);
+        logError(new Error(errorMsg));
+        throw new Error(`Station ${stationId} not found`);
       }
 
       if (!station.latitude || !station.longitude) {
-        throw new Error(`Location coordinates not available for station: ${station.stationCode}`);
+        const errorMsg = `[STATION TRAFFIC ERROR] Station ${stationId} (${station.stationCode}) missing coordinates`;
+        console.error(errorMsg);
+        logError(new Error(errorMsg));
+        throw new Error(`Station ${station.stationCode} missing coordinates`);
       }
 
-      const location = {
-        latitude: parseFloat(station.latitude),
-        longitude: parseFloat(station.longitude)
-      };
-
-      // Get nearby traffic conditions
-      const nearbyTraffic = await this.getTrafficConditions(location.latitude, location.longitude);
-
-      // Get access routes from major nearby points
-      const accessRoutes: RouteTraffic[] = [];
+      const trafficConditions = await this.getTrafficConditions(station.latitude, station.longitude);
       
-      // Define key access points for Jamaica (major towns/intersections)
-      const majorPoints = [
-        { name: 'Kingston', lat: 18.0179, lng: -76.8099 },
-        { name: 'Spanish Town', lat: 17.9909, lng: -76.9570 },
-        { name: 'Portmore', lat: 17.9470, lng: -76.8827 },
-        { name: 'May Pen', lat: 17.9651, lng: -77.2456 }
-      ];
-
-      // Calculate routes from nearby major points
-      for (const point of majorPoints) {
-        const distance = this.calculateDistance(location.latitude, location.longitude, point.lat, point.lng);
-        
-        // Only calculate routes for points within 50km
-        if (distance < 50) {
-          try {
-            const routeTraffic = await this.getRouteTraffic(
-              { latitude: point.lat, longitude: point.lng },
-              location
-            );
-            accessRoutes.push(routeTraffic);
-          } catch (error) {
-            console.warn(`Failed to get route from ${point.name}:`, error);
-          }
-        }
-      }
-
-      // Simulate public transport and parking data (would integrate with real APIs in production)
-      const publicTransportAccess = {
-        busStops: Math.floor(Math.random() * 5) + 1,
-        busRoutes: ['Route 1A', 'Route 2B', 'Route 3C'].slice(0, Math.floor(Math.random() * 3) + 1),
-        accessibility: (['excellent', 'good', 'fair', 'poor'] as const)[Math.floor(Math.random() * 4)]
-      };
-
-      const parkingAvailability = {
-        spaces: Math.floor(Math.random() * 100) + 20,
-        occupancyRate: Math.floor(Math.random() * 60) + 20, // 20-80%
-        restrictions: ['No overnight parking', 'Resident permits required', '2-hour limit'].slice(0, Math.floor(Math.random() * 2))
-      };
-
       return {
         stationId: station.id,
         stationCode: station.stationCode,
-        stationName: station.name,
-        location,
-        nearbyTraffic,
-        accessRoutes,
-        publicTransportAccess,
-        parkingAvailability,
+        stationName: station.stationName,
+        location: {
+          latitude: station.latitude,
+          longitude: station.longitude
+        },
+        nearbyTraffic: trafficConditions,
+        accessRoutes: [],
+        publicTransportAccess: {
+          busStops: 0,
+          busRoutes: [],
+          accessibility: 'fair'
+        },
+        parkingAvailability: {
+          spaces: 0,
+          occupancyRate: 0,
+          restrictions: []
+        },
         lastUpdated: new Date().toISOString()
       };
 
     } catch (error) {
-      console.error(`Error getting traffic data for station ${stationId}:`, error);
+      const errorMsg = `[STATION TRAFFIC ERROR] Failed to get traffic for station ${stationId}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       throw error;
     }
   }
@@ -272,16 +250,31 @@ export class TrafficService {
         .filter(station => station.latitude && station.longitude)
         .map(station => 
           this.getPollingStationTraffic(station.id).catch(error => {
-            console.warn(`Failed to get traffic for station ${station.stationCode}:`, error);
+            const errorMsg = `[STATION TRAFFIC ERROR] Station ${station.stationCode}: ${error instanceof Error ? error.message : String(error)}`;
+            console.warn(errorMsg);
+            logError(new Error(errorMsg));
             return null;
           })
         );
 
       const results = await Promise.all(trafficPromises);
-      return results.filter((result): result is PollingStationTrafficData => result !== null);
+      console.log('[ALL STATIONS TRAFFIC RESULTS]', results);
+      
+      const successfulResults = results.filter((result): result is PollingStationTrafficData => result !== null);
+      const failedCount = results.length - successfulResults.length;
+      
+      if (failedCount > 0) {
+        const errorMsg = `[TRAFFIC SUMMARY] ${failedCount} out of ${results.length} stations failed to load traffic data`;
+        console.warn(errorMsg);
+        logError(new Error(errorMsg));
+      }
+      
+      return successfulResults;
 
     } catch (error) {
-      console.error('Error getting traffic data for all stations:', error);
+      const errorMsg = `[ALL STATIONS TRAFFIC ERROR] Failed to get traffic data for all stations: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      logError(new Error(errorMsg));
       throw error;
     }
   }
