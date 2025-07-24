@@ -1,0 +1,328 @@
+ [vite] connecting...
+ WebSocket connection to 'wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/?token=55Xo2ZrTtWrz' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) 
+ Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+ Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+ WebSocket connected
+ Initializing map... Object
+ Attempting to load Google Maps...
+ Google Maps not available, attempting to load Google Maps script 
+overrideMethod @ installHook.js:1
+ Initializing map... Object
+ Attempting to load Google Maps...
+ Google Maps not available, attempting to load Google Maps script 
+overrideMethod @ installHook.js:1
+ Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading
+overrideMethod @ installHook.js:1
+ Google Maps script loaded successfully
+ Google Maps loaded successfully
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ As of February 21st, 2024, google.maps.Marker is deprecated. Please use google.maps.marker.AdvancedMarkerElement instead. At this time, google.maps.Marker is not scheduled to be discontinued, but google.maps.marker.AdvancedMarkerElement is recommended over google.maps.Marker. While google.maps.Marker will continue to receive bug fixes for any major regressions, existing bugs in google.maps.Marker will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/deprecations for additional details and https://developers.google.com/maps/documentation/javascript/advanced-markers/migration for the migration guide. 
+overrideMethod @ installHook.js:1
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Google Maps loaded successfully
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+ Creating marker for station: deCarteret College at Object
+ Creating marker for station: University of the West Indies at Object
+ Creating marker for station: Meadowbrook High School at Object
+ Creating marker for station: Half Way Tree Primary at Object
+ Creating marker for station: Spanish Town High School at Object
+ Creating marker for station: Portmore Community College at Object
+ Creating marker for station: Montego Bay High School at Object
+ Creating marker for station: Cornwall College at Object
+ Creating marker for station: Savanna-la-Mar High School at Object
+ Creating marker for station: Frome Technical High School at Object
+ Finished rendering stations. Total markers created: 16
+ Rendering stations: 16 stations on google map
+ Creating marker for station: May Pen High School at Object
+ Creating marker for station: Chapelton Primary School at Object
+ Creating marker for station: Alpha Primary School at Object
+ Creating marker for station: Kingston College at Object
+ Creating marker for station: Holy Trinity Cathedral at Object
+ Creating marker for station: Mandeville High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: deCarteret College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: University of the West Indies at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Meadowbrook High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Half Way Tree Primary at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Spanish Town High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Portmore Community College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Montego Bay High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Cornwall College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Savanna-la-Mar High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Frome Technical High School at Object
+unified-jamaica-map.tsx:404 Finished rendering stations. Total markers created: 16
+unified-jamaica-map.tsx:348 Rendering stations: 16 stations on google map
+unified-jamaica-map.tsx:361 Creating marker for station: May Pen High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Chapelton Primary School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Alpha Primary School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Kingston College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Holy Trinity Cathedral at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Mandeville High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: deCarteret College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: University of the West Indies at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Meadowbrook High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Half Way Tree Primary at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Spanish Town High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Portmore Community College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Montego Bay High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Cornwall College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Savanna-la-Mar High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Frome Technical High School at Object
+unified-jamaica-map.tsx:404 Finished rendering stations. Total markers created: 16
+unified-jamaica-map.tsx:348 Rendering stations: 16 stations on google map
+unified-jamaica-map.tsx:361 Creating marker for station: May Pen High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Chapelton Primary School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Alpha Primary School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Kingston College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Holy Trinity Cathedral at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Mandeville High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: deCarteret College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: University of the West Indies at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Meadowbrook High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Half Way Tree Primary at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Spanish Town High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Portmore Community College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Montego Bay High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Cornwall College at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Savanna-la-Mar High School at Object
+unified-jamaica-map.tsx:361 Creating marker for station: Frome Technical High School at Object
+unified-jamaica-map.tsx:404 Finished rendering stations. Total markers created: 16
+unified-jamaica-map.tsx:348 Rendering stations: 16 stations on google map
+unified-jamaica-map.tsx:361 Creating marker for station: May Pen High School at {lat: 17.9647, lng: -77.2411}
+unified-jamaica-map.tsx:361 Creating marker for station: Chapelton Primary School at {lat: 18.1167, lng: -77.1833}
+unified-jamaica-map.tsx:361 Creating marker for station: Alpha Primary School at {lat: 17.9714, lng: -76.7931}
+unified-jamaica-map.tsx:361 Creating marker for station: Kingston College at {lat: 17.9706, lng: -76.7847}
+unified-jamaica-map.tsx:361 Creating marker for station: Holy Trinity Cathedral at {lat: 17.9692, lng: -76.7925}
+unified-jamaica-map.tsx:361 Creating marker for station: Mandeville High School at {lat: 18.0431, lng: -77.5069}
+unified-jamaica-map.tsx:361 Creating marker for station: deCarteret College at {lat: 18.0375, lng: -77.5083}
+unified-jamaica-map.tsx:361 Creating marker for station: University of the West Indies at {lat: 18.0061, lng: -76.7466}
+unified-jamaica-map.tsx:361 Creating marker for station: Meadowbrook High School at {lat: 18.0156, lng: -76.7722}
+unified-jamaica-map.tsx:361 Creating marker for station: Half Way Tree Primary at {lat: 18.0175, lng: -76.7947}
+unified-jamaica-map.tsx:361 Creating marker for station: Spanish Town High School at {lat: 17.9911, lng: -76.9569}
+unified-jamaica-map.tsx:361 Creating marker for station: Portmore Community College at {lat: 17.9542, lng: -76.8819}
+unified-jamaica-map.tsx:361 Creating marker for station: Montego Bay High School at {lat: 18.4762, lng: -77.8938}
+unified-jamaica-map.tsx:361 Creating marker for station: Cornwall College at {lat: 18.4681, lng: -77.9178}
+unified-jamaica-map.tsx:361 Creating marker for station: Savanna-la-Mar High School at {lat: 18.2189, lng: -78.1328}
+unified-jamaica-map.tsx:361 Creating marker for station: Frome Technical High School at {lat: 18.3167, lng: -78.1667}
+unified-jamaica-map.tsx:404 Finished rendering stations. Total markers created: 16

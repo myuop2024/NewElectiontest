@@ -296,18 +296,23 @@ export default function UnifiedJamaicaMap({
     });
   };
 
-  // Update overlays when data changes
+  // Render stations only when map or stations change
   useEffect(() => {
     if (!map || !stations.length) return;
-
-    // Clear and re-render stations when map or stations change
+    
+    console.log('Re-rendering stations due to map or stations change');
     clearStations();
     renderStations();
+  }, [map, stations]);
+
+  // Update overlays only when overlay data or active overlays change
+  useEffect(() => {
+    if (!map) return;
     
-    // Clear and re-render overlays when data or active overlays change
+    console.log('Re-rendering overlays due to data or active overlays change');
     clearAllOverlays();
     renderOverlays();
-  }, [map, stations, trafficData, weatherData, sentimentData, incidentsData, activeOverlays]);
+  }, [map, trafficData, weatherData, sentimentData, incidentsData, activeOverlays]);
 
   // Clear all overlays (but preserve stations)
   const clearAllOverlays = () => {
@@ -753,8 +758,8 @@ export default function UnifiedJamaicaMap({
       <Card className="overflow-hidden">
         <div 
           ref={mapRef} 
-          style={{ height }}
-          className="w-full"
+          style={{ height, minHeight: height }}
+          className="w-full bg-gray-100"
         />
       </Card>
 
