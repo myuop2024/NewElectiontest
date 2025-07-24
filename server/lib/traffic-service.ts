@@ -65,7 +65,7 @@ export class TrafficService {
   /**
    * Get real-time traffic conditions around a specific location
    */
-  async getTrafficConditions(latitude: number, longitude: number, radiusKm: number = 0.3): Promise<TrafficCondition> {
+  async getTrafficConditions(latitude: number, longitude: number, radiusKm: number = 0.5): Promise<TrafficCondition> {
     try {
       // Use Google Maps Roads API to get traffic data
       const url = `${this.baseUrl}/directions/json`;
@@ -222,7 +222,9 @@ export class TrafficService {
       const lat = parseFloat(station.latitude);
       const lng = parseFloat(station.longitude);
 
-      const trafficConditions = await this.getTrafficConditions(lat, lng);
+      // Use adaptive radius based on location type and road density
+      const adaptiveRadius = this.calculateAdaptiveRadius(lat, lng);
+      const trafficConditions = await this.getTrafficConditions(lat, lng, adaptiveRadius);
       
       return {
         stationId: station.id,
@@ -289,11 +291,14 @@ export class TrafficService {
           route: routeTraffic,
           importance: center.importance
         });
+        
+        console.log(`[APPROACH ROUTE] Added route from ${center.name} to polling station: ${routeTraffic.distance}, ${routeTraffic.durationInTraffic}`);
       } catch (error) {
-        console.warn(`Failed to get route from ${center.name} to polling station:`, error);
+        console.warn(`[APPROACH ROUTE ERROR] Failed to get route from ${center.name} to polling station:`, error);
       }
     }
 
+    console.log(`[APPROACH ROUTE SUMMARY] Found ${routes.length} approach routes for polling station at ${stationLat}, ${stationLng}`);
     return routes;
   }
 
@@ -355,6 +360,29 @@ export class TrafficService {
   }
 
   /**
+   * Calculate adaptive radius based on location characteristics
+   */
+  private calculateAdaptiveRadius(lat: number, lng: number): number {
+    // Urban areas (Kingston, Spanish Town, Montego Bay) - smaller radius
+    const urbanCenters = [
+      { lat: 17.9714, lng: -76.7931, radius: 0.3 }, // Kingston
+      { lat: 17.9911, lng: -76.9569, radius: 0.4 }, // Spanish Town
+      { lat: 18.4762, lng: -77.8938, radius: 0.4 }, // Montego Bay
+    ];
+    
+    // Check if polling station is in urban area
+    for (const center of urbanCenters) {
+      const distance = this.calculateDistance(lat, lng, center.lat, center.lng);
+      if (distance < 10) { // Within 10km of urban center
+        return center.radius;
+      }
+    }
+    
+    // Rural areas - larger radius to capture sparse road network
+    return 0.8;
+  }
+
+  /**
    * Calculate distance between two coordinates (Haversine formula)
    */
   private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -408,19 +436,7 @@ export class TrafficService {
     }
   }
 
-  /**
-   * Calculate distance between two points in kilometers
-   */
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
+
 
   /**
    * Get traffic alerts and incidents near polling stations
