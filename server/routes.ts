@@ -3995,7 +3995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Traffic Monitoring API endpoints
-  app.get("/api/traffic/station/:stationId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/traffic/station/:stationId", async (req: Request, res: Response) => {
     try {
       const { stationId } = req.params;
       const { getTrafficService } = await import("./lib/traffic-service");
