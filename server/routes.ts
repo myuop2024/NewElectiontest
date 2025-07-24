@@ -64,6 +64,7 @@ import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service";
 import { APICreditManager } from "./lib/api-credit-manager";
 import { logError, getLogs } from './lib/logger';
+import enhancedTrafficRoutes from './routes/enhanced-traffic-routes';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -7177,6 +7178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch heatmap data' });
     }
   });
+
+  // Enhanced Traffic Monitoring System Routes
+  app.use('/api/enhanced-traffic', enhancedTrafficRoutes);
 
   app.get("/api/credits/emergency-stop", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

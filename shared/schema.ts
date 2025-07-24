@@ -750,6 +750,195 @@ export const xApiStatus = pgTable("x_api_status", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Traffic Analytics History - Store historical traffic data for analysis and prediction
+export const trafficAnalyticsHistory = pgTable("traffic_analytics_history", {
+  id: serial("id").primaryKey(),
+  pollingStationId: integer("polling_station_id").notNull().references(() => pollingStations.id, { onDelete: "cascade" }),
+  routeOriginType: text("route_origin_type").notNull(), // 'major_center', 'nearby_area', 'emergency_service'
+  routeOriginName: text("route_origin_name").notNull(), // Kingston, Spanish Town, etc.
+  routeOriginLat: decimal("route_origin_lat", { precision: 10, scale: 8 }).notNull(),
+  routeOriginLng: decimal("route_origin_lng", { precision: 11, scale: 8 }).notNull(),
+  routeDestinationLat: decimal("route_destination_lat", { precision: 10, scale: 8 }).notNull(),
+  routeDestinationLng: decimal("route_destination_lng", { precision: 11, scale: 8 }).notNull(),
+  distance: text("distance").notNull(), // "15.2 km"
+  normalDuration: text("normal_duration").notNull(), // "22 mins"
+  trafficDuration: text("traffic_duration").notNull(), // "34 mins"
+  delayMinutes: integer("delay_minutes").notNull(), // 12
+  trafficSeverity: text("traffic_severity").notNull(), // 'light', 'moderate', 'heavy', 'severe'
+  averageSpeed: decimal("average_speed", { precision: 5, scale: 2 }), // km/h
+  congestionLevel: integer("congestion_level").notNull(), // 1-10 scale
+  weatherConditions: text("weather_conditions"), // 'clear', 'rain', 'storm'
+  timeOfDay: text("time_of_day").notNull(), // 'morning_rush', 'midday', 'evening_rush', 'night'
+  dayOfWeek: text("day_of_week").notNull(), // 'monday', 'tuesday', etc.
+  specialEvent: text("special_event"), // 'election_day', 'holiday', 'emergency'
+  alternativeRoutesCount: integer("alternative_routes_count").default(0),
+  incidentReported: boolean("incident_reported").default(false),
+  dataSource: text("data_source").notNull().default('google_maps'), // 'google_maps', 'here_maps', 'manual'
+  dataQuality: decimal("data_quality", { precision: 3, scale: 2 }).default('1.00'), // 0-1 quality score
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Traffic Predictions - AI-powered traffic forecasting for election day planning
+export const trafficPredictions = pgTable("traffic_predictions", {
+  id: serial("id").primaryKey(),
+  pollingStationId: integer("polling_station_id").notNull().references(() => pollingStations.id, { onDelete: "cascade" }),
+  predictionType: text("prediction_type").notNull(), // 'election_day', 'peak_hours', 'emergency_scenario'
+  targetDate: timestamp("target_date").notNull(),
+  timeSlot: text("time_slot").notNull(), // '06:00-09:00', '09:00-12:00', etc.
+  routeOriginType: text("route_origin_type").notNull(),
+  routeOriginName: text("route_origin_name").notNull(),
+  predictedDelayMinutes: integer("predicted_delay_minutes").notNull(),
+  predictedTrafficSeverity: text("predicted_traffic_severity").notNull(),
+  confidenceScore: decimal("confidence_score", { precision: 3, scale: 2 }).notNull(), // 0-1
+  voterTurnoutImpact: text("voter_turnout_impact"), // 'low', 'medium', 'high'
+  alternativeRouteRecommended: boolean("alternative_route_recommended").default(false),
+  emergencyAccessRisk: text("emergency_access_risk"), // 'low', 'medium', 'high', 'critical'
+  aiModel: text("ai_model").notNull().default('gemini-1.5-flash'),
+  trainingDataPoints: integer("training_data_points").notNull(),
+  baselineComparison: json("baseline_comparison"), // Historical comparison data
+  factorsConsidered: json("factors_considered"), // Weather, events, historical patterns
+  recommendations: json("recommendations"), // Array of recommended actions
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Traffic Alerts - Real-time alert system for traffic disruptions and incidents
+export const trafficAlerts = pgTable("traffic_alerts", {
+  id: serial("id").primaryKey(),
+  alertType: text("alert_type").notNull(), // 'heavy_traffic', 'road_closure', 'accident', 'flooding', 'emergency'
+  severity: text("severity").notNull(), // 'low', 'medium', 'high', 'critical'
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  affectedPollingStations: json("affected_polling_stations").notNull(), // Array of station IDs
+  affectedRoutes: json("affected_routes").notNull(), // Array of route descriptions
+  location: json("location").notNull(), // { lat, lng, address, parish }
+  estimatedDuration: text("estimated_duration"), // "30 minutes", "2 hours", "unknown"
+  trafficImpact: text("traffic_impact").notNull(), // 'minor_delays', 'major_delays', 'route_blocked', 'area_inaccessible'
+  alternativeRoutes: json("alternative_routes"), // Array of suggested routes
+  emergencyServicesNotified: boolean("emergency_services_notified").default(false),
+  observersNotified: boolean("observers_notified").default(false),
+  voterTransportImpact: text("voter_transport_impact"), // 'none', 'minor', 'significant', 'severe'
+  recommendedActions: json("recommended_actions"), // Array of action items
+  dataSource: text("data_source").notNull(), // 'google_maps', 'manual_report', 'observer_report'
+  reportedBy: integer("reported_by"), // User ID if manually reported
+  verifiedBy: integer("verified_by"), // User ID who verified the alert
+  isActive: boolean("is_active").notNull().default(true),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: integer("resolved_by"),
+  resolutionNotes: text("resolution_notes"),
+  notificationsSent: json("notifications_sent"), // Track SMS/WhatsApp/Email notifications
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Observer Route Optimization - Dynamic route assignment for field observers
+export const observerRouteOptimization = pgTable("observer_route_optimization", {
+  id: serial("id").primaryKey(),
+  observerId: integer("observer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  routeType: text("route_type").notNull(), // 'daily_patrol', 'station_to_station', 'emergency_response', 'transport_voters'
+  startLocationLat: decimal("start_location_lat", { precision: 10, scale: 8 }).notNull(),
+  startLocationLng: decimal("start_location_lng", { precision: 11, scale: 8 }).notNull(),
+  endLocationLat: decimal("end_location_lat", { precision: 10, scale: 8 }).notNull(),
+  endLocationLng: decimal("end_location_lng", { precision: 11, scale: 8 }).notNull(),
+  waypoints: json("waypoints"), // Array of intermediate polling stations
+  optimizedRoute: json("optimized_route"), // Google Maps route data
+  estimatedDuration: text("estimated_duration").notNull(),
+  estimatedDistance: text("estimated_distance").notNull(),
+  trafficAwareness: boolean("traffic_awareness").notNull().default(true),
+  avoidTolls: boolean("avoid_tolls").notNull().default(true),
+  avoidHighways: boolean("avoid_highways").notNull().default(false),
+  priorityLevel: text("priority_level").notNull().default('normal'), // 'low', 'normal', 'high', 'emergency'
+  assignmentDate: timestamp("assignment_date").notNull(),
+  scheduledStartTime: timestamp("scheduled_start_time").notNull(),
+  actualStartTime: timestamp("actual_start_time"),
+  actualEndTime: timestamp("actual_end_time"),
+  routeStatus: text("route_status").notNull().default('planned'), // 'planned', 'active', 'completed', 'cancelled'
+  completionNotes: text("completion_notes"),
+  fuelEstimate: decimal("fuel_estimate", { precision: 6, scale: 2 }), // Liters
+  mileageRate: decimal("mileage_rate", { precision: 5, scale: 2 }), // JMD per km
+  totalCostEstimate: decimal("total_cost_estimate", { precision: 8, scale: 2 }), // JMD
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Emergency Route Planning - Critical path analysis for emergency services
+export const emergencyRoutePlanning = pgTable("emergency_route_planning", {
+  id: serial("id").primaryKey(),
+  emergencyType: text("emergency_type").notNull(), // 'medical', 'security', 'fire', 'evacuation', 'ballot_transport'
+  sourceLocationLat: decimal("source_location_lat", { precision: 10, scale: 8 }).notNull(),
+  sourceLocationLng: decimal("source_location_lng", { precision: 11, scale: 8 }).notNull(),
+  destinationPollingStationId: integer("destination_polling_station_id").references(() => pollingStations.id),
+  destinationLat: decimal("destination_lat", { precision: 10, scale: 8 }).notNull(),
+  destinationLng: decimal("destination_lng", { precision: 11, scale: 8 }).notNull(),
+  primaryRoute: json("primary_route").notNull(), // Main emergency route
+  backupRoute1: json("backup_route1"), // First alternative
+  backupRoute2: json("backup_route2"), // Second alternative
+  accessibilityRequirements: json("accessibility_requirements"), // Wheelchair, stretcher, large vehicle
+  responseTimeTarget: integer("response_time_target"), // Minutes
+  currentTrafficConditions: json("current_traffic_conditions"),
+  roadClosureAwareness: json("road_closure_awareness"),
+  emergencyServiceType: text("emergency_service_type"), // 'ambulance', 'police', 'fire_department', 'jdf'
+  priorityLevel: text("priority_level").notNull().default('high'), // 'medium', 'high', 'critical'
+  routeValidatedBy: integer("route_validated_by"), // Emergency coordinator
+  lastTrafficUpdate: timestamp("last_traffic_update"),
+  routeStatus: text("route_status").notNull().default('active'), // 'active', 'completed', 'blocked', 'rerouted'
+  incidentReported: boolean("incident_reported").default(false),
+  estimatedArrival: timestamp("estimated_arrival"),
+  actualArrival: timestamp("actual_arrival"),
+  responseEffectiveness: text("response_effectiveness"), // 'excellent', 'good', 'adequate', 'poor'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Traffic Heat Map Data - Real-time visualization data for heat map overlays
+export const trafficHeatMapData = pgTable("traffic_heat_map_data", {
+  id: serial("id").primaryKey(),
+  pollingStationId: integer("polling_station_id").notNull().references(() => pollingStations.id, { onDelete: "cascade" }),
+  gridLat: decimal("grid_lat", { precision: 10, scale: 8 }).notNull(), // Grid cell latitude
+  gridLng: decimal("grid_lng", { precision: 11, scale: 8 }).notNull(), // Grid cell longitude
+  intensity: decimal("intensity", { precision: 3, scale: 2 }).notNull(), // 0-1 intensity for heat map
+  trafficDensity: integer("traffic_density").notNull(), // 1-10 density scale
+  averageSpeed: decimal("average_speed", { precision: 5, scale: 2 }), // km/h
+  congestionLevel: text("congestion_level").notNull(), // 'free_flow', 'light', 'moderate', 'heavy', 'stop_and_go'
+  roadType: text("road_type"), // 'highway', 'arterial', 'collector', 'local'
+  directionality: text("directionality"), // 'toward_station', 'away_from_station', 'bidirectional'
+  timeWindow: text("time_window").notNull(), // '06:00-07:00', etc.
+  dataPoints: integer("data_points").notNull(), // Number of measurements
+  confidenceLevel: decimal("confidence_level", { precision: 3, scale: 2 }).default('1.00'),
+  weatherImpact: text("weather_impact"), // 'none', 'light', 'moderate', 'severe'
+  specialEventImpact: boolean("special_event_impact").default(false),
+  lastCalculated: timestamp("last_calculated").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(), // When this data becomes stale
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Critical Path Analysis - Identify most vulnerable polling stations
+export const criticalPathAnalysis = pgTable("critical_path_analysis", {
+  id: serial("id").primaryKey(),
+  pollingStationId: integer("polling_station_id").notNull().references(() => pollingStations.id, { onDelete: "cascade" }),
+  vulnerabilityScore: decimal("vulnerability_score", { precision: 4, scale: 3 }).notNull(), // 0-1
+  accessibilityRating: text("accessibility_rating").notNull(), // 'excellent', 'good', 'fair', 'poor', 'critical'
+  primaryAccessRoutes: json("primary_access_routes").notNull(), // Main routes to station
+  backupAccessRoutes: json("backup_access_routes"), // Alternative routes
+  emergencyAccessRoutes: json("emergency_access_routes"), // Emergency service routes
+  chokePoints: json("choke_points"), // Traffic bottlenecks
+  riskFactors: json("risk_factors"), // Weather, events, infrastructure
+  voterAccessibilityImpact: text("voter_accessibility_impact"), // 'minimal', 'moderate', 'significant', 'severe'
+  emergencyResponseCapability: text("emergency_response_capability"), // 'excellent', 'good', 'limited', 'poor'
+  transportationOptions: json("transportation_options"), // Public transport, parking, etc.
+  mitigationStrategies: json("mitigation_strategies"), // Recommended actions
+  monitoringPriority: text("monitoring_priority").notNull(), // 'low', 'medium', 'high', 'critical'
+  lastAssessment: timestamp("last_assessment").notNull().defaultNow(),
+  nextReviewDate: timestamp("next_review_date"),
+  assessedBy: integer("assessed_by").notNull(),
+  approvedBy: integer("approved_by"),
+  implementationStatus: json("implementation_status"), // Track mitigation progress
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   assignments: many(assignments),
@@ -806,6 +995,41 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
   recipient: one(users, { fields: [chatMessages.recipientId], references: [users.id] }),
   room: one(chatRooms, { fields: [chatMessages.roomId], references: [chatRooms.id] }),
+}));
+
+// Traffic table relations
+export const trafficAnalyticsHistoryRelations = relations(trafficAnalyticsHistory, ({ one }) => ({
+  pollingStation: one(pollingStations, { fields: [trafficAnalyticsHistory.pollingStationId], references: [pollingStations.id] }),
+}));
+
+export const trafficPredictionsRelations = relations(trafficPredictions, ({ one }) => ({
+  pollingStation: one(pollingStations, { fields: [trafficPredictions.pollingStationId], references: [pollingStations.id] }),
+}));
+
+export const trafficAlertsRelations = relations(trafficAlerts, ({ one }) => ({
+  reportedByUser: one(users, { fields: [trafficAlerts.reportedBy], references: [users.id] }),
+  verifiedByUser: one(users, { fields: [trafficAlerts.verifiedBy], references: [users.id] }),
+  resolvedByUser: one(users, { fields: [trafficAlerts.resolvedBy], references: [users.id] }),
+}));
+
+export const observerRouteOptimizationRelations = relations(observerRouteOptimization, ({ one }) => ({
+  observer: one(users, { fields: [observerRouteOptimization.observerId], references: [users.id] }),
+  createdByUser: one(users, { fields: [observerRouteOptimization.createdBy], references: [users.id] }),
+}));
+
+export const emergencyRoutePlanningRelations = relations(emergencyRoutePlanning, ({ one }) => ({
+  destinationStation: one(pollingStations, { fields: [emergencyRoutePlanning.destinationPollingStationId], references: [pollingStations.id] }),
+  validatedByUser: one(users, { fields: [emergencyRoutePlanning.routeValidatedBy], references: [users.id] }),
+}));
+
+export const trafficHeatMapDataRelations = relations(trafficHeatMapData, ({ one }) => ({
+  pollingStation: one(pollingStations, { fields: [trafficHeatMapData.pollingStationId], references: [pollingStations.id] }),
+}));
+
+export const criticalPathAnalysisRelations = relations(criticalPathAnalysis, ({ one }) => ({
+  pollingStation: one(pollingStations, { fields: [criticalPathAnalysis.pollingStationId], references: [pollingStations.id] }),
+  assessedByUser: one(users, { fields: [criticalPathAnalysis.assessedBy], references: [users.id] }),
+  approvedByUser: one(users, { fields: [criticalPathAnalysis.approvedBy], references: [users.id] }),
 }));
 
 export const chatRoomsRelations = relations(chatRooms, ({ one, many }) => ({
@@ -915,6 +1139,15 @@ export const insertXSentimentAnalysisSchema = createInsertSchema(xSentimentAnaly
 export const insertXMonitoringConfigSchema = createInsertSchema(xMonitoringConfig);
 export const insertXMonitoringAlertSchema = createInsertSchema(xMonitoringAlerts);
 
+// Traffic Monitoring Insert Schemas
+export const insertTrafficAnalyticsHistorySchema = createInsertSchema(trafficAnalyticsHistory);
+export const insertTrafficPredictionSchema = createInsertSchema(trafficPredictions);
+export const insertTrafficAlertSchema = createInsertSchema(trafficAlerts);
+export const insertObserverRouteOptimizationSchema = createInsertSchema(observerRouteOptimization);
+export const insertEmergencyRoutePlanningSchema = createInsertSchema(emergencyRoutePlanning);
+export const insertTrafficHeatMapDataSchema = createInsertSchema(trafficHeatMapData);
+export const insertCriticalPathAnalysisSchema = createInsertSchema(criticalPathAnalysis);
+
 // NEW Zod schemas for Assignments
 export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments);
 export const selectCourseAssignmentSchema = createSelectSchema(courseAssignments); // Added select
@@ -971,6 +1204,15 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type OnlineUser = typeof onlineUsers.$inferSelect;
 export type CertificateTemplate = typeof certificateTemplates.$inferSelect;
 
+// Traffic Monitoring Types
+export type TrafficAnalyticsHistory = typeof trafficAnalyticsHistory.$inferSelect;
+export type TrafficPrediction = typeof trafficPredictions.$inferSelect;
+export type TrafficAlert = typeof trafficAlerts.$inferSelect;
+export type ObserverRouteOptimization = typeof observerRouteOptimization.$inferSelect;
+export type EmergencyRoutePlanning = typeof emergencyRoutePlanning.$inferSelect;
+export type TrafficHeatMapData = typeof trafficHeatMapData.$inferSelect;
+export type CriticalPathAnalysis = typeof criticalPathAnalysis.$inferSelect;
+
 // Insert Types
 export type InsertUser = typeof users.$inferInsert;
 export type InsertParish = typeof parishes.$inferInsert;
@@ -996,6 +1238,15 @@ export type InsertChatRoom = typeof chatRooms.$inferInsert;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
 export type InsertOnlineUser = typeof onlineUsers.$inferInsert;
 export type InsertCertificateTemplate = typeof certificateTemplates.$inferInsert;
+
+// Traffic Monitoring Insert Types
+export type InsertTrafficAnalyticsHistory = typeof trafficAnalyticsHistory.$inferInsert;
+export type InsertTrafficPrediction = typeof trafficPredictions.$inferInsert;
+export type InsertTrafficAlert = typeof trafficAlerts.$inferInsert;
+export type InsertObserverRouteOptimization = typeof observerRouteOptimization.$inferInsert;
+export type InsertEmergencyRoutePlanning = typeof emergencyRoutePlanning.$inferInsert;
+export type InsertTrafficHeatMapData = typeof trafficHeatMapData.$inferInsert;
+export type InsertCriticalPathAnalysis = typeof criticalPathAnalysis.$inferInsert;
 
 // NEW Select types for Assignments
 export type CourseAssignment = typeof courseAssignments.$inferSelect;
