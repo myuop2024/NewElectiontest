@@ -4,6 +4,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Car, Clock, AlertTriangle, Route, RefreshCw } from "lucide-react";
 
+interface TrafficData {
+  stationId: number;
+  stationCode: string;
+  stationName: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  nearbyTraffic: {
+    severity: 'light' | 'moderate' | 'heavy' | 'severe';
+    speed: number;
+    delayMinutes: number;
+    description: string;
+  };
+  publicTransportAccess: {
+    busStops: number;
+    busRoutes: string[];
+    accessibility: 'excellent' | 'good' | 'fair' | 'poor';
+  };
+  parkingAvailability: {
+    spaces: number;
+    occupancyRate: number;
+    restrictions: string[];
+  };
+  lastUpdated: string;
+}
+
 interface StationTrafficStatusProps {
   stationId: number;
   compact?: boolean;
@@ -30,7 +57,7 @@ const getSeverityIcon = (severity: string) => {
 };
 
 export default function StationTrafficStatus({ stationId, compact = false }: StationTrafficStatusProps) {
-  const { data: trafficData, isLoading, refetch } = useQuery({
+  const { data: trafficData, isLoading, refetch } = useQuery<TrafficData>({
     queryKey: ["/api/traffic/station", stationId],
     refetchInterval: 60000, // Refresh every minute
   });
@@ -44,7 +71,7 @@ export default function StationTrafficStatus({ stationId, compact = false }: Sta
     );
   }
 
-  if (!trafficData?.nearbyTraffic) {
+  if (!trafficData || !trafficData.nearbyTraffic) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Car className="h-3 w-3" />
@@ -159,9 +186,11 @@ export default function StationTrafficStatus({ stationId, compact = false }: Sta
           )}
         </div>
 
-        <div className="text-xs text-muted-foreground mt-3 text-center">
-          Last updated: {new Date(trafficData.lastUpdated).toLocaleTimeString()}
-        </div>
+        {trafficData.lastUpdated && (
+          <div className="text-xs text-muted-foreground mt-3 text-center">
+            Last updated: {new Date(trafficData.lastUpdated).toLocaleTimeString()}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

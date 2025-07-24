@@ -242,10 +242,13 @@ export default function PollingStations() {
         
         <TabsContent value="map" className="space-y-6">
           {/* Enhanced Google Maps with Jamaica Polling Stations */}
-          <EnhancedMap
-            stations={filteredStations}
-            selectedStation={selectedStation}
+          <UnifiedJamaicaMap
+            enabledOverlays={[]}
+            showControls={false}
             onStationSelect={setSelectedStation}
+            selectedStation={selectedStation}
+            height="400px"
+            showLegend={false}
           />
           
           {/* Heat Map Risk Assessment with Overlays */}
