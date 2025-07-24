@@ -42,9 +42,10 @@ declare global {
   }
 }
 
-const GoogleMapsJamaica: React.FC = () => {
+const GoogleMapsJamaica: React.FC<GoogleMapsJamaicaProps> = ({ parishStats, selectedMetric, onParishSelect, selectedParish }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
+  const heatmapRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -89,6 +90,48 @@ const GoogleMapsJamaica: React.FC = () => {
     initializeMap();
   }, [retryCount]);
 
+  useEffect(() => {
+    if (map && parishStats.length > 0) {
+      // Remove existing heatmap if it exists
+      if (heatmapRef.current) {
+        heatmapRef.current.setMap(null);
+      }
+
+      const getWeight = (parish: ParishData) => {
+        switch (selectedMetric) {
+          case 'incidents':
+            return parish.incidents;
+          case 'turnout':
+            return parish.turnout;
+          case 'observers':
+            return parish.observers;
+          case 'critical':
+            return parish.critical;
+          default:
+            return 0;
+        }
+      };
+
+      const heatMapData = parishStats.map(stat => {
+        const parishCoords = JAMAICA_PARISHES[stat.parishName as keyof typeof JAMAICA_PARISHES];
+        if (!parishCoords) return null;
+        return {
+          location: new window.google.maps.LatLng(parishCoords.lat, parishCoords.lng),
+          weight: getWeight(stat)
+        };
+      }).filter(Boolean);
+
+      const heatmap = new window.google.maps.visualization.HeatmapLayer({
+        data: heatMapData,
+        radius: 20,
+        opacity: 0.8,
+      });
+
+      heatmap.setMap(map);
+      heatmapRef.current = heatmap;
+    }
+  }, [map, parishStats, selectedMetric]);
+
   const loadGoogleMapsScript = (apiKey: string) => {
     return new Promise<void>((resolve, reject) => {
       // Avoid injecting multiple script tags
@@ -98,7 +141,7 @@ const GoogleMapsJamaica: React.FC = () => {
 
       const script = document.createElement('script');
       script.setAttribute('data-google-maps', 'true');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,visualization&v=weekly`;
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('Failed to load Google Maps script'));
