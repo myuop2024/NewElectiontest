@@ -298,6 +298,7 @@ function AppContent() {
     <AuthProvider>
       <WebSocketProvider>
         <Router />
+        <Toaster />
       </WebSocketProvider>
     </AuthProvider>
   );
@@ -309,7 +310,6 @@ function App() {
       <TooltipProvider>
         <LoadingProvider>
           <AppContent />
-          <Toaster />
         </LoadingProvider>
       </TooltipProvider>
     </QueryClientProvider>
