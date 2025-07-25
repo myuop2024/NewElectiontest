@@ -139,10 +139,10 @@ export default function EnhancedTrafficDashboard() {
   const displayStations = trafficData?.stations ? 
     (simulateElectionDay ? simulateElectionDayTraffic(trafficData.stations) : trafficData.stations) : [];
 
-  // Fetch real AI predictions from API
+  // Fetch real AI predictions from API  
+  const predictionType = simulateElectionDay ? 'election_day' : 'current';
   const { data: aiPredictionsData, isLoading: predictionsLoading, error: predictionsError } = useQuery({
-    queryKey: ['/api/traffic/predictions', simulateElectionDay ? 'election_day' : 'current'],
-    queryFn: () => apiRequest(`/api/traffic/predictions?type=${simulateElectionDay ? 'election_day' : 'current'}`),
+    queryKey: [`/api/traffic/predictions?type=${predictionType}`],
     enabled: displayStations.length > 0,
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
   });

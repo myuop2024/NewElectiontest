@@ -304,23 +304,20 @@ Base your analysis on real Jamaica traffic patterns, voting behavior, and geogra
   }
 
   private getHistoricalElectionData(station: any, timeOfDay: string): string {
-    // Historical data from Jamaica's local government elections (February 2024)
-    // Based on observed foot traffic patterns at polling stations
-    const electionHistoricalData = {
-      morning_peak: `Historical Election Data (Feb 2024): Peak voter turnout 7-9 AM (35% of total votes), major traffic congestion at schools and community centers. Station type: ${this.getStationType(station.stationName)}`,
-      mid_morning: `Historical Election Data (Feb 2024): Steady voter flow 9-11 AM (25% of total votes), moderate traffic with elderly voters arriving. Parking challenges observed at ${this.getStationType(station.stationName)} locations`,
-      midday: `Historical Election Data (Feb 2024): Highest turnout period 11 AM-2 PM (40% of total votes), significant traffic delays near schools. Station analysis: ${this.getLocationContext(station)}`,
-      afternoon: `Historical Election Data (Feb 2024): Secondary peak 2-4 PM (20% of total votes), working population voting after lunch. Traffic patterns similar to school pickup times`,
-      evening_peak: `Historical Election Data (Feb 2024): Final voting rush 4-6 PM (15% of total votes), critical period with time pressure. Historical bottlenecks at ${this.getStationType(station.stationName)} entrances`,
-      off_peak: `Historical Election Data (Feb 2024): Light voting periods (5% of total votes), mainly late arrivals and stragglers. Minimal traffic impact except for staff/observer movements`
+    // Note: No authentic historical election data currently available
+    // Using general Caribbean election patterns and polling station analysis
+    const generalPatterns = {
+      morning_peak: `General Election Pattern: Morning rush typically sees high voter turnout, increased traffic at schools and community centers. Station type: ${this.getStationType(station.stationName)}`,
+      mid_morning: `General Election Pattern: Mid-morning usually has steady voter flow, elderly voters and those with flexible schedules. Station analysis: ${this.getLocationContext(station)}`,
+      midday: `General Election Pattern: Peak voting period typically occurs mid-day, highest traffic congestion expected near educational facilities`,
+      afternoon: `General Election Pattern: Afternoon voting includes working population, traffic patterns may mirror school pickup times`,
+      evening_peak: `General Election Pattern: Final voting period creates time pressure, potential bottlenecks at ${this.getStationType(station.stationName)} entrances`,
+      off_peak: `General Election Pattern: Low traffic periods except for staff and observer movements`
     };
     
-    const basePattern = electionHistoricalData[timeOfDay as keyof typeof electionHistoricalData] || 'Limited historical election data available';
+    const basePattern = generalPatterns[timeOfDay as keyof typeof generalPatterns] || 'General election traffic patterns expected';
     
-    // Add parish-specific historical insights
-    const parishContext = this.getParishElectionHistory(station);
-    
-    return `${basePattern}. ${parishContext}`;
+    return `${basePattern}. Current real-time traffic data and station characteristics provide primary analysis basis.`;
   }
 
   private getStationType(stationName: string): string {
@@ -354,27 +351,26 @@ Base your analysis on real Jamaica traffic patterns, voting behavior, and geogra
   }
 
   private getParishElectionHistory(station: any): string {
-    // Parish-specific historical data from 2024 local elections
-    const parishHistories = {
-      'Kingston': 'High urban density led to 25% traffic delays during peak hours. Market districts particularly congested',
-      'St. Andrew': 'Mixed urban/suburban patterns. Half Moon Bay and Mona areas saw significant university student turnout',
-      'St. James': 'Montego Bay tourism traffic combined with election traffic. Hip Strip area avoided by voters',
-      'St. Catherine': 'Spanish Town and Portmore showed highest turnout. May Pen bypass helped traffic flow',
-      'Clarendon': 'Rural stations had minimal traffic impact. Main roads to May Pen and Frankfield busy',
-      'Manchester': 'Mountainous terrain limited route options. Mandeville central stations busiest',
-      'St. Ann': 'Ocho Rios tourist areas less affected. Rural constituencies had traditional voting patterns',
-      'Portland': 'Port Antonio and rural areas showed consistent turnout with minimal traffic disruption',
-      'St. Mary': 'Port Maria and Oracabessa had moderate turnout. Coastal road traffic manageable',
-      'St. Thomas': 'Morant Bay central, rural areas typical. Limited main road options caused minor delays',
-      'Hanover': 'Lucea and Green Island consistent patterns. Tourism areas less voter impact',
-      'Westmoreland': 'Savanna-la-Mar busy, rural consistent. Sugar estate areas traditional patterns',
-      'Trelawny': 'Falmouth historic district avoided, newer areas preferred for voting access',
-      'St. Elizabeth': 'Black River and Santa Cruz central. Rural mountain areas minimal traffic'
+    // General parish characteristics for traffic analysis - no specific historical data available
+    const parishCharacteristics = {
+      'Kingston': 'High urban density area, expect significant traffic congestion during peak periods',
+      'St. Andrew': 'Mixed urban/suburban area with university presence, varied traffic patterns',
+      'St. James': 'Tourism area, combination of local and tourist traffic',
+      'St. Catherine': 'Major population centers in Spanish Town and Portmore, heavy commuter traffic',
+      'Clarendon': 'Rural area with main roads to May Pen and Frankfield seeing higher traffic',
+      'Manchester': 'Mountainous terrain with limited route options, Mandeville as major center',
+      'St. Ann': 'Coastal tourism area, mixed traffic patterns between tourist and residential zones',
+      'Portland': 'Rural coastal area, Port Antonio as main center, generally manageable traffic',
+      'St. Mary': 'Rural coastal parish, moderate traffic on coastal roads',
+      'St. Thomas': 'Rural area with Morant Bay as center, limited main road options',
+      'Hanover': 'Rural parish with Lucea as center, tourism impact in coastal areas',
+      'Westmoreland': 'Rural area with Savanna-la-Mar as main center',
+      'Trelawny': 'Historic Falmouth area, mixed rural and tourism traffic',
+      'St. Elizabeth': 'Rural mountainous area, Black River and Santa Cruz as centers'
     };
     
-    // Try to determine parish from station name or location
     const parish = this.determineParishFromStation(station);
-    return parishHistories[parish] || 'Rural/urban mix with standard Caribbean election traffic patterns';
+    return parishCharacteristics[parish] || 'Mixed rural/urban area with standard traffic patterns';
   }
 
   private determineParishFromStation(station: any): string {
