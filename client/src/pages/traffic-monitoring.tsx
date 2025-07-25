@@ -1,5 +1,5 @@
-import EnhancedTrafficDashboard from "@/components/traffic/enhanced-traffic-dashboard";
+import SimpleTrafficDashboard from "@/components/traffic/simple-traffic-dashboard";
 
 export default function TrafficMonitoring() {
-  return <EnhancedTrafficDashboard />;
+  return <SimpleTrafficDashboard />;
 }

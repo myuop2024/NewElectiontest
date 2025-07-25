@@ -25,37 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuthStatus = async () => {
     try {
-      // For session-based auth, always try to get current user
-      // The server will return 401 if not authenticated
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
-      // Store session marker for future checks
+      // Try auto-login for admin user first (development/demo purposes)
+      console.log('Attempting auto-login for admin user...');
+      const response = await authService.login({
+        email: 'admin@caffe.org.jm',
+        password: 'password'
+      });
+      setUser(response.user);
       localStorage.setItem("auth_token", "session-based");
+      console.log('Auto-login successful:', response.user.firstName);
     } catch (error) {
-      // If we get 401, user is not authenticated - try auto-login for admin
-      if (error instanceof Error && error.message.includes('401')) {
-        // Clear any stale auth markers
-        localStorage.removeItem("auth_token");
-        setUser(null);
-        
-        // Try auto-login for admin user (development/demo purposes)
-        try {
-          console.log('Attempting auto-login for admin user...');
-          const response = await authService.login({
-            email: 'admin@caffe.org.jm',
-            password: 'password'
-          });
-          setUser(response.user);
-          localStorage.setItem("auth_token", "session-based");
-          console.log('Auto-login successful:', response.user.firstName);
-        } catch (loginError) {
-          console.error('Auto-login failed:', loginError);
-          console.log('User needs to manually login');
-        }
-      } else {
-        // Only log non-401 errors as these indicate real problems
-        console.error("Auth check failed:", error);
-      }
+      console.error('Auto-login failed:', error);
+      // Clear any stale auth markers
+      localStorage.removeItem("auth_token");
+      setUser(null);
+      console.log('User needs to manually login');
     } finally {
       setIsLoading(false);
     }
