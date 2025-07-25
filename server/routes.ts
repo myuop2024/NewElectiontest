@@ -4015,11 +4015,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })
 
-  // AI Traffic Prediction API endpoints
-  app.get("/api/traffic/predictions", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  // AI Traffic Prediction API endpoints - Public access for field observers
+  app.get("/api/traffic/predictions", async (req: Request, res: Response) => {
     try {
+      console.log('[AI PREDICTIONS API] Request received for predictions');
       const predictionType = req.query.type as string || 'election_day';
+      console.log('[AI PREDICTIONS API] Prediction type:', predictionType);
+      
       const predictions = await aiTrafficPredictionService.generatePredictions(predictionType);
+      
+      console.log('[AI PREDICTIONS API] Generated predictions for', predictions.length, 'stations');
       
       res.json({
         success: true,
@@ -4030,7 +4035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours
       });
     } catch (error) {
-      console.error("AI Traffic Prediction Error:", error);
+      console.error("[AI PREDICTIONS API] Error:", error);
       res.status(500).json({ 
         success: false,
         error: "Failed to generate AI traffic predictions",

@@ -140,12 +140,16 @@ export default function EnhancedTrafficDashboard() {
     (simulateElectionDay ? simulateElectionDayTraffic(trafficData.stations) : trafficData.stations) : [];
 
   // Fetch real AI predictions from API
-  const { data: aiPredictionsData, isLoading: predictionsLoading } = useQuery({
+  const { data: aiPredictionsData, isLoading: predictionsLoading, error: predictionsError } = useQuery({
     queryKey: ['/api/traffic/predictions', simulateElectionDay ? 'election_day' : 'current'],
     queryFn: () => apiRequest(`/api/traffic/predictions?type=${simulateElectionDay ? 'election_day' : 'current'}`),
     enabled: displayStations.length > 0,
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
   });
+
+  console.log('[TRAFFIC DASHBOARD] AI Predictions Data:', aiPredictionsData);
+  console.log('[TRAFFIC DASHBOARD] Predictions Loading:', predictionsLoading);
+  console.log('[TRAFFIC DASHBOARD] Predictions Error:', predictionsError);
 
   const aiPredictions = aiPredictionsData?.predictions || [];
   const trafficAlerts: any[] = []; // Will be implemented with real alert system
