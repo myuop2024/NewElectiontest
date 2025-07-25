@@ -84,6 +84,37 @@ function getSeverityIntensity(severity: string): number {
   }
 }
 
+// Simulate election day traffic patterns for demonstration
+function simulateElectionDayTraffic(stations: TrafficStation[]): TrafficStation[] {
+  const severities = ['light', 'moderate', 'heavy', 'severe'];
+  const speeds = { light: [25, 35], moderate: [15, 25], heavy: [8, 15], severe: [3, 8] };
+  const delays = { light: [0, 2], moderate: [3, 8], heavy: [10, 20], severe: [25, 45] };
+  
+  return stations.map((station, index) => {
+    // Create realistic distribution: more light/moderate, fewer severe
+    let severity: string;
+    const rand = Math.random();
+    if (rand < 0.4) severity = 'light';
+    else if (rand < 0.7) severity = 'moderate';
+    else if (rand < 0.9) severity = 'heavy';
+    else severity = 'severe';
+    
+    const speedRange = speeds[severity as keyof typeof speeds];
+    const delayRange = delays[severity as keyof typeof delays];
+    
+    return {
+      ...station,
+      nearbyTraffic: {
+        ...station.nearbyTraffic,
+        severity,
+        speed: Math.round(speedRange[0] + Math.random() * (speedRange[1] - speedRange[0])),
+        delayMinutes: Math.round(delayRange[0] + Math.random() * (delayRange[1] - delayRange[0])),
+        description: `${severity.charAt(0).toUpperCase() + severity.slice(1)} traffic conditions`
+      }
+    };
+  });
+}
+
 function generateAIPredictions(stations: TrafficStation[]) {
   return stations.map(station => ({
     stationId: station.stationId,
@@ -140,6 +171,7 @@ export default function EnhancedTrafficDashboard() {
   const [selectedTimeWindow, setSelectedTimeWindow] = useState('current');
   const [selectedStation, setSelectedStation] = useState<number | null>(null);
   const [intensityFilter, setIntensityFilter] = useState('all');
+  const [simulateElectionDay, setSimulateElectionDay] = useState(false);
 
   // Fetch real traffic data
   const { data: trafficData, isLoading, error, refetch } = useQuery<TrafficData>({
@@ -147,19 +179,23 @@ export default function EnhancedTrafficDashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Generate enhanced analytics from real data
-  const aiPredictions = trafficData ? generateAIPredictions(trafficData.stations) : [];
-  const trafficAlerts = trafficData ? generateTrafficAlerts(trafficData.stations) : [];
-  const optimizedRoutes = trafficData ? generateOptimizedRoutes(trafficData.stations) : [];
+  // Apply election day simulation if enabled
+  const displayStations = trafficData?.stations ? 
+    (simulateElectionDay ? simulateElectionDayTraffic(trafficData.stations) : trafficData.stations) : [];
+
+  // Generate enhanced analytics from data
+  const aiPredictions = displayStations.length ? generateAIPredictions(displayStations) : [];
+  const trafficAlerts = displayStations.length ? generateTrafficAlerts(displayStations) : [];
+  const optimizedRoutes = displayStations.length ? generateOptimizedRoutes(displayStations) : [];
 
   // Filter stations based on intensity filter
-  const filteredStations = trafficData?.stations.filter(station => {
+  const filteredStations = displayStations.filter(station => {
     if (intensityFilter === 'all') return true;
     if (intensityFilter === 'light') return station.nearbyTraffic.severity === 'light';
     if (intensityFilter === 'moderate') return ['moderate', 'heavy', 'severe'].includes(station.nearbyTraffic.severity);
     if (intensityFilter === 'heavy') return ['heavy', 'severe'].includes(station.nearbyTraffic.severity);
     return true;
-  }) || [];
+  });
 
   if (isLoading) {
     return (
@@ -192,6 +228,13 @@ export default function EnhancedTrafficDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={() => setSimulateElectionDay(!simulateElectionDay)} 
+            variant={simulateElectionDay ? "default" : "outline"}
+            className="w-48"
+          >
+            {simulateElectionDay ? 'Real Traffic' : 'Simulate Election Day'}
+          </Button>
           <Select value={selectedTimeWindow} onValueChange={setSelectedTimeWindow}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Time Window" />
@@ -231,7 +274,7 @@ export default function EnhancedTrafficDashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">Light Traffic</p>
                 <p className="text-2xl font-bold">
-                  {trafficData.stations.filter(s => s.nearbyTraffic.severity === 'light').length}
+                  {displayStations.filter(s => s.nearbyTraffic.severity === 'light').length}
                 </p>
               </div>
             </div>
@@ -370,24 +413,39 @@ export default function EnhancedTrafficDashboard() {
 
                 {/* Heat Map Visualization */}
                 <div className="lg:col-span-2">
-                  <div className="bg-muted rounded-lg p-4 h-96 overflow-hidden">
-                    <div className="grid grid-cols-4 gap-2 h-full">
-                      {filteredStations.map((station) => (
-                        <div
-                          key={station.stationId}
-                          className={`rounded-lg p-3 cursor-pointer transition-all hover:scale-105 hover:shadow-md border ${getSeverityColor(station.nearbyTraffic.severity)}`}
-                          onClick={() => setSelectedStation(selectedStation === station.stationId ? null : station.stationId)}
-                        >
-                          <div className="text-xs font-bold truncate">{station.stationCode}</div>
-                          <div className="text-xs truncate mb-2">{station.stationName}</div>
-                          <Badge variant="outline" className="text-xs">
-                            {station.nearbyTraffic.severity}
-                          </Badge>
-                          <div className="text-xs mt-1 text-muted-foreground">
-                            {station.nearbyTraffic.speed} km/h
+                  <div className="border rounded-lg">
+                    <div className="p-3 border-b bg-muted/50">
+                      <h3 className="font-medium">Jamaica Polling Stations Traffic Heat Map</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {simulateElectionDay ? 'Simulated election day traffic patterns' : 'Real-time traffic conditions'}
+                      </p>
+                    </div>
+                    <div className="p-4 max-h-96 overflow-y-auto">
+                      <div className="grid grid-cols-4 gap-2">
+                        {filteredStations.map((station) => (
+                          <div
+                            key={station.stationId}
+                            className={`rounded-lg p-3 cursor-pointer transition-all hover:scale-105 hover:shadow-md border ${getSeverityColor(station.nearbyTraffic.severity)}`}
+                            onClick={() => setSelectedStation(selectedStation === station.stationId ? null : station.stationId)}
+                          >
+                            <div className="text-xs font-bold truncate">{station.stationCode}</div>
+                            <div className="text-xs truncate mb-2" title={station.stationName}>
+                              {station.stationName}
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {station.nearbyTraffic.severity}
+                            </Badge>
+                            <div className="text-xs mt-1 text-muted-foreground">
+                              {station.nearbyTraffic.speed} km/h
+                            </div>
+                            {station.nearbyTraffic.delayMinutes > 0 && (
+                              <div className="text-xs mt-1 text-red-600">
+                                +{station.nearbyTraffic.delayMinutes}min delay
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -401,7 +459,7 @@ export default function EnhancedTrafficDashboard() {
                   </CardHeader>
                   <CardContent>
                     {(() => {
-                      const station = trafficData.stations.find(s => s.stationId === selectedStation);
+                      const station = displayStations.find(s => s.stationId === selectedStation);
                       if (!station) return null;
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -461,16 +519,76 @@ export default function EnhancedTrafficDashboard() {
                 AI Traffic Predictions
               </CardTitle>
               <CardDescription>
-                Machine learning forecasts for election day traffic patterns
+                Machine learning forecasts for election day traffic patterns with confidence scoring
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert>
-                <Brain className="h-4 w-4" />
-                <AlertDescription>
-                  AI Predictions feature coming soon. This will provide intelligent traffic forecasting based on historical patterns and real-time data.
-                </AlertDescription>
-              </Alert>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {aiPredictions.map((prediction) => (
+                  <Card key={prediction.stationId} className="border">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium text-sm">{prediction.stationName}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge className={getSeverityColor(prediction.currentSeverity)} variant="outline">
+                              Current: {prediction.currentSeverity}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">→</span>
+                            <Badge className={getSeverityColor(prediction.predictedSeverity)} variant="outline">
+                              Predicted: {prediction.predictedSeverity}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Confidence Score</span>
+                            <span className="text-sm font-bold text-primary">{prediction.confidenceScore}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full transition-all" 
+                              style={{ width: `${prediction.confidenceScore}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h5 className="text-xs font-medium mb-2">Risk Factors</h5>
+                          <div className="space-y-1">
+                            {prediction.riskFactors.map((factor, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                                <span className="text-xs text-muted-foreground">{factor}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h5 className="text-xs font-medium mb-2">AI Recommendations</h5>
+                          <div className="space-y-1">
+                            {prediction.recommendations.map((rec, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <Brain className="h-3 w-3 text-blue-500" />
+                                <span className="text-xs text-muted-foreground">{rec}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {aiPredictions.length === 0 && (
+                <div className="text-center py-8">
+                  <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No prediction data available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
