@@ -652,3 +652,9 @@ The system analyzes traffic conditions for their impact on electoral activities:
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+**Critical Data Integrity Rules:**
+- NEVER use fake, mock, demo, or fictional data - only authentic data from real sources
+- ALL users are election observers, NOT polling officials - frame all language and analysis from observer perspective
+- When historical data is not available, clearly state this rather than creating fictional patterns
+- Always verify data authenticity before presenting any information

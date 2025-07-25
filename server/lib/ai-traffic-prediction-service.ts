@@ -19,7 +19,7 @@ interface PredictionFactors {
   weatherConditions: any;
   timeOfDay: string;
   stationLocation: any;
-  historicalPatterns: string;
+  observerContext: string;
   electionDayFactors: string;
 }
 
@@ -162,7 +162,7 @@ class AITrafficPredictionService {
       weatherConditions,
       timeOfDay,
       stationLocation: station.location,
-      historicalPatterns: this.getHistoricalElectionData(station, timeOfDay),
+      observerContext: this.getElectionObserverContext(station, timeOfDay),
       electionDayFactors: this.getElectionDayContext(predictionType, timeOfDay)
     };
   }
@@ -188,36 +188,36 @@ class AITrafficPredictionService {
   }
 
   private buildAnalysisPrompt(station: any, factors: PredictionFactors, predictionType: string): string {
-    return `You are an AI traffic analyst for Jamaica electoral monitoring. Analyze this polling station's traffic conditions and predict future traffic patterns.
+    return `You are an AI traffic analyst supporting election observers in Jamaica. Analyze this polling station's traffic conditions to help observers plan their movements and access.
 
-STATION DATA:
+STATION DATA FOR OBSERVERS:
 - Name: ${station.stationName}
 - Location: ${station.location.latitude}, ${station.location.longitude}
 - Current Traffic: ${factors.currentTraffic.severity} (Speed: ${factors.currentTraffic.speed} km/h, Delay: ${factors.currentTraffic.delayMinutes} min)
 - Time Context: ${factors.timeOfDay}
 - Location Busyness: ${station.locationBusyness?.currentLevel || 'unknown'} (${station.locationBusyness?.percentageBusy || 0}% busy)
 
-PREDICTION CONTEXT:
+OBSERVER CONTEXT:
 - Prediction Type: ${predictionType}
-- Weather: ${factors.weatherConditions ? JSON.stringify(factors.weatherConditions) : 'No weather data'}
-- Historical Context: ${factors.historicalPatterns}
+- Weather: ${factors.weatherConditions ? JSON.stringify(factors.weatherConditions) : 'No real weather data available'}
+- Observer Context: ${factors.observerContext}
 - Election Day Factors: ${factors.electionDayFactors}
 
-ANALYSIS REQUIREMENTS:
-1. Predict traffic severity for the next 2-4 hours: light, moderate, heavy, or severe
-2. Provide confidence score (0-100) based on data quality and pattern reliability
-3. Identify specific risk factors that could worsen traffic
-4. Recommend actionable steps for traffic management
+ANALYSIS FOR ELECTION OBSERVERS:
+1. Predict traffic severity affecting observer access (next 2-4 hours): light, moderate, heavy, or severe
+2. Provide confidence score (0-100) based only on real data quality and current patterns
+3. Identify specific risk factors that could impact observer movement and station access
+4. Recommend practical steps for observers planning travel to/from this station
 
 Respond in this JSON format:
 {
   "predictedSeverity": "moderate",
   "confidenceScore": 87,
-  "riskFactors": ["Specific factor 1", "Specific factor 2"],
-  "recommendations": ["Specific action 1", "Specific action 2"]
+  "riskFactors": ["Risk factor affecting observer access 1", "Risk factor affecting observer access 2"],
+  "recommendations": ["Observer planning recommendation 1", "Observer access recommendation 2"]
 }
 
-Base your analysis on real Jamaica traffic patterns, voting behavior, and geographic factors. Consider approach routes, parking availability, and voter turnout patterns.`;
+Base analysis ONLY on real Jamaica traffic data, current conditions, and geographic factors. Focus on observer access, approach routes, and practical travel considerations for election monitoring teams.`;
   }
 
   private parseAIResponse(response: string, currentSeverity: string): {
@@ -303,21 +303,20 @@ Base your analysis on real Jamaica traffic patterns, voting behavior, and geogra
     return 'off_peak';
   }
 
-  private getHistoricalElectionData(station: any, timeOfDay: string): string {
-    // Note: No authentic historical election data currently available
-    // Using general Caribbean election patterns and polling station analysis
-    const generalPatterns = {
-      morning_peak: `General Election Pattern: Morning rush typically sees high voter turnout, increased traffic at schools and community centers. Station type: ${this.getStationType(station.stationName)}`,
-      mid_morning: `General Election Pattern: Mid-morning usually has steady voter flow, elderly voters and those with flexible schedules. Station analysis: ${this.getLocationContext(station)}`,
-      midday: `General Election Pattern: Peak voting period typically occurs mid-day, highest traffic congestion expected near educational facilities`,
-      afternoon: `General Election Pattern: Afternoon voting includes working population, traffic patterns may mirror school pickup times`,
-      evening_peak: `General Election Pattern: Final voting period creates time pressure, potential bottlenecks at ${this.getStationType(station.stationName)} entrances`,
-      off_peak: `General Election Pattern: Low traffic periods except for staff and observer movements`
+  private getElectionObserverContext(station: any, timeOfDay: string): string {
+    // Using only general patterns - no fictional historical data
+    const observerPatterns = {
+      morning_peak: `Observer Access Context: Morning rush typically sees increased traffic at schools and community centers. Station type: ${this.getStationType(station.stationName)}`,
+      mid_morning: `Observer Access Context: Mid-morning usually has steady traffic flow, good time for observer arrival. Station analysis: ${this.getLocationContext(station)}`,
+      midday: `Observer Access Context: Peak activity period, highest traffic congestion expected near educational facilities`,
+      afternoon: `Observer Access Context: Working population creates traffic, patterns may mirror school pickup times`,
+      evening_peak: `Observer Access Context: Final rush period creates time pressure, potential access challenges at ${this.getStationType(station.stationName)}`,
+      off_peak: `Observer Access Context: Low traffic periods, optimal for observer movement and positioning`
     };
     
-    const basePattern = generalPatterns[timeOfDay as keyof typeof generalPatterns] || 'General election traffic patterns expected';
+    const basePattern = observerPatterns[timeOfDay as keyof typeof observerPatterns] || 'Standard traffic patterns affecting observer access';
     
-    return `${basePattern}. Current real-time traffic data and station characteristics provide primary analysis basis.`;
+    return `${basePattern}. Analysis based only on current real-time traffic data and station characteristics.`;
   }
 
   private getStationType(stationName: string): string {
