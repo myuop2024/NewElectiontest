@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -115,56 +116,11 @@ function simulateElectionDayTraffic(stations: TrafficStation[]): TrafficStation[
   });
 }
 
-function generateAIPredictions(stations: TrafficStation[]) {
-  return stations.map(station => ({
-    stationId: station.stationId,
-    stationName: station.stationName,
-    currentSeverity: station.nearbyTraffic.severity,
-    predictedSeverity: station.nearbyTraffic.severity === 'light' ? 'moderate' : station.nearbyTraffic.severity,
-    confidenceScore: Math.round(85 + Math.random() * 10),
-    riskFactors: [
-      'Election day increased activity',
-      'Multiple approach routes converging',
-      'Limited parking availability'
-    ].slice(0, Math.floor(Math.random() * 3) + 1),
-    recommendations: [
-      'Monitor 2 hours before polls open',
-      'Deploy traffic coordinators',
-      'Prepare alternative parking areas'
-    ].slice(0, Math.floor(Math.random() * 2) + 1)
-  }));
-}
+// No more demo functions - using real AI API
 
-function generateTrafficAlerts(stations: TrafficStation[]) {
-  const alertTypes = ['congestion', 'route_blocked', 'parking_full', 'weather_impact'];
-  const severityLevels = ['low', 'medium', 'high', 'critical'];
-  
-  return stations
-    .filter(() => Math.random() > 0.7) // ~30% of stations have alerts
-    .map((station, index) => ({
-      id: index + 1,
-      stationId: station.stationId,
-      stationName: station.stationName,
-      type: alertTypes[Math.floor(Math.random() * alertTypes.length)],
-      severity: severityLevels[Math.floor(Math.random() * severityLevels.length)],
-      message: `Traffic ${station.nearbyTraffic.severity} conditions detected near ${station.stationName}`,
-      timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      isActive: Math.random() > 0.3
-    }));
-}
+// Removed demo alert generation - will use real traffic monitoring alerts
 
-function generateOptimizedRoutes(stations: TrafficStation[]) {
-  return stations.slice(0, 5).map((station, index) => ({
-    id: index + 1,
-    startStation: station.stationName,
-    endStation: stations[(index + 1) % stations.length].stationName,
-    estimatedTime: Math.round(15 + Math.random() * 30),
-    distance: Math.round(5 + Math.random() * 20),
-    trafficSeverity: station.nearbyTraffic.severity,
-    alternativeRoutes: Math.floor(Math.random() * 3) + 1,
-    efficiency: Math.round(70 + Math.random() * 25)
-  }));
-}
+// Removed demo route generation - will use real route optimization
 
 export default function EnhancedTrafficDashboard() {
   const [selectedTab, setSelectedTab] = useState('heatmap');
@@ -183,10 +139,17 @@ export default function EnhancedTrafficDashboard() {
   const displayStations = trafficData?.stations ? 
     (simulateElectionDay ? simulateElectionDayTraffic(trafficData.stations) : trafficData.stations) : [];
 
-  // Generate enhanced analytics from data
-  const aiPredictions = displayStations.length ? generateAIPredictions(displayStations) : [];
-  const trafficAlerts = displayStations.length ? generateTrafficAlerts(displayStations) : [];
-  const optimizedRoutes = displayStations.length ? generateOptimizedRoutes(displayStations) : [];
+  // Fetch real AI predictions from API
+  const { data: aiPredictionsData, isLoading: predictionsLoading } = useQuery({
+    queryKey: ['/api/traffic/predictions', simulateElectionDay ? 'election_day' : 'current'],
+    queryFn: () => apiRequest(`/api/traffic/predictions?type=${simulateElectionDay ? 'election_day' : 'current'}`),
+    enabled: displayStations.length > 0,
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+  });
+
+  const aiPredictions = aiPredictionsData?.predictions || [];
+  const trafficAlerts: any[] = []; // Will be implemented with real alert system
+  const optimizedRoutes: any[] = []; // Will be implemented with real route optimization
 
   // Filter stations based on intensity filter
   const filteredStations = displayStations.filter(station => {
@@ -523,8 +486,14 @@ export default function EnhancedTrafficDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {aiPredictions.map((prediction) => (
+              {predictionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-2">Generating AI predictions...</span>
+                </div>
+              ) : aiPredictions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {aiPredictions.map((prediction) => (
                   <Card key={prediction.stationId} className="border">
                     <CardContent className="p-4">
                       <div className="space-y-3">
@@ -580,13 +549,22 @@ export default function EnhancedTrafficDashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-
-              {aiPredictions.length === 0 && (
+                  ))}
+                </div>
+              ) : (
                 <div className="text-center py-8">
                   <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">No prediction data available</p>
+                  <p className="text-muted-foreground">
+                    {aiPredictionsData?.error ? 
+                      `AI Predictions unavailable: ${aiPredictionsData.message || 'Service temporarily unavailable'}` :
+                      'No prediction data available'
+                    }
+                  </p>
+                  {aiPredictionsData?.error && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Note: AI predictions require Google AI API key to be configured
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>

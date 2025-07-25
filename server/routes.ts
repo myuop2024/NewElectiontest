@@ -60,6 +60,7 @@ import { getWeatherService } from "./lib/weather-service";
 import { parishAnalyticsService } from "./lib/parish-analytics-service";
 import { XSentimentService } from "./lib/x-sentiment-service";
 import { mapsService } from "./lib/maps-service";
+import { aiTrafficPredictionService } from "./lib/ai-traffic-prediction-service";
 import PDFDocument from "pdfkit";
 import { GeminiService } from "./lib/training-service";
 import { APICreditManager } from "./lib/api-credit-manager";
@@ -4010,6 +4011,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: "Failed to get traffic data",
         message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  })
+
+  // AI Traffic Prediction API endpoints
+  app.get("/api/traffic/predictions", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const predictionType = req.query.type as string || 'election_day';
+      const predictions = await aiTrafficPredictionService.generatePredictions(predictionType);
+      
+      res.json({
+        success: true,
+        predictionType,
+        totalStations: predictions.length,
+        predictions,
+        generated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours
+      });
+    } catch (error) {
+      console.error("AI Traffic Prediction Error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to generate AI traffic predictions",
+        message: error instanceof Error ? error.message : "AI service unavailable"
+      });
+    }
+  })
+
+  app.get("/api/traffic/prediction/:stationId", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { stationId } = req.params;
+      const predictionType = req.query.type as string || 'election_day';
+      
+      const prediction = await aiTrafficPredictionService.getStationPrediction(parseInt(stationId), predictionType);
+      
+      if (!prediction) {
+        return res.status(404).json({
+          success: false,
+          error: "Station not found or no prediction available"
+        });
+      }
+      
+      res.json({
+        success: true,
+        stationId: parseInt(stationId),
+        predictionType,
+        prediction,
+        generated_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error(`AI Traffic Prediction Error for station ${req.params.stationId}:`, error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to generate station prediction",
+        message: error instanceof Error ? error.message : "AI service unavailable"
       });
     }
   });
