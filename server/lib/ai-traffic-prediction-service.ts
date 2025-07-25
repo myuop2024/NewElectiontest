@@ -54,15 +54,15 @@ class AITrafficPredictionService {
       // Get real traffic data for all stations
       const { getTrafficService } = await import('./traffic-service');
       const trafficService = getTrafficService();
-      const trafficData = await trafficService.getAllStationsTraffic();
-      if (!trafficData || !trafficData.stations) {
+      const trafficData = await trafficService.getAllPollingStationsTraffic();
+      if (!trafficData || trafficData.length === 0) {
         throw new Error('No traffic data available for predictions');
       }
 
       const predictions: TrafficPrediction[] = [];
 
       // Process each station individually for more accurate predictions
-      for (const station of trafficData.stations) {
+      for (const station of trafficData) {
         try {
           const prediction = await this.predictStationTraffic(station, predictionType);
           predictions.push(prediction);
@@ -340,7 +340,7 @@ Base your analysis on real Jamaica traffic patterns, voting behavior, and geogra
       // Get current traffic data for the station
       const { getTrafficService } = await import('./traffic-service');
       const trafficService = getTrafficService();
-      const trafficData = await trafficService.getStationTraffic(stationId);
+      const trafficData = await trafficService.getPollingStationTraffic(stationId);
       if (!trafficData) {
         throw new Error(`No traffic data available for station ${stationId}`);
       }
