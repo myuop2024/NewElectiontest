@@ -135,4 +135,30 @@ router.post('/initialize', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/historical-election/process-ecj - Process official ECJ results (admin only)
+router.post('/process-ecj', requireAdmin, async (req, res) => {
+  try {
+    const { ecjDataProcessor } = await import('../lib/ecj-data-processor');
+    console.log('[HISTORICAL API] Processing official ECJ 2024 Local Government results');
+    await ecjDataProcessor.processECJResults();
+    res.json({ message: 'ECJ official results processed successfully' });
+  } catch (error) {
+    console.error('[HISTORICAL API] Error processing ECJ results:', error);
+    res.status(500).json({ error: 'Failed to process ECJ results' });
+  }
+});
+
+// GET /api/historical-election/ecj-statistics - Get ECJ official statistics
+router.get('/ecj-statistics', requireAuth, async (req, res) => {
+  try {
+    const { ecjDataProcessor } = await import('../lib/ecj-data-processor');
+    console.log('[HISTORICAL API] Fetching ECJ official statistics');
+    const stats = ecjDataProcessor.getECJStatistics();
+    res.json(stats);
+  } catch (error) {
+    console.error('[HISTORICAL API] Error fetching ECJ statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch ECJ statistics' });
+  }
+});
+
 export default router;

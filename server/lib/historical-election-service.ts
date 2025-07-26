@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { historicalElectionData, type HistoricalElectionData, type InsertHistoricalElectionData } from '@shared/schema';
+import { historicalElectionData } from '@shared/schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
 
 /**
@@ -8,14 +8,14 @@ import { eq, desc, and, sql } from 'drizzle-orm';
  */
 class HistoricalElectionService {
   // Get all historical election data
-  async getAllHistoricalData(): Promise<HistoricalElectionData[]> {
+  async getAllHistoricalData(): Promise<any[]> {
     return await db.select()
       .from(historicalElectionData)
       .orderBy(desc(historicalElectionData.electionDate));
   }
 
   // Get historical data by parish
-  async getHistoricalDataByParish(parish: string): Promise<HistoricalElectionData[]> {
+  async getHistoricalDataByParish(parish: string): Promise<any[]> {
     return await db.select()
       .from(historicalElectionData)
       .where(eq(historicalElectionData.parish, parish))
@@ -23,7 +23,7 @@ class HistoricalElectionService {
   }
 
   // Get historical data for specific election type
-  async getHistoricalDataByElectionType(electionType: string): Promise<HistoricalElectionData[]> {
+  async getHistoricalDataByElectionType(electionType: string): Promise<any[]> {
     return await db.select()
       .from(historicalElectionData)
       .where(eq(historicalElectionData.electionType, electionType))
@@ -31,7 +31,7 @@ class HistoricalElectionService {
   }
 
   // Get the most recent election data for a parish (for AI predictions)
-  async getMostRecentParishData(parish: string): Promise<HistoricalElectionData | null> {
+  async getMostRecentParishData(parish: string): Promise<any | null> {
     const [result] = await db.select()
       .from(historicalElectionData)
       .where(eq(historicalElectionData.parish, parish))
@@ -42,7 +42,7 @@ class HistoricalElectionService {
   }
 
   // Create new historical election data record
-  async createHistoricalData(data: InsertHistoricalElectionData): Promise<HistoricalElectionData> {
+  async createHistoricalData(data: any): Promise<any> {
     const [created] = await db.insert(historicalElectionData)
       .values(data)
       .returning();
@@ -51,7 +51,7 @@ class HistoricalElectionService {
   }
 
   // Update historical election data
-  async updateHistoricalData(id: number, data: Partial<InsertHistoricalElectionData>): Promise<HistoricalElectionData> {
+  async updateHistoricalData(id: number, data: any): Promise<any> {
     const [updated] = await db.update(historicalElectionData)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(historicalElectionData.id, id))
@@ -65,7 +65,7 @@ class HistoricalElectionService {
     const result = await db.delete(historicalElectionData)
       .where(eq(historicalElectionData.id, id));
     
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Initialize comprehensive Jamaica election data for all 14 parishes
