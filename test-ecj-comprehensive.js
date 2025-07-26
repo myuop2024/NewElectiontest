@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 async function testECJ2024ComprehensiveExtraction() {
   console.log('Testing ECJ 2024 Comprehensive Extraction...\n');
