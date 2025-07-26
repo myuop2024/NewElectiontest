@@ -17,8 +17,33 @@ import {
   Brain,
   Car,
   BarChart3,
-  Users
+  Users,
+  CheckCircle,
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
+
+// Type definitions for AI Traffic Predictions
+interface TrafficPrediction {
+  stationId: number;
+  stationName: string;
+  currentSeverity: string;
+  predictedSeverity: string;
+  confidenceScore: number;
+  riskFactors: string[];
+  recommendations: string[];
+  analysisTimestamp: string;
+  predictionHorizon: string;
+}
+
+interface TrafficPredictionsResponse {
+  success: boolean;
+  predictionType: string;
+  totalStations: number;
+  predictions: TrafficPrediction[];
+  error?: string;
+  message?: string;
+}
 
 interface TrafficStation {
   stationId: number;
@@ -142,7 +167,7 @@ export default function EnhancedTrafficDashboard() {
 
   // Fetch real AI predictions from API  
   const predictionType = simulateElectionDay ? 'election_day' : 'current';
-  const { data: aiPredictionsData, isLoading: predictionsLoading, error: predictionsError } = useQuery({
+  const { data: aiPredictionsData, isLoading: predictionsLoading, error: predictionsError } = useQuery<TrafficPredictionsResponse>({
     queryKey: [`/api/traffic/predictions?type=${predictionType}`],
     enabled: displayStations.length > 0,
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
@@ -498,7 +523,7 @@ export default function EnhancedTrafficDashboard() {
                 </div>
               ) : aiPredictions.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiPredictions.map((prediction) => (
+                  {aiPredictions.map((prediction: TrafficPrediction) => (
                   <Card key={prediction.stationId} className="border">
                     <CardContent className="p-4">
                       <div className="space-y-3">
@@ -518,12 +543,12 @@ export default function EnhancedTrafficDashboard() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium">Confidence Score</span>
-                            <span className="text-sm font-bold text-primary">{prediction.confidenceScore}%</span>
+                            <span className="text-sm font-bold text-primary">{Math.round(prediction.confidenceScore * 100)}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
                               className="bg-primary h-2 rounded-full transition-all" 
-                              style={{ width: `${prediction.confidenceScore}%` }}
+                              style={{ width: `${Math.round(prediction.confidenceScore * 100)}%` }}
                             ></div>
                           </div>
                         </div>
@@ -531,7 +556,7 @@ export default function EnhancedTrafficDashboard() {
                         <div>
                           <h5 className="text-xs font-medium mb-2">Risk Factors</h5>
                           <div className="space-y-1">
-                            {prediction.riskFactors.map((factor, index) => (
+                            {prediction.riskFactors.map((factor: string, index: number) => (
                               <div key={index} className="flex items-center gap-2">
                                 <AlertTriangle className="h-3 w-3 text-yellow-500" />
                                 <span className="text-xs text-muted-foreground">{factor}</span>
@@ -543,7 +568,7 @@ export default function EnhancedTrafficDashboard() {
                         <div>
                           <h5 className="text-xs font-medium mb-2">AI Recommendations</h5>
                           <div className="space-y-1">
-                            {prediction.recommendations.map((rec, index) => (
+                            {prediction.recommendations.map((rec: string, index: number) => (
                               <div key={index} className="flex items-center gap-2">
                                 <Brain className="h-3 w-3 text-blue-500" />
                                 <span className="text-xs text-muted-foreground">{rec}</span>
