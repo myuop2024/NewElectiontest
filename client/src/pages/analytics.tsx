@@ -12,6 +12,7 @@ import EnhancedPollingStationsHeatMap from "@/components/maps/enhanced-polling-s
 import GoogleStyleTrafficHeatMap from "@/components/maps/google-style-traffic-heat-map";
 import WorkingTrafficHeatMap from "@/components/maps/working-traffic-heat-map";
 import SimpleWorkingMap from "@/components/maps/simple-working-map";
+import ReliableGoogleMaps from "@/components/maps/reliable-google-maps";
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("24h");
@@ -140,7 +141,7 @@ export default function Analytics() {
         </CardHeader>
         <CardContent>
           <div className="h-[500px] w-full">
-            <SimpleWorkingMap
+            <ReliableGoogleMaps
               stations={stations || []}
               selectedStation={selectedStation}
               onStationSelect={setSelectedStation}

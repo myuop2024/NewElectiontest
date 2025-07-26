@@ -13,6 +13,7 @@ import UnifiedJamaicaMap from "@/components/maps/unified-jamaica-map";
 import EnhancedPollingStationsHeatMap from "@/components/maps/enhanced-polling-stations-heat-map";
 import GoogleStyleTrafficHeatMap from "@/components/maps/google-style-traffic-heat-map";
 import WorkingTrafficHeatMap from "@/components/maps/working-traffic-heat-map";
+import ReliableGoogleMaps from "@/components/maps/reliable-google-maps";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
@@ -252,7 +253,7 @@ export default function PollingStations() {
                 Road shading for traffic conditions and weather symbols with parish fallback
               </p>
             </div>
-            <WorkingTrafficHeatMap 
+            <ReliableGoogleMaps 
               stations={filteredStations} 
               selectedStation={selectedStation}
               onStationSelect={setSelectedStation}
