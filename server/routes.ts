@@ -70,6 +70,8 @@ import enhancedTrafficRoutes from './routes/enhanced-traffic-routes';
 import historicalElectionRoutes from './routes/historical-election-routes';
 import ecjComprehensiveHistoricalRoutes from './routes/ecj-comprehensive-historical';
 import ecj2024PollingStationsRoutes from './routes/ecj-2024-polling-stations';
+import stCatherineRoutes from './routes/st-catherine-extraction';
+import stCatherineAuthenticRoutes from './routes/st-catherine-authentic';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -7834,6 +7836,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/historical-election', historicalElectionRoutes);
   app.use('/api/ecj-comprehensive', ecjComprehensiveHistoricalRoutes);
   app.use('/api/ecj-2024-stations', ecj2024PollingStationsRoutes);
+  app.use('/api/st-catherine', stCatherineRoutes);
+  app.use('/api/st-catherine-authentic', stCatherineAuthenticRoutes);
 
   app.get("/api/credits/emergency-stop", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
