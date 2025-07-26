@@ -54,6 +54,7 @@ const adminNavigationGroups = [
     items: [
       { name: 'Admin Dashboard', href: '/admin', icon: Shield },
       { name: 'Observer Management', href: '/observer-assignments', icon: Users },
+      { name: 'Observer Coordination', href: '/observer-coordination', icon: Users },
       { name: 'Station Management', href: '/polling-station-management', icon: MapPin },
       { name: 'Station Geocoding', href: '/admin/polling-station-geocoder', icon: Navigation },
     ]
@@ -61,6 +62,8 @@ const adminNavigationGroups = [
   {
     title: "Incidents & Emergencies", 
     items: [
+      { name: 'Real-time Alerts', href: '/real-time-alerts', icon: AlertTriangle },
+      { name: 'Emergency Response', href: '/emergency-response-center', icon: Shield },
       { name: 'Incident Management', href: '/incident-management', icon: AlertTriangle },
       { name: 'Emergency System', href: '/emergency-management', icon: AlertTriangle },
     ]
@@ -85,6 +88,7 @@ const adminNavigationGroups = [
     title: "Field Tools",
     items: [
       { name: 'Field Navigation', href: '/route-navigation', icon: Route },
+      { name: 'Route Planner', href: '/observer-route-planner', icon: Navigation },
       { name: 'Document Capture', href: '/document-capture', icon: Camera },
       { name: 'Traffic Monitoring', href: '/traffic-monitoring', icon: Car },
     ]

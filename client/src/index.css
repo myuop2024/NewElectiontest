@@ -272,3 +272,96 @@
     @apply bg-sidebar-primary text-sidebar-primary-foreground;
   }
 }
+
+/* Mobile Optimization for Observer Coordination Platform */
+@media (max-width: 768px) {
+  .container {
+    @apply px-4 py-2;
+  }
+  
+  .grid {
+    @apply grid-cols-1;
+  }
+  
+  .grid-cols-2 {
+    @apply grid-cols-1;
+  }
+  
+  .grid-cols-3 {
+    @apply grid-cols-1;
+  }
+  
+  .grid-cols-4 {
+    @apply grid-cols-2;
+  }
+  
+  .grid-cols-5 {
+    @apply grid-cols-2;
+  }
+  
+  /* Mobile-friendly card layouts */
+  .card-content {
+    @apply p-4;
+  }
+  
+  /* Responsive text sizes */
+  .text-3xl {
+    @apply text-2xl;
+  }
+  
+  .text-2xl {
+    @apply text-xl;
+  }
+  
+  /* Mobile button adjustments */
+  .button-group {
+    @apply flex-col space-y-2 space-x-0;
+  }
+  
+  /* Emergency response mobile optimization */
+  .emergency-card {
+    @apply border-l-2;
+  }
+  
+  /* Observer coordination mobile layout */
+  .observer-card {
+    @apply w-full;
+  }
+  
+  /* Route planner mobile layout */
+  .route-config {
+    @apply grid-cols-1;
+  }
+  
+  /* Alert center mobile optimization */
+  .alert-filters {
+    @apply grid-cols-1 gap-2;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-cols-2 {
+    @apply grid-cols-1;
+  }
+  
+  .grid-cols-4 {
+    @apply grid-cols-1;
+  }
+  
+  .grid-cols-5 {
+    @apply grid-cols-1;
+  }
+  
+  /* Very small screen optimizations */
+  .text-sm {
+    @apply text-xs;
+  }
+  
+  .p-6 {
+    @apply p-3;
+  }
+  
+  .space-x-4 > * + * {
+    @apply ml-0 mt-2;
+  }
+}

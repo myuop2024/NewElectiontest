@@ -50,6 +50,10 @@ import XSentimentDashboard from "@/pages/x-sentiment-dashboard";
 import CentralAIHub from "@/pages/central-ai-hub";
 import MonitoringConfig from "@/pages/monitoring-config";
 import ComprehensiveAnalytics from "@/pages/comprehensive-analytics";
+import ObserverCoordination from "@/pages/observer-coordination";
+import RealTimeAlerts from "@/pages/real-time-alerts";
+import EmergencyResponseCenter from "@/pages/emergency-response-center";
+import ObserverRoutePlanner from "@/pages/observer-route-planner";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -273,6 +277,26 @@ function Router() {
       <Route path="/emergency-management">
         <ProtectedLayout>
           <EmergencyManagement />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/observer-coordination">
+        <ProtectedLayout>
+          <ObserverCoordination />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/real-time-alerts">
+        <ProtectedLayout>
+          <RealTimeAlerts />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/emergency-response-center">
+        <ProtectedLayout>
+          <EmergencyResponseCenter />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/observer-route-planner">
+        <ProtectedLayout>
+          <ObserverRoutePlanner />
         </ProtectedLayout>
       </Route>
       <Route path="*">
