@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/use-websocket";
-import { LoadingProvider, useLoading } from "@/hooks/use-loading";
+// LoadingProvider removed to fix React hooks error
 import CAFFETextLoader from "@/components/ui/caffe-text-loader";
 import { useState, useEffect } from "react";
 import NotFound from "@/pages/not-found";
@@ -307,14 +307,13 @@ function Router() {
 }
 
 function AppContent() {
-  const { isLoading } = useLoading();
   const [initialLoad, setInitialLoad] = useState(true);
 
   const handleLoadComplete = () => {
     setInitialLoad(false);
   };
 
-  if (initialLoad || isLoading) {
+  if (initialLoad) {
     return <CAFFETextLoader onComplete={handleLoadComplete} />;
   }
 
@@ -332,9 +331,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <LoadingProvider>
-          <AppContent />
-        </LoadingProvider>
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );

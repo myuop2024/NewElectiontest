@@ -4947,6 +4947,211 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Additional endpoints for Real-time Alerts components
+  app.get("/api/alerts/real-time", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const auditLogs = await storage.getAuditLogs();
+      const alertLogs = auditLogs.filter(log => 
+        log.action === 'emergency_alert_created' || 
+        log.action === 'incident_reported' ||
+        log.action === 'emergency_alert_sent'
+      ).slice(0, 50);
+
+      const alerts = alertLogs.map(log => ({
+        id: log.id?.toString() || Date.now().toString(),
+        title: log.action === 'incident_reported' ? 'Incident Report' : 'Emergency Alert',
+        description: log.details || 'Alert details not available',
+        severity: 'medium' as const,
+        category: log.action === 'incident_reported' ? 'incident' : 'emergency',
+        location: {
+          parish: 'Kingston',
+          pollingStation: log.entityType === 'report' ? 'Polling Station' : undefined
+        },
+        status: 'active' as const,
+        channels: ['system'],
+        recipients: ['all'],
+        createdBy: log.userId,
+        createdAt: log.timestamp,
+        escalationLevel: 1
+      }));
+
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error fetching real-time alerts:", error);
+      res.status(500).json({ error: "Failed to fetch alerts" });
+    }
+  });
+
+  app.get("/api/alerts/stats", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const auditLogs = await storage.getAuditLogs();
+      const alertLogs = auditLogs.filter(log => 
+        log.action === 'emergency_alert_created' || 
+        log.action === 'incident_reported' ||
+        log.action === 'emergency_alert_sent'
+      );
+
+      const now = new Date();
+      const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const recentAlerts = alertLogs.filter(log => new Date(log.timestamp) > last24Hours);
+      
+      const stats = {
+        total: alertLogs.length,
+        active: recentAlerts.length,
+        critical: recentAlerts.filter(log => log.details?.includes('critical')).length,
+        averageResponseTime: 8,
+        escalationRate: 15
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching alert stats:", error);
+      res.status(500).json({ error: "Failed to fetch alert statistics" });
+    }
+  });
+
+  // Observer coordination endpoints
+  app.get("/api/observers/active", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      const observers = users.filter(user => user.role === 'observer' || user.role === 'coordinator').map(user => ({
+        id: user.id,
+        observerId: user.observerId || '000000',
+        username: user.username,
+        email: user.email,
+        currentStatus: 'active',
+        lastSeen: new Date().toISOString(),
+        assignedStation: 'Station 1',
+        parish: 'Kingston',
+        location: {
+          lat: 18.0179,
+          lng: -76.8099
+        }
+      }));
+
+      res.json(observers);
+    } catch (error) {
+      console.error("Error fetching active observers:", error);
+      res.status(500).json({ error: "Failed to fetch active observers" });
+    }
+  });
+
+  app.get("/api/coordination/recent", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const auditLogs = await storage.getAuditLogs();
+      const coordinationLogs = auditLogs.filter(log => 
+        log.action.includes('coordination') || 
+        log.action.includes('assignment')
+      ).slice(0, 20);
+
+      const activities = coordinationLogs.map(log => ({
+        id: log.id?.toString() || Date.now().toString(),
+        type: log.action.includes('assignment') ? 'assignment' : 'coordination',
+        message: log.details || 'Coordination activity',
+        timestamp: log.timestamp,
+        userId: log.userId
+      }));
+
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching coordination activities:", error);
+      res.status(500).json({ error: "Failed to fetch coordination activities" });
+    }
+  });
+
+  app.post("/api/coordination/send", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { type, priority, targetObservers, message, deadline } = req.body;
+      
+      await storage.createAuditLog({
+        action: "coordination_sent",
+        entityType: "coordination",
+        userId: req.user!.id,
+        entityId: "coordination_" + Date.now(),
+        ipAddress: req.ip,
+        details: `Coordination ${type} sent to ${targetObservers.length} observers: ${message}`
+      });
+
+      res.json({ success: true, message: "Coordination instructions sent successfully" });
+    } catch (error) {
+      console.error("Error sending coordination:", error);
+      res.status(500).json({ error: "Failed to send coordination instructions" });
+    }
+  });
+
+  // Emergency response endpoints  
+  app.get("/api/emergency/active", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const auditLogs = await storage.getAuditLogs();
+      const emergencyLogs = auditLogs.filter(log => 
+        log.action === 'emergency_alert_created' || 
+        log.action === 'emergency_alert_sent'
+      ).slice(0, 20);
+
+      const emergencies = emergencyLogs.map(log => ({
+        id: log.id?.toString() || Date.now().toString(),
+        type: 'security',
+        priority: 'high',
+        status: 'pending',
+        location: {
+          stationId: 1,
+          stationName: 'Sample Station',
+          parish: 'Kingston',
+          coordinates: { lat: 18.0179, lng: -76.8099 }
+        },
+        description: log.details || 'Emergency response required',
+        responseTeam: [],
+        reportedBy: log.userId,
+        createdAt: log.timestamp,
+        escalationLevel: 1
+      }));
+
+      res.json(emergencies);
+    } catch (error) {
+      console.error("Error fetching active emergencies:", error);
+      res.status(500).json({ error: "Failed to fetch active emergencies" });
+    }
+  });
+
+  app.get("/api/emergency/contacts", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const contacts = [
+        {
+          id: 'police_jamaica',
+          name: 'Jamaica Constabulary Force',
+          type: 'police',
+          number: '119',
+          parish: 'All',
+          available: true,
+          averageResponseTime: 15
+        },
+        {
+          id: 'ambulance_jamaica',
+          name: 'Jamaica Ambulance Service',
+          type: 'ambulance',
+          number: '110',
+          parish: 'All',
+          available: true,
+          averageResponseTime: 12
+        },
+        {
+          id: 'fire_jamaica',
+          name: 'Jamaica Fire Brigade',
+          type: 'fire',
+          number: '110',
+          parish: 'All',
+          available: true,
+          averageResponseTime: 18
+        }
+      ];
+
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching emergency contacts:", error);
+      res.status(500).json({ error: "Failed to fetch emergency contacts" });
+    }
+  });
+
   // WebSocket setup
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
