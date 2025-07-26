@@ -55,10 +55,14 @@ export const pollingStations = pgTable("polling_stations", {
   name: text("name").notNull(),
   address: text("address").notNull(),
   parishId: integer("parish_id").notNull(),
+  parish: text("parish"), // Parish name for easier querying
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   capacity: integer("capacity"),
   isActive: boolean("is_active").notNull().default(true),
+  isTestData: boolean("is_test_data").notNull().default(false), // Mark as removable test data
+  dataSource: text("data_source"), // ECJ_2024, manual, etc.
+  extractedFrom: text("extracted_from"), // Document source
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

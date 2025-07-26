@@ -82,6 +82,7 @@ const adminNavigationGroups = [
       { name: 'Form Builder', href: '/form-builder', icon: Edit3 },
       { name: 'System Settings', href: '/admin-settings', icon: Settings },
       { name: 'Data Integration', href: '/sheets-integration', icon: FileSpreadsheet },
+      { name: 'ECJ 2024 Stations', href: '/admin/ecj-2024-stations', icon: MapPin },
     ]
   },
   {

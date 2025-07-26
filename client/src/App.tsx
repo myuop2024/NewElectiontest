@@ -54,6 +54,7 @@ import ObserverCoordination from "@/pages/observer-coordination";
 import RealTimeAlerts from "@/pages/real-time-alerts";
 import EmergencyResponseCenter from "@/pages/emergency-response-center";
 import ObserverRoutePlanner from "@/pages/observer-route-planner";
+import AdminECJ2024Stations from "@/pages/admin-ecj-2024-stations";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import FloatingActionButton from "@/components/layout/floating-action-button";
@@ -181,6 +182,11 @@ function Router() {
       <Route path="/admin-settings">
         <ProtectedLayout>
           <AdminSettings />
+        </ProtectedLayout>
+      </Route>
+      <Route path="/admin/ecj-2024-stations">
+        <ProtectedLayout>
+          <AdminECJ2024Stations />
         </ProtectedLayout>
       </Route>
       
