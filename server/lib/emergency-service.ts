@@ -62,8 +62,19 @@ export class EmergencyService {
 
       for (const log of alertLogs) {
         try {
-          const alertData = JSON.parse(log.newValues as string || '{}');
-          if (alertData.status === 'active' || alertData.status === 'acknowledged') {
+          let alertData;
+          
+          // Handle both string and object cases for newValues
+          if (typeof log.newValues === 'string') {
+            alertData = JSON.parse(log.newValues || '{}');
+          } else if (typeof log.newValues === 'object' && log.newValues !== null) {
+            alertData = log.newValues;
+          } else {
+            console.warn('Invalid alert data format:', log.newValues);
+            continue;
+          }
+          
+          if (alertData && (alertData.status === 'active' || alertData.status === 'acknowledged')) {
             this.activeAlerts.set(alertData.id, alertData);
             this.scheduleEscalation(alertData);
           }

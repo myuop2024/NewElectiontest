@@ -617,6 +617,45 @@ export const xMonitoringAlerts = pgTable("x_monitoring_alerts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// General Real-time Alerts System - For comprehensive alert management
+export const alerts = pgTable("alerts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  severity: text("severity").notNull(), // 'low', 'medium', 'high', 'critical'
+  category: text("category").notNull(), // 'traffic', 'emergency', 'incident', 'weather', 'security'
+  status: text("status").notNull().default("active"), // 'active', 'acknowledged', 'resolved', 'escalated'
+  
+  // Location information
+  parish: text("parish"),
+  pollingStationId: integer("polling_station_id"),
+  coordinates: json("coordinates"), // { lat: number, lng: number }
+  
+  // Alert metadata
+  channels: json("channels").notNull(), // ['sms', 'email', 'push', 'call']
+  recipients: json("recipients").notNull(), // Array of user IDs or phone numbers
+  
+  // Tracking fields
+  createdBy: integer("created_by").notNull(),
+  acknowledgedBy: integer("acknowledged_by"),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  resolvedBy: integer("resolved_by"),
+  resolvedAt: timestamp("resolved_at"),
+  
+  // Response metrics
+  escalationLevel: integer("escalation_level").notNull().default(1), // 1-5 escalation levels
+  responseTime: integer("response_time"), // Minutes from creation to acknowledgment
+  impactRadius: integer("impact_radius"), // Meters of impact area
+  
+  // Additional metadata
+  relatedReportId: integer("related_report_id"), // Link to incident report if applicable
+  notificationsSent: json("notifications_sent"), // Track which notifications were sent
+  alertData: json("alert_data"), // Additional alert-specific data
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const emails = pgTable("emails", {
   id: serial("id").primaryKey(),
   userId: integer("user_id"),
@@ -1087,6 +1126,14 @@ export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
   course: one(courses, { fields: [enrollments.courseId], references: [courses.id] })
 }));
 
+export const alertsRelations = relations(alerts, ({ one }) => ({
+  creator: one(users, { fields: [alerts.createdBy], references: [users.id] }),
+  acknowledger: one(users, { fields: [alerts.acknowledgedBy], references: [users.id] }),
+  resolver: one(users, { fields: [alerts.resolvedBy], references: [users.id] }),
+  pollingStation: one(pollingStations, { fields: [alerts.pollingStationId], references: [pollingStations.id] }),
+  relatedReport: one(reports, { fields: [alerts.relatedReportId], references: [reports.id] }),
+}));
+
 // Relations removed for undefined tables
 
 
@@ -1138,6 +1185,9 @@ export const insertXSocialPostSchema = createInsertSchema(xSocialPosts);
 export const insertXSentimentAnalysisSchema = createInsertSchema(xSentimentAnalysis);
 export const insertXMonitoringConfigSchema = createInsertSchema(xMonitoringConfig);
 export const insertXMonitoringAlertSchema = createInsertSchema(xMonitoringAlerts);
+
+// General Alerts Insert Schema
+export const insertAlertSchema = createInsertSchema(alerts);
 
 // Traffic Monitoring Insert Schemas
 export const insertTrafficAnalyticsHistorySchema = createInsertSchema(trafficAnalyticsHistory);
@@ -1199,6 +1249,10 @@ export type XSocialPost = typeof xSocialPosts.$inferSelect;
 export type XSentimentAnalysis = typeof xSentimentAnalysis.$inferSelect;
 export type XMonitoringConfig = typeof xMonitoringConfig.$inferSelect;
 export type XMonitoringAlert = typeof xMonitoringAlerts.$inferSelect;
+
+// General Alert Type
+export type Alert = typeof alerts.$inferSelect;
+
 export type ChatRoom = typeof chatRooms.$inferSelect;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type OnlineUser = typeof onlineUsers.$inferSelect;
@@ -1238,6 +1292,9 @@ export type InsertChatRoom = typeof chatRooms.$inferInsert;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
 export type InsertOnlineUser = typeof onlineUsers.$inferInsert;
 export type InsertCertificateTemplate = typeof certificateTemplates.$inferInsert;
+
+// General Alert Insert Type
+export type InsertAlert = typeof alerts.$inferInsert;
 
 // Traffic Monitoring Insert Types
 export type InsertTrafficAnalyticsHistory = typeof trafficAnalyticsHistory.$inferInsert;

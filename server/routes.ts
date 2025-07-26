@@ -34,7 +34,8 @@ import {
   xSocialPosts,
   xSentimentAnalysis,
   xMonitoringConfig,
-  xMonitoringAlerts
+  xMonitoringAlerts,
+  alerts
 } from "@shared/schema";
 import { classroomService } from "./lib/google-classroom-service";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
@@ -4950,32 +4951,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Additional endpoints for Real-time Alerts components
   app.get("/api/alerts/real-time", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const auditLogs = await storage.getAuditLogs();
-      const alertLogs = auditLogs.filter(log => 
-        log.action === 'emergency_alert_created' || 
-        log.action === 'incident_reported' ||
-        log.action === 'emergency_alert_sent'
-      ).slice(0, 50);
+      // Get alerts from the alerts table, ordered by creation time (newest first)
+      const alertsData = await db.select()
+        .from(alerts)
+        .orderBy(desc(alerts.createdAt))
+        .limit(50);
 
-      const alerts = alertLogs.map(log => ({
-        id: log.id?.toString() || Date.now().toString(),
-        title: log.action === 'incident_reported' ? 'Incident Report' : 'Emergency Alert',
-        description: log.details || 'Alert details not available',
-        severity: 'medium' as const,
-        category: log.action === 'incident_reported' ? 'incident' : 'emergency',
-        location: {
-          parish: 'Kingston',
-          pollingStation: log.entityType === 'report' ? 'Polling Station' : undefined
-        },
-        status: 'active' as const,
-        channels: ['system'],
-        recipients: ['all'],
-        createdBy: log.userId,
-        createdAt: log.timestamp,
-        escalationLevel: 1
-      }));
-
-      res.json(alerts);
+      res.json(alertsData);
     } catch (error) {
       console.error("Error fetching real-time alerts:", error);
       res.status(500).json({ error: "Failed to fetch alerts" });
@@ -4984,29 +4966,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/alerts/stats", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const auditLogs = await storage.getAuditLogs();
-      const alertLogs = auditLogs.filter(log => 
-        log.action === 'emergency_alert_created' || 
-        log.action === 'incident_reported' ||
-        log.action === 'emergency_alert_sent'
-      );
-
+      // Get all alerts for statistics
+      const allAlerts = await db.select().from(alerts);
+      
       const now = new Date();
       const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const recentAlerts = alertLogs.filter(log => new Date(log.timestamp) > last24Hours);
+      
+      // Filter alerts from last 24 hours
+      const recentAlerts = allAlerts.filter(alert => new Date(alert.createdAt) > last24Hours);
+      
+      // Count active alerts (not resolved)
+      const activeAlerts = allAlerts.filter(alert => alert.status === 'active');
+      
+      // Count critical alerts from recent ones
+      const criticalAlerts = recentAlerts.filter(alert => alert.severity === 'critical');
+      
+      // Calculate average response time (from acknowledged alerts)
+      const acknowledgedAlerts = allAlerts.filter(alert => alert.acknowledgedAt && alert.responseTime);
+      const averageResponseTime = acknowledgedAlerts.length > 0 
+        ? Math.round(acknowledgedAlerts.reduce((sum, alert) => sum + (alert.responseTime || 0), 0) / acknowledgedAlerts.length)
+        : 0;
+      
+      // Calculate escalation rate (alerts that were escalated)
+      const escalatedAlerts = allAlerts.filter(alert => alert.escalationLevel > 1);
+      const escalationRate = allAlerts.length > 0 
+        ? Math.round((escalatedAlerts.length / allAlerts.length) * 100)
+        : 0;
       
       const stats = {
-        total: alertLogs.length,
-        active: recentAlerts.length,
-        critical: recentAlerts.filter(log => log.details?.includes('critical')).length,
-        averageResponseTime: 8,
-        escalationRate: 15
+        total: allAlerts.length,
+        active: activeAlerts.length,
+        critical: criticalAlerts.length,
+        averageResponseTime,
+        escalationRate
       };
 
       res.json(stats);
     } catch (error) {
       console.error("Error fetching alert stats:", error);
       res.status(500).json({ error: "Failed to fetch alert statistics" });
+    }
+  });
+
+  // Create sample alerts for testing (admin only)
+  app.post("/api/alerts/create-samples", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      // Create sample alerts for demonstration
+      const sampleAlerts = [
+        {
+          title: "High Traffic Detected at Golden Spring Community Centre",
+          description: "Heavy traffic congestion detected on route to polling station. Alternative routes recommended.",
+          severity: "high" as const,
+          category: "traffic" as const,
+          status: "active" as const,
+          parish: "St. Andrew",
+          pollingStationId: 1,
+          coordinates: { lat: 18.0179, lng: -76.8099 },
+          channels: ["sms", "email", "push"],
+          recipients: ["all_observers"],
+          createdBy: req.user.id,
+          escalationLevel: 2,
+          impactRadius: 500,
+          alertData: { trafficLevel: "severe", estimatedDelay: "15-20 minutes" }
+        },
+        {
+          title: "Weather Alert - Heavy Rain Expected",
+          description: "Heavy rainfall expected in Kingston area. Observers advised to take precautions.",
+          severity: "medium" as const,
+          category: "weather" as const,
+          status: "active" as const,
+          parish: "Kingston",
+          coordinates: { lat: 17.9771, lng: -76.7674 },
+          channels: ["sms", "push"],
+          recipients: ["kingston_observers"],
+          createdBy: req.user.id,
+          escalationLevel: 1,
+          impactRadius: 2000,
+          alertData: { weatherType: "heavy_rain", expectedDuration: "2-3 hours" }
+        },
+        {
+          title: "Security Incident Reported",
+          description: "Minor disturbance reported near Harbour View Community Centre. Situation being monitored.",
+          severity: "critical" as const,
+          category: "security" as const,
+          status: "acknowledged" as const,
+          parish: "Kingston",
+          pollingStationId: 2,
+          coordinates: { lat: 17.9542, lng: -76.7373 },
+          channels: ["sms", "email", "push", "call"],
+          recipients: ["security_team", "coordinators"],
+          createdBy: req.user.id,
+          acknowledgedBy: req.user.id,
+          acknowledgedAt: new Date(),
+          escalationLevel: 3,
+          responseTime: 5,
+          impactRadius: 300,
+          alertData: { incidentType: "disturbance", securityLevel: "elevated" }
+        }
+      ];
+
+      // Insert sample alerts into database
+      const insertedAlerts = await db.insert(alerts).values(sampleAlerts).returning();
+      
+      res.json({ 
+        message: "Sample alerts created successfully", 
+        alerts: insertedAlerts,
+        count: insertedAlerts.length 
+      });
+    } catch (error) {
+      console.error("Error creating sample alerts:", error);
+      res.status(500).json({ error: "Failed to create sample alerts" });
     }
   });
 
