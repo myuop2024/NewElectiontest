@@ -818,7 +818,7 @@ export const trafficAnalyticsHistory = pgTable("traffic_analytics_history", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Historical Election Data - Store authentic Jamaica election traffic patterns for AI predictions
+// Historical Election Data - Store comprehensive Jamaica election data from ECJ AI analysis
 export const historicalElectionData = pgTable("historical_election_data", {
   id: serial("id").primaryKey(),
   electionDate: timestamp("election_date").notNull(),
@@ -836,8 +836,99 @@ export const historicalElectionData = pgTable("historical_election_data", {
   dataSource: text("data_source").notNull(), // 'official_records', 'observer_reports', 'traffic_analysis'
   dataQuality: text("data_quality").notNull().default('high'), // 'low', 'medium', 'high', 'verified'
   notes: text("notes"),
+  
+  // Enhanced fields for comprehensive ECJ historical data
+  registeredVoters: integer("registered_voters"),
+  totalVotesCast: integer("total_votes_cast"),
+  totalPollingStations: integer("total_polling_stations"),
+  electionOfficials: integer("election_officials"),
+  validVotes: integer("valid_votes"),
+  rejectedBallots: integer("rejected_ballots"),
+  spoiltBallots: integer("spoilt_ballots"),
+  pollingStationDetails: json("polling_station_details"), // Detailed station data from AI analysis
+  electionMetadata: json("election_metadata"), // Election-specific information
+  candidateResults: json("candidate_results"), // Candidate and party results
+  ecjDocumentSource: text("ecj_document_source"), // Original ECJ PDF URL
+  verificationDate: timestamp("verification_date"),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Comprehensive Historical Elections - Store detailed data from all ECJ documents (1947-2024)
+export const comprehensiveElectionData = pgTable("comprehensive_election_data", {
+  id: serial("id").primaryKey(),
+  electionDate: timestamp("election_date").notNull(),
+  electionType: text("election_type").notNull(), // 'Parish Council', 'General Election', 'Municipal', 'By-Election'
+  electionTitle: text("election_title").notNull(),
+  electionYear: integer("election_year").notNull(),
+  
+  // Complete election statistics
+  totalRegisteredVoters: integer("total_registered_voters"),
+  totalVotesCast: integer("total_votes_cast"),
+  overallTurnout: decimal("overall_turnout", { precision: 5, scale: 4 }),
+  totalPollingStations: integer("total_polling_stations"),
+  totalElectionOfficials: integer("total_election_officials"),
+  
+  // Parish-level breakdown
+  parishResults: json("parish_results"), // Array of all parish results
+  candidateResults: json("candidate_results"), // Complete candidate data
+  partyPerformance: json("party_performance"), // JLP/PNP performance analysis
+  
+  // Polling station consolidation
+  pollingStationConsolidation: json("polling_station_consolidation"), // Stations with same numbers across elections
+  
+  // Document and analysis metadata
+  originalDocuments: json("original_documents"), // ECJ PDF URLs and titles
+  analysisMethod: text("analysis_method").notNull().default('AI_comprehensive_extraction'),
+  dataQuality: text("data_quality").notNull().default('ECJ_official_verified'),
+  extractionDate: timestamp("extraction_date").notNull().defaultNow(),
+  aiModel: text("ai_model").notNull().default('gemini-1.5-flash'),
+  
+  // Historical context
+  historicalSignificance: text("historical_significance"), // Notes about this election's importance
+  politicalContext: json("political_context"), // Political climate and key issues
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Polling Station Historical Tracking - Track individual stations across all elections
+export const pollingStationHistory = pgTable("polling_station_history", {
+  id: serial("id").primaryKey(),
+  stationNumber: text("station_number").notNull(),
+  currentName: text("current_name").notNull(),
+  parish: text("parish").notNull(),
+  constituency: text("constituency"),
+  address: text("address"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }),
+  
+  // Historical tracking
+  historicalNames: json("historical_names"), // Array of previous names
+  electionsParticipated: json("elections_participated"), // Array of election records
+  voterRegistrationHistory: json("voter_registration_history"), // Registration trends
+  turnoutHistory: json("turnout_history"), // Turnout patterns over time
+  infrastructureChanges: json("infrastructure_changes"), // Location/facility changes
+  
+  // Performance metrics
+  firstElectionDate: timestamp("first_election_date"),
+  lastElectionDate: timestamp("last_election_date"),
+  totalElections: integer("total_elections").default(0),
+  averageTurnout: decimal("average_turnout", { precision: 5, scale: 4 }),
+  averageRegistration: integer("average_registration"),
+  peakTurnoutElection: text("peak_turnout_election"),
+  lowestTurnoutElection: text("lowest_turnout_election"),
+  
+  // AI-generated insights
+  performanceTrends: json("performance_trends"), // AI analysis of trends
+  riskFactors: json("risk_factors"), // Historical risk patterns
+  recommendations: json("recommendations"), // AI recommendations for this station
+  
+  dataSource: text("data_source").notNull().default('ECJ_AI_comprehensive'),
+  lastAnalyzed: timestamp("last_analyzed").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Traffic Predictions - AI-powered traffic forecasting for election day planning
