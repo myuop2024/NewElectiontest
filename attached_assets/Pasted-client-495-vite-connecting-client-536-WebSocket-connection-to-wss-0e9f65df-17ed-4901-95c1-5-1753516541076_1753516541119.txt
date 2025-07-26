@@ -1,0 +1,76 @@
+client:495 [vite] connecting...
+client:536 WebSocket connection to 'wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/?token=0E9UUBnrzgIJ' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=0E9UUBnrzgIJ' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+use-auth.tsx:29 Attempting auto-login for admin user...
+use-auth.tsx:36 Auto-login successful: CAFFE
+admin-ecj-2024-stations.tsx:32 [ECJ 2024] Fetching extraction status...
+use-websocket.tsx:46 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+websocket.ts:32 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+hook.js:608 [ECJ 2024] Error fetching extraction status: TypeError: Failed to execute 'fetch' on 'Window': '/api/ecj-2024-stations/extraction-status' is not a valid HTTP method.
+    at apiRequest (queryClient.ts:21:21)
+    at fetchExtractionStatus (admin-ecj-2024-stations.tsx:33:30)
+    at admin-ecj-2024-stations.tsx:112:5
+    at commitHookEffectListMount (chunk-WERSD76P.js?v=1aeb3d75:16915:34)
+    at commitPassiveMountOnFiber (chunk-WERSD76P.js?v=1aeb3d75:18156:19)
+    at commitPassiveMountEffects_complete (chunk-WERSD76P.js?v=1aeb3d75:18129:17)
+    at commitPassiveMountEffects_begin (chunk-WERSD76P.js?v=1aeb3d75:18119:15)
+    at commitPassiveMountEffects (chunk-WERSD76P.js?v=1aeb3d75:18109:11)
+    at flushPassiveEffectsImpl (chunk-WERSD76P.js?v=1aeb3d75:19490:11)
+    at flushPassiveEffects (chunk-WERSD76P.js?v=1aeb3d75:19447:22)
+overrideMethod @ hook.js:608
+use-websocket.tsx:53 WebSocket connected
+/api/settings/app:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+admin-ecj-2024-stations.tsx:47 [ECJ 2024] Starting extraction...
+hook.js:608 [ECJ 2024] Extraction error: TypeError: Failed to execute 'fetch' on 'Window': '/api/ecj-2024-stations/extract-2024-stations' is not a valid HTTP method.
+    at apiRequest (queryClient.ts:21:21)
+    at handleExtraction (admin-ecj-2024-stations.tsx:48:30)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=1aeb3d75:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=1aeb3d75:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=1aeb3d75:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-WERSD76P.js?v=1aeb3d75:3736:33)
+    at executeDispatch (chunk-WERSD76P.js?v=1aeb3d75:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-WERSD76P.js?v=1aeb3d75:7034:15)
+    at processDispatchQueue (chunk-WERSD76P.js?v=1aeb3d75:7043:13)
+    at dispatchEventsForPlugins (chunk-WERSD76P.js?v=1aeb3d75:7051:11)
+overrideMethod @ hook.js:608
+use-websocket.tsx:62 WebSocket disconnected 1006 
+use-websocket.tsx:70 Attempting to reconnect... (1/10)
+hook.js:608 WebSocket not connected, cannot send message: leave_room Error Component Stack
+    at LiveChatWidget (live-chat-widget.tsx:12:31)
+    at div (<anonymous>)
+    at ProtectedLayout (App.tsx:65:28)
+    at Route (wouter.js?v=1aeb3d75:323:16)
+    at Switch (wouter.js?v=1aeb3d75:379:17)
+    at Router (<anonymous>)
+    at WebSocketProvider (use-websocket.tsx:14:37)
+    at AuthProvider (use-auth.tsx:17:32)
+    at AppContent (App.tsx:316:41)
+    at Provider (chunk-PLT6GTVM.js?v=1aeb3d75:38:15)
+    at TooltipProvider (@radix-ui_react-tooltip.js?v=1aeb3d75:64:5)
+    at QueryClientProvider (@tanstack_react-query.js?v=1aeb3d75:2805:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+use-websocket.tsx:46 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+websocket.ts:32 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+websocket.ts:33 WebSocket connection to 'wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13' failed: 
+connect @ websocket.ts:33
+hook.js:608 WebSocket error: Event
+overrideMethod @ hook.js:608
+use-websocket.tsx:62 WebSocket disconnected 1006 
+use-websocket.tsx:70 Attempting to reconnect... (2/10)
+use-websocket.tsx:46 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+websocket.ts:32 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+websocket.ts:33 WebSocket connection to 'wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13' failed: 
+connect @ websocket.ts:33
+hook.js:608 WebSocket error: Event
+overrideMethod @ hook.js:608
+use-websocket.tsx:62 WebSocket disconnected 1006 
+use-websocket.tsx:70 Attempting to reconnect... (3/10)
+/api/settings/app:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+use-websocket.tsx:46 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+websocket.ts:32 Connecting to WebSocket: wss://0e9f65df-17ed-4901-95c1-5f41bdd17469-00-1mis3rm0rjk3k.spock.replit.dev/ws?userId=13
+use-websocket.tsx:53 WebSocket connected

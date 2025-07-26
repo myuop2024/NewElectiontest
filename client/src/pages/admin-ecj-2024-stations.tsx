@@ -30,10 +30,11 @@ export default function AdminECJ2024Stations() {
   const fetchExtractionStatus = async () => {
     try {
       console.log('[ECJ 2024] Fetching extraction status...');
-      const response = await apiRequest('/api/ecj-2024-stations/extraction-status');
-      console.log('[ECJ 2024] Status response:', response);
-      if (response.success) {
-        setExtractionStats(response.statistics);
+      const response = await apiRequest('GET', '/api/ecj-2024-stations/extraction-status');
+      const data = await response.json();
+      console.log('[ECJ 2024] Status response:', data);
+      if (data.success) {
+        setExtractionStats(data.statistics);
       }
     } catch (error) {
       console.error('[ECJ 2024] Error fetching extraction status:', error);
@@ -45,22 +46,21 @@ export default function AdminECJ2024Stations() {
     setIsExtracting(true);
     try {
       console.log('[ECJ 2024] Starting extraction...');
-      const response = await apiRequest('/api/ecj-2024-stations/extract-2024-stations', {
-        method: 'POST'
-      });
+      const response = await apiRequest('POST', '/api/ecj-2024-stations/extract-2024-stations', {});
+      const data = await response.json();
 
-      console.log('[ECJ 2024] Extraction response:', response);
+      console.log('[ECJ 2024] Extraction response:', data);
 
-      if (response.success) {
-        setExtractionResults(response.data);
+      if (data.success) {
+        setExtractionResults(data.data);
         toast({
           title: "Extraction Successful",
-          description: `Extracted ${response.data.totalInserted} authentic 2024 ECJ polling stations`,
+          description: `Extracted ${data.data.totalInserted} authentic 2024 ECJ polling stations`,
         });
         await fetchExtractionStatus();
       } else {
-        console.error('[ECJ 2024] Extraction failed:', response);
-        throw new Error(response.error || 'Extraction failed');
+        console.error('[ECJ 2024] Extraction failed:', data);
+        throw new Error(data.error || 'Extraction failed');
       }
     } catch (error: any) {
       console.error('[ECJ 2024] Extraction error:', error);
@@ -82,19 +82,18 @@ export default function AdminECJ2024Stations() {
 
     setIsRemoving(true);
     try {
-      const response = await apiRequest('/api/ecj-2024-stations/remove-test-data', {
-        method: 'DELETE'
-      });
+      const response = await apiRequest('DELETE', '/api/ecj-2024-stations/remove-test-data', {});
+      const data = await response.json();
 
-      if (response.success) {
+      if (data.success) {
         toast({
           title: "Test Data Removed",
-          description: `Removed ${response.removedCount} test data polling stations`,
+          description: `Removed ${data.removedCount} test data polling stations`,
         });
         setExtractionResults(null);
         await fetchExtractionStatus();
       } else {
-        throw new Error(response.error || 'Failed to remove test data');
+        throw new Error(data.error || 'Failed to remove test data');
       }
     } catch (error: any) {
       toast({
