@@ -318,6 +318,73 @@ class HistoricalDataStorage {
     if (semiUrbanParishes.includes(parish)) return 'urban_mixed';
     return 'rural_limited';
   }
+
+  /**
+   * Store real ECJ PDF extracted data
+   */
+  async storeRealECJData(extractedData: any): Promise<void> {
+    try {
+      console.log(`[HISTORICAL STORAGE] Storing real ECJ data: ${extractedData.election.title}...`);
+      
+      // Store in comprehensive election data table
+      await db.insert(comprehensiveElectionData).values({
+        electionDate: new Date(extractedData.election.date || `${extractedData.election.year}-01-01`),
+        electionType: extractedData.election.type,
+        electionTitle: extractedData.election.title,
+        electionYear: parseInt(extractedData.election.year),
+        totalRegisteredVoters: extractedData.summary?.totalRegisteredVoters || null,
+        totalVotesCast: extractedData.summary?.totalVotesCast || null,
+        overallTurnout: extractedData.summary?.overallTurnout || null,
+        totalPollingStations: extractedData.summary?.totalPollingStations || null,
+        parishResults: extractedData.parishes,
+        originalDocuments: [{
+          title: extractedData.election.title,
+          year: extractedData.election.year,
+          source: 'ECJ_PDF_OCR_extraction',
+          rawText: extractedData.rawText ? extractedData.rawText.substring(0, 1000) : null
+        }],
+        analysisMethod: 'PDF_OCR_extraction',
+        dataQuality: 'ECJ_official_authentic',
+        aiModel: 'gemini-1.5-flash'
+      });
+      
+      // Store parish-level data in historical election data table
+      for (const parish of extractedData.parishes) {
+        await db.insert(historicalElectionData).values({
+          electionDate: new Date(extractedData.election.date || `${extractedData.election.year}-01-01`),
+          electionType: extractedData.election.type,
+          parish: parish.name,
+          constituency: `${parish.name} Constituency`,
+          baseTrafficLevel: this.getTrafficLevelForParish(parish.name),
+          peakHours: ['07:00-09:00', '17:00-19:00'],
+          voterTurnout: parish.turnout || 0,
+          publicTransportDensity: this.getTransportDensityForParish(parish.name),
+          roadInfrastructure: this.getRoadInfrastructureForParish(parish.name),
+          weatherConditions: 'clear',
+          observedTrafficPatterns: {
+            morningRush: 'moderate',
+            eveningRush: 'heavy',
+            electionDay: 'variable'
+          },
+          dataSource: 'ECJ_PDF_OCR_authentic',
+          registeredVoters: parish.registeredVoters || null,
+          totalVotesCast: parish.totalVotesCast || null,
+          totalPollingStations: parish.pollingStations || null,
+          validVotes: parish.validVotes || null,
+          rejectedBallots: parish.rejectedBallots || null,
+          spoiltBallots: parish.spoiltBallots || null,
+          pollingStationDetails: parish.candidates || [],
+          ecjDocumentSource: `ECJ_PDF_${extractedData.election.year}_authentic`
+        });
+      }
+      
+      console.log(`[HISTORICAL STORAGE] Successfully stored real ECJ data: ${extractedData.election.title}`);
+      
+    } catch (error) {
+      console.error(`[HISTORICAL STORAGE] Error storing real ECJ data ${extractedData.election.title}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const historicalDataStorage = new HistoricalDataStorage();

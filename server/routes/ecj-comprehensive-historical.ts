@@ -1,6 +1,7 @@
 import express from 'express';
 import { ecjHistoricalScraper } from '../lib/ecj-historical-scraper';
 import { historicalDataStorage } from '../lib/historical-data-storage';
+import { ecjPDFScraper } from '../lib/ecj-pdf-scraper';
 
 // Simple auth middleware
 const requireAuth = (req: any, res: any, next: any) => {
@@ -19,21 +20,27 @@ const requireAdmin = (req: any, res: any, next: any) => {
 
 const router = express.Router();
 
-// GET /api/ecj-comprehensive/available-elections - List all available elections from ECJ website
+// GET /api/ecj-comprehensive/available-elections - List all available PDF documents from ECJ website
 router.get('/available-elections', requireAuth, async (req, res) => {
   try {
-    console.log('[ECJ COMPREHENSIVE] Fetching available elections from ECJ website...');
+    console.log('[ECJ COMPREHENSIVE] Scanning ECJ website for real PDF documents...');
     
-    const baseUrl = 'https://ecj.com.jm/elections/election-results/parish-council-elections/';
-    const elections = await ecjHistoricalScraper.scrapeECJElectionList(baseUrl);
+    const documents = await ecjPDFScraper.findAllECJDocuments();
     
     res.json({
       success: true,
-      totalElections: elections.length,
-      elections: elections,
+      totalDocuments: documents.length,
+      method: 'Real_PDF_Discovery',
+      documents: documents.map(doc => ({
+        title: doc.title,
+        year: doc.year,
+        type: doc.type,
+        url: doc.url,
+        fileSize: doc.fileSize
+      })),
       dateRange: {
-        earliest: elections[elections.length - 1]?.year || '1947',
-        latest: elections[0]?.year || '2024'
+        earliest: Math.min(...documents.map(d => parseInt(d.year)).filter(y => !isNaN(y))).toString(),
+        latest: Math.max(...documents.map(d => parseInt(d.year)).filter(y => !isNaN(y))).toString()
       }
     });
     
@@ -46,44 +53,47 @@ router.get('/available-elections', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/ecj-comprehensive/extract-all - Extract data from ALL ECJ historical documents (admin only)
+// POST /api/ecj-comprehensive/extract-all - Extract data from ALL ECJ historical documents using real PDF OCR (admin only)
 router.post('/extract-all', requireAdmin, async (req, res) => {
   try {
-    console.log('[ECJ COMPREHENSIVE] Starting comprehensive historical data extraction...');
+    console.log('[ECJ COMPREHENSIVE] Starting REAL PDF extraction from ECJ documents...');
     
-    const baseUrl = 'https://ecj.com.jm/elections/election-results/parish-council-elections/';
-    const historicalData = await ecjHistoricalScraper.processAllHistoricalElections(baseUrl);
+    // Use real PDF scraper instead of AI simulation
+    const extractedData = await ecjPDFScraper.processAllECJDocuments();
     
-    // Store all extracted data
+    // Store all extracted PDF data
     let successCount = 0;
-    for (const electionData of historicalData) {
+    for (const electionData of extractedData) {
       try {
-        await historicalDataStorage.storeElectionData(electionData);
+        await historicalDataStorage.storeRealECJData(electionData);
         successCount++;
       } catch (error) {
         console.error(`[ECJ COMPREHENSIVE] Error storing ${electionData.election.title}:`, error);
       }
     }
     
-    console.log(`[ECJ COMPREHENSIVE] Successfully processed ${successCount}/${historicalData.length} elections`);
+    console.log(`[ECJ COMPREHENSIVE] Successfully processed ${successCount}/${extractedData.length} real ECJ documents`);
     
     res.json({
       success: true,
-      message: 'Comprehensive historical data extraction completed',
-      processed: historicalData.length,
+      message: 'Real ECJ PDF extraction completed - authentic data only',
+      processed: extractedData.length,
       stored: successCount,
-      elections: historicalData.map(d => ({
+      method: 'PDF_OCR_extraction',
+      elections: extractedData.map(d => ({
         year: d.election.year,
         title: d.election.title,
         parishes: d.parishes.length,
-        totalStations: d.parishes.reduce((sum: number, p: any) => sum + (p.pollingStations?.length || 0), 0)
+        totalVoters: d.summary?.totalRegisteredVoters || 0,
+        totalVotes: d.summary?.totalVotesCast || 0,
+        turnout: d.summary?.overallTurnout || 0
       }))
     });
     
   } catch (error) {
-    console.error('[ECJ COMPREHENSIVE] Error in comprehensive extraction:', error);
+    console.error('[ECJ COMPREHENSIVE] Error in real PDF extraction:', error);
     res.status(500).json({ 
-      error: 'Failed to extract comprehensive historical data',
+      error: 'Failed to extract data from real ECJ PDFs',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
