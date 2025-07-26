@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Brain,
   Car,
-  BarChart3
+  BarChart3,
+  Users
 } from 'lucide-react';
 
 interface TrafficStation {
@@ -587,12 +588,64 @@ export default function EnhancedTrafficDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Real-Time Alerts feature coming soon. This will provide automated traffic monitoring with intelligent notifications.
-                </AlertDescription>
-              </Alert>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Traffic Alert Center</h3>
+                  <Button 
+                    onClick={() => window.location.href = '/real-time-alerts'}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Open Full Alert Center
+                  </Button>
+                </div>
+                
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Real-time traffic alerts are now active! Click "Open Full Alert Center" above to access comprehensive alert monitoring, observer coordination, and emergency response capabilities.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                        <div>
+                          <p className="font-medium">Active Alerts</p>
+                          <p className="text-sm text-muted-foreground">Real-time monitoring active</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-5 w-5 text-blue-500" />
+                        <div>
+                          <p className="font-medium">Observer Coordination</p>
+                          <p className="text-sm text-muted-foreground">Live coordination system</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="h-5 w-5 text-green-500" />
+                        <div>
+                          <p className="font-medium">Emergency Response</p>
+                          <p className="text-sm text-muted-foreground">Rapid response ready</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
