@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../db.js';
 import { pollingStations } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { ecj2024PollingStationExtractor } from '../lib/ecj-2024-polling-station-extractor.js';
+import { ecj2024ComprehensiveExtractor } from '../lib/ecj-2024-comprehensive-extractor.js';
 import { pollingStationGeocoder } from '../lib/polling-station-geocoder.js';
 
 // Auth interface matching main routes
@@ -55,8 +55,8 @@ router.post('/extract-2024-stations', authenticateToken, async (req: Authenticat
 
     console.log('[ECJ 2024 STATIONS] Starting extraction process...');
 
-    // Extract polling stations from ECJ 2024 documents
-    const extractedData = await ecj2024PollingStationExtractor.extractAll2024PollingStations();
+    // Extract polling stations from ECJ 2024 documents comprehensively
+    const extractedData = await ecj2024ComprehensiveExtractor.extractComprehensive2024Stations();
 
     const insertedStations: any[] = [];
     let totalInserted = 0;

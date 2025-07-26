@@ -283,7 +283,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
           strokeOpacity: 0.8,
           strokeWeight: 3,
           fillColor: getTrafficColor(stationData.traffic.severity),
-          fillOpacity: 0.15,
+          fillOpacity: 0.05,
           map,
           center: position,
           radius: 5000
@@ -298,7 +298,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
           strokeWeight: 2,
           strokeDashArray: [5, 5],
           fillColor: getWeatherColor(stationData.weather.electoral_impact),
-          fillOpacity: 0.1,
+          fillOpacity: 0.03,
           map,
           center: position,
           radius: 8000
@@ -313,7 +313,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
           strokeOpacity: 0.7,
           strokeWeight: 2,
           fillColor: getSentimentColor(stationData.sentiment.sentiment_analysis?.risk_level),
-          fillOpacity: 0.12,
+          fillOpacity: 0.04,
           map,
           center: position,
           radius: sentimentRadius
@@ -364,7 +364,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
             style: {
               strokeColor: getTrafficColor(stationData.traffic.severity),
               lineWidth: 3,
-              fillColor: getTrafficColor(stationData.traffic.severity) + '1A' // 10% opacity
+              fillColor: getTrafficColor(stationData.traffic.severity) + '0D' // 5% opacity
             }
           }
         );
@@ -387,7 +387,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
               strokeColor: getWeatherColor(stationData.weather.electoral_impact),
               lineWidth: 2,
               lineDash: [5, 5],
-              fillColor: getWeatherColor(stationData.weather.electoral_impact) + '14' // 8% opacity
+              fillColor: getWeatherColor(stationData.weather.electoral_impact) + '08' // 3% opacity
             }
           }
         );
@@ -410,7 +410,7 @@ export default function PollingStationsHeatMap({ stations, selectedStation, onSt
             style: {
               strokeColor: getSentimentColor(stationData.sentiment.sentiment_analysis?.risk_level),
               lineWidth: 2,
-              fillColor: getSentimentColor(stationData.sentiment.sentiment_analysis?.risk_level) + '1A' // 10% opacity
+              fillColor: getSentimentColor(stationData.sentiment.sentiment_analysis?.risk_level) + '0A' // 4% opacity
             }
           }
         );
