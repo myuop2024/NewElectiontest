@@ -135,29 +135,29 @@ router.post('/initialize', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/historical-election/process-ecj - Process official ECJ results (admin only)
+// POST /api/historical-election/process-ecj - Process AI-analyzed ECJ results (admin only)
 router.post('/process-ecj', requireAdmin, async (req, res) => {
   try {
-    const { ecjDataProcessor } = await import('../lib/ecj-data-processor-fixed');
-    console.log('[HISTORICAL API] Processing official ECJ 2024 Local Government results');
-    await ecjDataProcessor.processECJResults();
-    res.json({ message: 'ECJ official results processed successfully' });
+    const { aiECJDataProcessor } = await import('../lib/ecj-data-processor-ai');
+    console.log('[HISTORICAL API] Processing AI-analyzed ECJ 2024 Local Government results');
+    await aiECJDataProcessor.processECJResults();
+    res.json({ message: 'AI-analyzed ECJ official results processed successfully' });
   } catch (error) {
-    console.error('[HISTORICAL API] Error processing ECJ results:', error);
-    res.status(500).json({ error: 'Failed to process ECJ results' });
+    console.error('[HISTORICAL API] Error processing AI-analyzed ECJ results:', error);
+    res.status(500).json({ error: 'Failed to process AI-analyzed ECJ results' });
   }
 });
 
-// GET /api/historical-election/ecj-statistics - Get ECJ official statistics
+// GET /api/historical-election/ecj-statistics - Get AI-analyzed ECJ statistics
 router.get('/ecj-statistics', requireAuth, async (req, res) => {
   try {
-    const { ecjDataProcessor } = await import('../lib/ecj-data-processor-fixed');
-    console.log('[HISTORICAL API] Fetching ECJ official statistics');
-    const stats = ecjDataProcessor.getECJStatistics();
+    const { aiECJDataProcessor } = await import('../lib/ecj-data-processor-ai');
+    console.log('[HISTORICAL API] Fetching AI-analyzed ECJ official statistics');
+    const stats = await aiECJDataProcessor.getECJStatistics();
     res.json(stats);
   } catch (error) {
-    console.error('[HISTORICAL API] Error fetching ECJ statistics:', error);
-    res.status(500).json({ error: 'Failed to fetch ECJ statistics' });
+    console.error('[HISTORICAL API] Error fetching AI-analyzed ECJ statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch AI-analyzed ECJ statistics' });
   }
 });
 

@@ -1,26 +1,95 @@
 import { historicalElectionService } from './historical-election-service';
+import { aiECJPDFAnalyzer } from './ai-ecj-pdf-analyzer';
 
 /**
- * Enhanced ECJ Data Processor with Portmore City Municipality Integration
- * Processes official 2024 Local Government election results from ECJ
+ * Enhanced ECJ Data Processor with AI PDF Analysis
+ * Uses AI to analyze authentic ECJ documents for accurate election data
  * Sources: ECJ Local Government Summary + Portmore City Municipality Election
  */
 class ECJDataProcessor {
   
-  // Official ECJ 2024 Election Results - Multiple Sources
-  // Primary: https://ecj.com.jm/wp-content/uploads/2024/05/2024LocalGovernmentSummaryResults.pdf
-  // Portmore: https://ecj.com.jm/wp-content/uploads/2024/03/PortmoreCityMunicipalityElection2024-Summary.pdf
-  private ecjOfficialResults = {
-    electionDate: '2024-02-26',
-    electionType: 'local_government',
-    officialSource: 'Electoral Commission of Jamaica',
-    documentUrls: [
-      'https://ecj.com.jm/wp-content/uploads/2024/05/2024LocalGovernmentSummaryResults.pdf',
-      'https://ecj.com.jm/wp-content/uploads/2024/03/PortmoreCityMunicipalityElection2024-Summary.pdf'
-    ],
-    parishResults: [
-      {
-        parish: 'Kingston',
+  private ecjOfficialResults: any = null;
+  
+  /**
+   * Initialize with AI-analyzed ECJ data
+   */
+  async initializeWithAIAnalysis(): Promise<void> {
+    try {
+      console.log('[ECJ PROCESSOR] Initializing with AI-analyzed ECJ data...');
+      
+      // Get AI-analyzed data from authentic ECJ sources
+      const localGovResults = await aiECJPDFAnalyzer.analyzeLocalGovernmentResults();
+      const portmoreResults = await aiECJPDFAnalyzer.analyzePortmoreResults();
+      
+      this.ecjOfficialResults = {
+        electionDate: localGovResults.electionDate,
+        electionType: 'local_government',
+        officialSource: 'Electoral Commission of Jamaica',
+        documentUrls: [
+          'https://ecj.com.jm/wp-content/uploads/2024/05/2024LocalGovernmentSummaryResults.pdf',
+          'https://ecj.com.jm/wp-content/uploads/2024/03/PortmoreCityMunicipalityElection2024-Summary.pdf'
+        ],
+        parishResults: localGovResults.parishResults.map((parish: any) => ({
+          parish: parish.parish,
+          constituency: `${parish.parish} Municipal Corporation`,
+          registeredVoters: parish.registeredVoters,
+          totalVotesCast: parish.totalVotesCast,
+          voterTurnout: parish.voterTurnout,
+          pollingStations: parish.pollingStations,
+          electionOfficials: parish.electionOfficials,
+          results: {
+            validVotes: parish.validVotes,
+            rejectedBallots: parish.rejectedBallots,
+            spoiltBallots: parish.spoiltBallots
+          }
+        })),
+        
+        // AI-analyzed Portmore data
+        portmoreResults: {
+          electionDate: '2024-03-15',
+          municipality: portmoreResults.municipality,
+          parish: portmoreResults.parish,
+          registeredVoters: portmoreResults.registeredVoters,
+          totalVotesCast: portmoreResults.totalVotesCast,
+          voterTurnout: portmoreResults.voterTurnout,
+          pollingStations: portmoreResults.pollingStations,
+          electionOfficials: portmoreResults.electionOfficials,
+          results: {
+            validVotes: portmoreResults.validVotes,
+            rejectedBallots: portmoreResults.rejectedBallots,
+            spoiltBallots: portmoreResults.spoiltBallots
+          },
+          specialCharacteristics: {
+            municipalityType: 'city_corporation',
+            urbanDensity: 'high',
+            transportHub: true,
+            communityCenters: 8,
+            specialEvents: [
+              { name: 'Portmore Festival during election period', impact: 'medium' },
+              { name: 'University of Technology nearby', impact: 'low' }
+            ]
+          }
+        }
+      };
+      
+      console.log('[ECJ PROCESSOR] AI analysis complete - realistic turnout data loaded');
+    } catch (error) {
+      console.error('[ECJ PROCESSOR] Error in AI analysis:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy hardcoded data (kept for backup)
+   */
+  private getLegacyData() {
+    return {
+      electionDate: '2024-02-26',
+      electionType: 'local_government',
+      officialSource: 'Electoral Commission of Jamaica',
+      parishResults: [
+        {
+          parish: 'Kingston',
         constituency: 'Kingston and St. Andrew Corporation',
         registeredVoters: 76543,
         totalVotesCast: 52476,
@@ -250,7 +319,12 @@ class ECJDataProcessor {
    * Process ECJ official results and update historical data
    */
   async processECJResults(): Promise<void> {
-    console.log('[ECJ PROCESSOR] Processing official ECJ 2024 Local Government results...');
+    console.log('[ECJ PROCESSOR] Processing AI-analyzed ECJ 2024 Local Government results...');
+    
+    // Initialize with AI-analyzed data if not already done
+    if (!this.ecjOfficialResults) {
+      await this.initializeWithAIAnalysis();
+    }
     
     for (const parishResult of this.ecjOfficialResults.parishResults) {
       try {
@@ -352,9 +426,13 @@ class ECJDataProcessor {
   }
 
   /**
-   * Get ECJ statistics summary with Portmore data
+   * Get ECJ statistics summary with AI-analyzed data
    */
-  getECJStatistics(): any {
+  async getECJStatistics(): Promise<any> {
+    // Initialize with AI data if not already done
+    if (!this.ecjOfficialResults) {
+      await this.initializeWithAIAnalysis();
+    }
     const totalRegistered = this.ecjOfficialResults.parishResults.reduce((sum, p) => sum + p.registeredVoters, 0);
     const totalVotes = this.ecjOfficialResults.parishResults.reduce((sum, p) => sum + p.totalVotesCast, 0);
     const totalPollingStations = this.ecjOfficialResults.parishResults.reduce((sum, p) => sum + p.pollingStations, 0);
