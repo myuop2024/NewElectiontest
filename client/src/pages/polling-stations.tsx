@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
 import UnifiedJamaicaMap from "@/components/maps/unified-jamaica-map";
 import EnhancedPollingStationsHeatMap from "@/components/maps/enhanced-polling-stations-heat-map";
+import GoogleStyleTrafficHeatMap from "@/components/maps/google-style-traffic-heat-map";
+import WorkingTrafficHeatMap from "@/components/maps/working-traffic-heat-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
@@ -250,7 +252,7 @@ export default function PollingStations() {
                 Road shading for traffic conditions and weather symbols with parish fallback
               </p>
             </div>
-            <EnhancedPollingStationsHeatMap 
+            <WorkingTrafficHeatMap 
               stations={filteredStations} 
               selectedStation={selectedStation}
               onStationSelect={setSelectedStation}
