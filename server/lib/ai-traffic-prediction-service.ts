@@ -114,7 +114,7 @@ class AITrafficPredictionService {
   private async generateStationPrediction(station: any, predictionType: string): Promise<TrafficPrediction | null> {
     try {
       // Get Jamaica-specific election data for this station
-      const electionData = this.generateJamaicaElectionTrafficData(station);
+      const electionData = await this.generateJamaicaElectionTrafficData(station);
       
       // Generate time-based predictions
       const currentHour = new Date().getHours();
@@ -151,65 +151,104 @@ class AITrafficPredictionService {
   }
 
   /**
-   * Generate comprehensive Jamaica election day traffic predictions
+   * Generate comprehensive Jamaica election day traffic predictions using database data
    */
-  private generateJamaicaElectionTrafficData(station: any): any {
-    // Jamaica-specific election day traffic patterns based on February 2024 local elections
-    const jamaicaParishData: Record<string, any> = {
-      'Kingston': {
-        baseTraffic: 'heavy',
-        peakHours: ['07:00-09:00', '17:00-19:00'],
-        voterTurnout: 0.68,
-        publicTransportDensity: 'very_high',
-        roadInfrastructure: 'urban_congested'
-      },
-      'St. Andrew': {
-        baseTraffic: 'heavy',
-        peakHours: ['07:00-09:00', '16:30-18:30'],
-        voterTurnout: 0.72,
-        publicTransportDensity: 'high',
-        roadInfrastructure: 'urban_mixed'
-      },
-      'St. Catherine': {
+  private async generateJamaicaElectionTrafficData(station: any): Promise<any> {
+    try {
+      // Import the historical election service
+      const { historicalElectionService } = await import('./historical-election-service');
+      
+      // Get most recent historical data for the station's parish
+      const historicalData = await historicalElectionService.getMostRecentParishData(station.parish || 'Kingston');
+      
+      if (historicalData) {
+        console.log(`[AI PREDICTION] Using authentic historical data for ${station.parish}`);
+        
+        // Convert database data to AI prediction format
+        const parishData = {
+          baseTraffic: historicalData.baseTrafficLevel,
+          peakHours: historicalData.peakHours,
+          voterTurnout: parseFloat(historicalData.voterTurnout.toString()),
+          publicTransportDensity: historicalData.publicTransportDensity,
+          roadInfrastructure: historicalData.roadInfrastructure,
+          weatherConditions: historicalData.weatherConditions,
+          specialEvents: historicalData.specialEvents,
+          observedTrafficPatterns: historicalData.observedTrafficPatterns,
+          dataSource: historicalData.dataSource,
+          dataQuality: historicalData.dataQuality
+        };
+
+        // Generate realistic polling station traffic scenario
+        const stationTypes: Record<string, any> = {
+          'school': { trafficMultiplier: 1.3, parkingLimited: true },
+          'church': { trafficMultiplier: 1.1, parkingModerate: true },
+          'community_center': { trafficMultiplier: 1.0, parkingAdequate: true },
+          'government': { trafficMultiplier: 1.2, parkingLimited: true }
+        };
+
+        const stationType = this.determineStationType(station.name);
+        const stationMultiplier = stationTypes[stationType]?.trafficMultiplier || 1.0;
+
+        return {
+          parish: station.parish || 'Kingston',
+          parishData,
+          stationType,
+          stationMultiplier,
+          coordinates: {
+            lat: station.latitude,
+            lng: station.longitude
+          },
+          historicalDataSource: 'authentic_database',
+          historicalElectionDate: historicalData.electionDate
+        };
+      } else {
+        console.log(`[AI PREDICTION] No historical data found for ${station.parish}, using fallback`);
+        
+        // Fallback to basic data if no historical data available
+        const fallbackData = {
+          baseTraffic: 'moderate',
+          peakHours: ['07:00-09:00', '16:00-18:00'],
+          voterTurnout: 0.68,
+          publicTransportDensity: 'moderate',
+          roadInfrastructure: 'suburban'
+        };
+
+        return {
+          parish: station.parish || 'Kingston',
+          parishData: fallbackData,
+          stationType: this.determineStationType(station.name),
+          stationMultiplier: 1.0,
+          coordinates: {
+            lat: station.latitude,
+            lng: station.longitude
+          },
+          historicalDataSource: 'fallback_default'
+        };
+      }
+    } catch (error) {
+      console.error('[AI PREDICTION] Error fetching historical data:', error);
+      
+      // Fallback on error
+      const fallbackData = {
         baseTraffic: 'moderate',
-        peakHours: ['06:30-08:30', '16:00-18:00'],
-        voterTurnout: 0.65,
+        peakHours: ['07:00-09:00', '16:00-18:00'],
+        voterTurnout: 0.68,
         publicTransportDensity: 'moderate',
         roadInfrastructure: 'suburban'
-      },
-      'Clarendon': {
-        baseTraffic: 'light',
-        peakHours: ['07:00-08:00', '16:00-17:00'],
-        voterTurnout: 0.71,
-        publicTransportDensity: 'low',
-        roadInfrastructure: 'rural_limited'
-      }
-    };
+      };
 
-    const parish = station.parish || 'Kingston';
-    const parishData = jamaicaParishData[parish] || jamaicaParishData['Kingston'];
-    
-    // Generate realistic polling station traffic scenario
-    const stationTypes: Record<string, any> = {
-      'school': { trafficMultiplier: 1.3, parkingLimited: true },
-      'church': { trafficMultiplier: 1.1, parkingModerate: true },
-      'community_center': { trafficMultiplier: 1.0, parkingAdequate: true },
-      'government': { trafficMultiplier: 1.2, parkingLimited: true }
-    };
-
-    const stationType = this.determineStationType(station.name);
-    const stationMultiplier = stationTypes[stationType]?.trafficMultiplier || 1.0;
-
-    return {
-      parish,
-      parishData,
-      stationType,
-      stationMultiplier,
-      coordinates: {
-        lat: station.latitude,
-        lng: station.longitude
-      }
-    };
+      return {
+        parish: station.parish || 'Kingston',
+        parishData: fallbackData,
+        stationType: this.determineStationType(station.name),
+        stationMultiplier: 1.0,
+        coordinates: {
+          lat: station.latitude,
+          lng: station.longitude
+        },
+        historicalDataSource: 'error_fallback'
+      };
+    }
   }
 
   private determineStationType(stationName: string): string {

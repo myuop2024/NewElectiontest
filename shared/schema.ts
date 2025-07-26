@@ -818,6 +818,28 @@ export const trafficAnalyticsHistory = pgTable("traffic_analytics_history", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Historical Election Data - Store authentic Jamaica election traffic patterns for AI predictions
+export const historicalElectionData = pgTable("historical_election_data", {
+  id: serial("id").primaryKey(),
+  electionDate: timestamp("election_date").notNull(),
+  electionType: text("election_type").notNull(), // 'local_government', 'general', 'by_election'
+  parish: text("parish").notNull(),
+  constituency: text("constituency"),
+  baseTrafficLevel: text("base_traffic_level").notNull(), // 'light', 'moderate', 'heavy', 'severe'
+  peakHours: json("peak_hours").notNull(), // Array of time ranges like ['07:00-09:00', '17:00-19:00']
+  voterTurnout: decimal("voter_turnout", { precision: 3, scale: 2 }).notNull(), // 0-1
+  publicTransportDensity: text("public_transport_density").notNull(), // 'very_low', 'low', 'moderate', 'high', 'very_high'
+  roadInfrastructure: text("road_infrastructure").notNull(), // 'rural_limited', 'suburban', 'urban_mixed', 'urban_congested'
+  weatherConditions: text("weather_conditions"), // 'clear', 'rainy', 'stormy', 'cloudy'
+  specialEvents: json("special_events"), // Array of concurrent events affecting traffic
+  observedTrafficPatterns: json("observed_traffic_patterns"), // Detailed traffic observations
+  dataSource: text("data_source").notNull(), // 'official_records', 'observer_reports', 'traffic_analysis'
+  dataQuality: text("data_quality").notNull().default('high'), // 'low', 'medium', 'high', 'verified'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
 // Traffic Predictions - AI-powered traffic forecasting for election day planning
 export const trafficPredictions = pgTable("traffic_predictions", {
   id: serial("id").primaryKey(),
@@ -1034,6 +1056,11 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
   recipient: one(users, { fields: [chatMessages.recipientId], references: [users.id] }),
   room: one(chatRooms, { fields: [chatMessages.roomId], references: [chatRooms.id] }),
+}));
+
+// Historical Election Data relations
+export const historicalElectionDataRelations = relations(historicalElectionData, ({ one }) => ({
+  // No direct relations to other tables - standalone historical data
 }));
 
 // Traffic table relations

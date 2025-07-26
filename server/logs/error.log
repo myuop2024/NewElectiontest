@@ -1,9 +1,1 @@
-[2025-07-26T04:47:18.052Z] Unhandled Rejection: Error: Email credentials not configured
-Error: Unhandled Rejection: Error: Email credentials not configured
-    at process.<anonymous> (/home/runner/workspace/server/index.ts:10:12)
-    at process.emit (node:events:524:28)
-    at process.emit (/home/runner/workspace/node_modules/tsx/dist/suppress-warnings.cjs:1:472)
-    at emitUnhandledRejection (node:internal/process/promises:250:13)
-    at throwUnhandledRejectionsMode (node:internal/process/promises:385:19)
-    at processPromiseRejections (node:internal/process/promises:470:17)
-    at process.processTicksAndRejections (node:internal/process/task_queues:96:32)
+
