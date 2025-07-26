@@ -3,9 +3,9 @@
  * Populate database directly without authentication issues
  */
 
-const { drizzle } = require('drizzle-orm/neon-serverless');
-const { Pool } = require('@neondatabase/serverless');
-const schema = require('./shared/schema.ts');
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool } from '@neondatabase/serverless';
+import * as schema from './shared/schema.js';
 
 async function manualPopulateHistorical() {
   console.log('\n🏛️ Manual Historical Data Population (1962-2024)...\n');
