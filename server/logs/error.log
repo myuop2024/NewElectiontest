@@ -1,1 +1,32 @@
-
+[2025-07-26T19:05:44.911Z] [TRAFFIC API ERROR] status: ZERO_RESULTS, routes: 0 for location 18.3587142,-77.8132734
+Error: [TRAFFIC API ERROR] status: ZERO_RESULTS, routes: 0 for location 18.3587142,-77.8132734
+    at TrafficService.getTrafficConditions (/home/runner/workspace/server/lib/traffic-service.ts:94:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TrafficService.getPollingStationTraffic (/home/runner/workspace/server/lib/traffic-service.ts:227:33)
+    at async Promise.all (index 168)
+    at async TrafficService.getAllPollingStationsTraffic (/home/runner/workspace/server/lib/traffic-service.ts:417:23)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:4167:30)
+[2025-07-26T19:05:44.932Z] [TRAFFIC SERVICE ERROR] Failed to get traffic conditions for 18.3587142,-77.8132734: Traffic data unavailable: ZERO_RESULTS
+Error: [TRAFFIC SERVICE ERROR] Failed to get traffic conditions for 18.3587142,-77.8132734: Traffic data unavailable: ZERO_RESULTS
+    at TrafficService.getTrafficConditions (/home/runner/workspace/server/lib/traffic-service.ts:136:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TrafficService.getPollingStationTraffic (/home/runner/workspace/server/lib/traffic-service.ts:227:33)
+    at async Promise.all (index 168)
+    at async TrafficService.getAllPollingStationsTraffic (/home/runner/workspace/server/lib/traffic-service.ts:417:23)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:4167:30)
+[2025-07-26T19:11:16.731Z] [TRAFFIC API ERROR] status: ZERO_RESULTS, routes: 0 for location 18.3587142,-77.8132734
+Error: [TRAFFIC API ERROR] status: ZERO_RESULTS, routes: 0 for location 18.3587142,-77.8132734
+    at TrafficService.getTrafficConditions (/home/runner/workspace/server/lib/traffic-service.ts:94:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TrafficService.getPollingStationTraffic (/home/runner/workspace/server/lib/traffic-service.ts:227:33)
+    at async Promise.all (index 168)
+    at async TrafficService.getAllPollingStationsTraffic (/home/runner/workspace/server/lib/traffic-service.ts:417:23)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:4167:30)
+[2025-07-26T19:11:16.732Z] [TRAFFIC SERVICE ERROR] Failed to get traffic conditions for 18.3587142,-77.8132734: Traffic data unavailable: ZERO_RESULTS
+Error: [TRAFFIC SERVICE ERROR] Failed to get traffic conditions for 18.3587142,-77.8132734: Traffic data unavailable: ZERO_RESULTS
+    at TrafficService.getTrafficConditions (/home/runner/workspace/server/lib/traffic-service.ts:136:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TrafficService.getPollingStationTraffic (/home/runner/workspace/server/lib/traffic-service.ts:227:33)
+    at async Promise.all (index 168)
+    at async TrafficService.getAllPollingStationsTraffic (/home/runner/workspace/server/lib/traffic-service.ts:417:23)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:4167:30)
