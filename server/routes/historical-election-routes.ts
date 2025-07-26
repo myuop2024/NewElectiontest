@@ -138,7 +138,7 @@ router.post('/initialize', requireAdmin, async (req, res) => {
 // POST /api/historical-election/process-ecj - Process official ECJ results (admin only)
 router.post('/process-ecj', requireAdmin, async (req, res) => {
   try {
-    const { ecjDataProcessor } = await import('../lib/ecj-data-processor');
+    const { ecjDataProcessor } = await import('../lib/ecj-data-processor-fixed');
     console.log('[HISTORICAL API] Processing official ECJ 2024 Local Government results');
     await ecjDataProcessor.processECJResults();
     res.json({ message: 'ECJ official results processed successfully' });
@@ -151,7 +151,7 @@ router.post('/process-ecj', requireAdmin, async (req, res) => {
 // GET /api/historical-election/ecj-statistics - Get ECJ official statistics
 router.get('/ecj-statistics', requireAuth, async (req, res) => {
   try {
-    const { ecjDataProcessor } = await import('../lib/ecj-data-processor');
+    const { ecjDataProcessor } = await import('../lib/ecj-data-processor-fixed');
     console.log('[HISTORICAL API] Fetching ECJ official statistics');
     const stats = ecjDataProcessor.getECJStatistics();
     res.json(stats);
