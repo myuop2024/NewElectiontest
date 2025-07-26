@@ -10,6 +10,7 @@ import { MapPin, Search, Filter, Download, Map, List, Navigation, Eye } from "lu
 import { useToast } from "@/hooks/use-toast";
 import EnhancedMap from "@/components/maps/enhanced-map";
 import UnifiedJamaicaMap from "@/components/maps/unified-jamaica-map";
+import EnhancedPollingStationsHeatMap from "@/components/maps/enhanced-polling-stations-heat-map";
 import StationTrafficStatus from "@/components/traffic/station-traffic-status";
 import StationWeatherStatus from "@/components/weather/station-weather-status";
 import StationXSentiment from "@/components/x-sentiment/station-x-sentiment";
@@ -241,22 +242,27 @@ export default function PollingStations() {
         </TabsContent>
         
         <TabsContent value="map" className="space-y-6">
-          {/* Enhanced Google Maps with Jamaica Polling Stations */}
-          <UnifiedJamaicaMap
-            enabledOverlays={[]}
-            showControls={false}
-            onStationSelect={setSelectedStation}
-            selectedStation={selectedStation}
-            height="400px"
-            showLegend={false}
-          />
+          {/* Enhanced Heat Map with Road Shading and Weather Symbols */}
+          <div className="mb-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Enhanced Heat Map</h3>
+              <p className="text-sm text-muted-foreground">
+                Road shading for traffic conditions and weather symbols with parish fallback
+              </p>
+            </div>
+            <EnhancedPollingStationsHeatMap 
+              stations={filteredStations} 
+              selectedStation={selectedStation}
+              onStationSelect={setSelectedStation}
+            />
+          </div>
           
-          {/* Heat Map Risk Assessment with Overlays */}
+          {/* Traditional Overlay Map for Comparison */}
           <div className="mt-6">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold">Heat Map with Traffic, Weather & Sentiment Overlays</h3>
+              <h3 className="text-lg font-semibold">Traditional Overlay Map</h3>
               <p className="text-sm text-muted-foreground">
-                Interactive risk analysis combining X sentiment, traffic, weather, and incident data
+                Traditional circular overlays for comparison
               </p>
             </div>
             <UnifiedJamaicaMap
@@ -264,7 +270,7 @@ export default function PollingStations() {
               showControls={true}
               onStationSelect={setSelectedStation}
               selectedStation={selectedStation}
-              height="600px"
+              height="500px"
               showLegend={true}
             />
           </div>

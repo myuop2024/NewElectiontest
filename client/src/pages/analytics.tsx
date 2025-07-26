@@ -8,6 +8,7 @@ import { BarChart3, TrendingUp, Download, Calendar, Filter, MapPin } from "lucid
 import MetricsOverview from "@/components/analytics/metrics-overview";
 import Charts from "@/components/analytics/charts";
 import PollingStationsHeatMap from "@/components/maps/polling-stations-heat-map";
+import EnhancedPollingStationsHeatMap from "@/components/maps/enhanced-polling-stations-heat-map";
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState("24h");
@@ -136,13 +137,10 @@ export default function Analytics() {
         </CardHeader>
         <CardContent>
           <div className="h-[500px] w-full">
-            <PollingStationsHeatMap
+            <EnhancedPollingStationsHeatMap
               stations={stations || []}
               selectedStation={selectedStation}
               onStationSelect={setSelectedStation}
-              heatMapData={heatMapData || []}
-              isLoading={heatMapLoading}
-              onRefresh={refetchHeatMapData}
             />
           </div>
           {selectedStation && (
