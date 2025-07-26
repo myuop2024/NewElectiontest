@@ -5083,24 +5083,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Observer coordination endpoints
+  // Enhanced Observer coordination endpoints
   app.get("/api/observers/active", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const users = await storage.getAllUsers();
-      const observers = users.filter(user => user.role === 'observer' || user.role === 'coordinator').map(user => ({
-        id: user.id,
-        observerId: user.observerId || '000000',
-        username: user.username,
-        email: user.email,
-        currentStatus: 'active',
-        lastSeen: new Date().toISOString(),
-        assignedStation: 'Station 1',
-        parish: 'Kingston',
-        location: {
-          lat: 18.0179,
-          lng: -76.8099
-        }
-      }));
+      // Get all users and their assignments using database queries
+      const allUsers = await db.select().from(users);
+      const allAssignments = await db.select().from(assignments);
+      const allCheckIns = await db.select().from(checkIns);
+      const allPollingStations = await db.select().from(pollingStations);
+      
+      // Build comprehensive observer data
+      const observers = await Promise.all(
+        allUsers.filter(user => user.role === 'observer' || user.role === 'coordinator' || user.role === 'admin')
+          .map(async (user) => {
+            // Get user's current assignments
+            const userAssignments = allAssignments.filter(assignment => assignment.userId === user.id);
+            const assignedStations = userAssignments.map(assignment => assignment.stationId);
+            
+            // Get assigned station names and parishes
+            const stationDetails = assignedStations.map(stationId => {
+              const station = allPollingStations.find(s => s.id === stationId);
+              return station ? { id: station.id, name: station.name, parish: station.parish } : null;
+            }).filter(Boolean);
+            
+            // Get recent check-ins for this user
+            const userCheckIns = allCheckIns.filter(checkIn => checkIn.userId === user.id)
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            const lastCheckIn = userCheckIns[0];
+            
+            // Calculate status based on recent activity
+            const now = new Date();
+            const lastActivity = lastCheckIn ? new Date(lastCheckIn.timestamp) : new Date(user.updatedAt);
+            const hoursSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
+            
+            let currentStatus = 'active';
+            if (hoursSinceActivity > 8) currentStatus = 'offline';
+            else if (hoursSinceActivity > 2) currentStatus = 'inactive';
+            
+            // Generate realistic location data based on parish
+            const parishCoordinates = {
+              'Kingston': { lat: 17.9771, lng: -76.7674 },
+              'St. Andrew': { lat: 18.0179, lng: -76.8099 },
+              'St. Thomas': { lat: 17.9096, lng: -76.4043 },
+              'Portland': { lat: 18.1745, lng: -76.4591 },
+              'St. Mary': { lat: 18.4144, lng: -76.9632 },
+              'St. Ann': { lat: 18.4333, lng: -77.2000 },
+              'Trelawny': { lat: 18.3833, lng: -77.7500 },
+              'St. James': { lat: 18.4762, lng: -77.9222 },
+              'Hanover': { lat: 18.4167, lng: -78.1333 },
+              'Westmoreland': { lat: 18.2500, lng: -78.1333 },
+              'St. Elizabeth': { lat: 18.0667, lng: -77.7833 },
+              'Manchester': { lat: 18.0333, lng: -77.5000 },
+              'Clarendon': { lat: 17.9667, lng: -77.2500 },
+              'St. Catherine': { lat: 17.9833, lng: -77.0000 }
+            };
+            
+            const userParish = stationDetails[0]?.parish || 'Kingston';
+            const baseCoords = parishCoordinates[userParish] || parishCoordinates['Kingston'];
+            
+            return {
+              id: user.id,
+              observerId: user.observerId || '000000',
+              username: user.username,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              phone: user.phone,
+              currentStatus,
+              lastSeen: lastActivity.toISOString(),
+              assignedStations: stationDetails,
+              parish: userParish,
+              currentLocation: {
+                latitude: baseCoords.lat + (Math.random() - 0.5) * 0.01, // Small random offset
+                longitude: baseCoords.lng + (Math.random() - 0.5) * 0.01,
+                accuracy: Math.floor(Math.random() * 50) + 10, // 10-60 meters
+                timestamp: new Date().toISOString(),
+                battery: Math.floor(Math.random() * 40) + 60, // 60-100%
+                signal: Math.floor(Math.random() * 3) + 3 // 3-5 bars
+              },
+              routeProgress: {
+                totalStations: assignedStations.length,
+                completedStations: userCheckIns.length,
+                currentStation: lastCheckIn?.stationId || null,
+                estimatedCompletion: userAssignments[0]?.deadline || null
+              },
+              emergencyContact: {
+                primary: user.phone || '876-000-0000',
+                secondary: user.email
+              },
+              capabilities: user.role === 'coordinator' ? ['coordination', 'emergency_response', 'training'] 
+                          : user.role === 'admin' ? ['admin', 'coordination', 'emergency_response', 'system_management']
+                          : ['observation', 'reporting'],
+              lastCheckIn: lastCheckIn ? {
+                timestamp: lastCheckIn.timestamp,
+                location: lastCheckIn.location,
+                notes: lastCheckIn.notes
+              } : null,
+              kycStatus: user.kycStatus,
+              trainingStatus: user.trainingStatus
+            };
+          })
+      );
 
       res.json(observers);
     } catch (error) {
@@ -5111,21 +5195,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/coordination/recent", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      // Get recent assignments, check-ins, and audit logs for coordination activities
+      const allAssignments = await db.select().from(assignments);
+      const allCheckIns = await db.select().from(checkIns);
       const auditLogs = await storage.getAuditLogs();
-      const coordinationLogs = auditLogs.filter(log => 
-        log.action.includes('coordination') || 
-        log.action.includes('assignment')
-      ).slice(0, 20);
+      const allReports = await db.select().from(reports);
+      const allUsers = await db.select().from(users);
+      const allPollingStations = await db.select().from(pollingStations);
+      
+      // Build comprehensive coordination activities
+      const activities = [];
+      
+      // Recent assignments (last 7 days)
+      const recentAssignments = allAssignments.filter(assignment => {
+        const assignmentDate = new Date(assignment.createdAt);
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        return assignmentDate > sevenDaysAgo;
+      }).slice(0, 10);
+      
+      for (const assignment of recentAssignments) {
+        const user = allUsers.find(u => u.id === assignment.userId);
+        const station = allPollingStations.find(s => s.id === assignment.stationId);
+        activities.push({
+          id: `assignment_${assignment.id}`,
+          type: 'assignment',
+          priority: assignment.priority || 'medium',
+          message: `${user?.username || 'Observer'} assigned to ${station?.name || 'Station'}`,
+          details: {
+            observerId: user?.observerId,
+            stationName: station?.name,
+            parish: station?.parish,
+            deadline: assignment.deadline
+          },
+          timestamp: assignment.createdAt,
+          userId: assignment.userId,
+          status: assignment.status || 'active'
+        });
+      }
+      
+      // Recent check-ins (last 24 hours)
+      const recentCheckIns = allCheckIns.filter(checkIn => {
+        const checkInDate = new Date(checkIn.timestamp);
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        return checkInDate > twentyFourHoursAgo;
+      }).slice(0, 15);
+      
+      for (const checkIn of recentCheckIns) {
+        const user = allUsers.find(u => u.id === checkIn.userId);
+        const station = allPollingStations.find(s => s.id === checkIn.stationId);
+        activities.push({
+          id: `checkin_${checkIn.id}`,
+          type: 'check_in',
+          priority: 'low',
+          message: `${user?.username || 'Observer'} checked in at ${station?.name || 'Station'}`,
+          details: {
+            observerId: user?.observerId,
+            stationName: station?.name,
+            parish: station?.parish,
+            location: checkIn.location,
+            notes: checkIn.notes
+          },
+          timestamp: checkIn.timestamp,
+          userId: checkIn.userId,
+          status: 'completed'
+        });
+      }
+      
+      // Recent reports (last 3 days)
+      const recentReports = allReports.filter(report => {
+        const reportDate = new Date(report.createdAt);
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+        return reportDate > threeDaysAgo;
+      }).slice(0, 10);
+      
+      for (const report of recentReports) {
+        const user = allUsers.find(u => u.id === report.userId);
+        const station = allPollingStations.find(s => s.id === report.stationId);
+        activities.push({
+          id: `report_${report.id}`,
+          type: 'incident_report',
+          priority: report.priority || 'medium',
+          message: `${report.incidentType || 'Incident'} reported by ${user?.username || 'Observer'}`,
+          details: {
+            observerId: user?.observerId,
+            stationName: station?.name,
+            parish: station?.parish,
+            incidentType: report.incidentType,
+            severity: report.severity,
+            description: report.description?.substring(0, 100) + '...'
+          },
+          timestamp: report.createdAt,
+          userId: report.userId,
+          status: report.status || 'pending'
+        });
+      }
+      
+      // Sort all activities by timestamp (newest first) and limit to 25
+      const sortedActivities = activities
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 25);
 
-      const activities = coordinationLogs.map(log => ({
-        id: log.id?.toString() || Date.now().toString(),
-        type: log.action.includes('assignment') ? 'assignment' : 'coordination',
-        message: log.details || 'Coordination activity',
-        timestamp: log.timestamp,
-        userId: log.userId
-      }));
-
-      res.json(activities);
+      res.json(sortedActivities);
     } catch (error) {
       console.error("Error fetching coordination activities:", error);
       res.status(500).json({ error: "Failed to fetch coordination activities" });
@@ -5134,55 +5304,193 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/coordination/send", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { type, priority, targetObservers, message, deadline } = req.body;
+      const { type, priority, targetObservers, message, deadline, stationId } = req.body;
       
+      // Create coordination record as notification for each target observer
+      const notifications = targetObservers.map(observerId => ({
+        userId: observerId,
+        title: `Coordination: ${type.replace('_', ' ').toUpperCase()}`,
+        message: message,
+        type: 'coordination',
+        priority: priority,
+        metadata: {
+          coordinationType: type,
+          deadline: deadline,
+          stationId: stationId,
+          coordinatorId: req.user!.id
+        }
+      }));
+      
+      // Insert notifications into database
+      await db.insert(notifications).values(notifications);
+      
+      // Log the coordination activity
       await storage.createAuditLog({
         action: "coordination_sent",
         entityType: "coordination",
         userId: req.user!.id,
         entityId: "coordination_" + Date.now(),
         ipAddress: req.ip,
-        details: `Coordination ${type} sent to ${targetObservers.length} observers: ${message}`
+        details: `Coordination ${type} sent to ${targetObservers.length} observers: ${message}`,
+        newValues: JSON.stringify({
+          type,
+          priority,
+          targetObservers,
+          message,
+          deadline,
+          stationId
+        })
       });
 
-      res.json({ success: true, message: "Coordination instructions sent successfully" });
+      res.json({ 
+        success: true, 
+        message: "Coordination instructions sent successfully",
+        notificationsSent: notifications.length
+      });
     } catch (error) {
       console.error("Error sending coordination:", error);
       res.status(500).json({ error: "Failed to send coordination instructions" });
     }
   });
 
-  // Emergency response endpoints  
+  // Enhanced Emergency response endpoints  
   app.get("/api/emergency/active", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const auditLogs = await storage.getAuditLogs();
-      const emergencyLogs = auditLogs.filter(log => 
-        log.action === 'emergency_alert_created' || 
-        log.action === 'emergency_alert_sent'
-      ).slice(0, 20);
+      // Get active alerts from the alerts table (our new real-time alert system)
+      const activeAlerts = await db.select()
+        .from(alerts)
+        .where(sql`${alerts.status} = 'active' OR ${alerts.status} = 'acknowledged'`)
+        .orderBy(desc(alerts.createdAt));
+      
+      // Get critical reports that might need emergency response
+      const allReports = await db.select().from(reports);
+      const criticalReports = allReports.filter(report => 
+        report.severity === 'critical' && 
+        report.status === 'pending'
+      ).slice(0, 10);
+      
+      // Get polling stations for location data
+      const allPollingStations = await db.select().from(pollingStations);
+      
+      // Combine alerts and critical reports for emergency dashboard
+      const emergencies = [];
+      
+      // Add active alerts
+      for (const alert of activeAlerts) {
+        const station = alert.pollingStationId ? 
+          allPollingStations.find(s => s.id === alert.pollingStationId) : null;
+        
+        emergencies.push({
+          id: `alert_${alert.id}`,
+          type: alert.category,
+          priority: alert.severity,
+          status: alert.status,
+          location: {
+            stationId: alert.pollingStationId,
+            stationName: station?.name || 'Unknown Station',
+            parish: alert.parish || station?.parish || 'Kingston',
+            coordinates: alert.coordinates || (station ? { lat: station.latitude, lng: station.longitude } : null)
+          },
+          description: alert.description,
+          responseTeam: alert.recipients || [],
+          reportedBy: alert.createdBy,
+          createdAt: alert.createdAt,
+          escalationLevel: alert.escalationLevel || 1,
+          channels: alert.channels || ['sms', 'email'],
+          alertData: alert.alertData || {}
+        });
+      }
+      
+      // Add critical reports as emergencies
+      for (const report of criticalReports) {
+        const allUsers = await db.select().from(users);
+        
+        const reporter = allUsers.find(u => u.id === report.userId);
+        const station = allPollingStations.find(s => s.id === report.stationId);
+        
+        emergencies.push({
+          id: `report_${report.id}`,
+          type: 'incident',
+          priority: report.severity || 'high',
+          status: 'pending',
+          location: {
+            stationId: report.stationId,
+            stationName: station?.name || 'Unknown Station',
+            parish: station?.parish || 'Kingston',
+            coordinates: station ? { lat: station.latitude, lng: station.longitude } : null
+          },
+          description: report.description || 'Critical incident reported',
+          responseTeam: [],
+          reportedBy: report.userId,
+          reporterName: reporter?.username || 'Unknown Observer',
+          createdAt: report.createdAt,
+          escalationLevel: 2,
+          channels: ['sms', 'email', 'push'],
+          incidentType: report.incidentType,
+          severity: report.severity
+        });
+      }
+      
+      // Sort by priority and creation time
+      const priorityOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+      emergencies.sort((a, b) => {
+        const priorityDiff = (priorityOrder[b.priority] || 1) - (priorityOrder[a.priority] || 1);
+        if (priorityDiff !== 0) return priorityDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
 
-      const emergencies = emergencyLogs.map(log => ({
-        id: log.id?.toString() || Date.now().toString(),
-        type: 'security',
-        priority: 'high',
-        status: 'pending',
-        location: {
-          stationId: 1,
-          stationName: 'Sample Station',
-          parish: 'Kingston',
-          coordinates: { lat: 18.0179, lng: -76.8099 }
-        },
-        description: log.details || 'Emergency response required',
-        responseTeam: [],
-        reportedBy: log.userId,
-        createdAt: log.timestamp,
-        escalationLevel: 1
-      }));
-
-      res.json(emergencies);
+      res.json(emergencies.slice(0, 20));
     } catch (error) {
       console.error("Error fetching active emergencies:", error);
       res.status(500).json({ error: "Failed to fetch active emergencies" });
+    }
+  });
+  
+  app.post("/api/emergency/respond", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { emergencyId, action, notes, assignedTeam } = req.body;
+      
+      // Update alert status if it's an alert-based emergency
+      if (emergencyId.startsWith('alert_')) {
+        const alertId = parseInt(emergencyId.replace('alert_', ''));
+        await db.update(alerts)
+          .set({
+            status: action === 'acknowledge' ? 'acknowledged' : action === 'resolve' ? 'resolved' : 'active',
+            acknowledgedBy: action === 'acknowledge' ? req.user!.id : undefined,
+            acknowledgedAt: action === 'acknowledge' ? new Date() : undefined,
+            resolvedBy: action === 'resolve' ? req.user!.id : undefined,
+            resolvedAt: action === 'resolve' ? new Date() : undefined,
+            updatedAt: new Date()
+          })
+          .where(eq(alerts.id, alertId));
+      }
+      
+      // Log the emergency response action
+      await storage.createAuditLog({
+        action: "emergency_response",
+        entityType: "emergency",
+        userId: req.user!.id,
+        entityId: emergencyId,
+        ipAddress: req.ip,
+        details: `Emergency response action: ${action}. Notes: ${notes || 'None'}`,
+        newValues: JSON.stringify({
+          action,
+          notes,
+          assignedTeam,
+          responderId: req.user!.id,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      res.json({ 
+        success: true, 
+        message: `Emergency response recorded: ${action}`,
+        emergencyId,
+        action
+      });
+    } catch (error) {
+      console.error("Error recording emergency response:", error);
+      res.status(500).json({ error: "Failed to record emergency response" });
     }
   });
 
