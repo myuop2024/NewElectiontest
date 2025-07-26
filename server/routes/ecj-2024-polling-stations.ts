@@ -10,22 +10,35 @@ import { eq, and } from 'drizzle-orm';
 import { ecj2024PollingStationExtractor } from '../lib/ecj-2024-polling-station-extractor.js';
 import { pollingStationGeocoder } from '../lib/polling-station-geocoder.js';
 
-// Auth interface
+// Auth interface matching main routes
 interface AuthenticatedRequest extends Request {
   user?: { id: number; username: string; role: string };
   session: any;
 }
 
-// Simple auth middleware
-const requireAuth = (req: AuthenticatedRequest, res: Response, next: any) => {
-  if (!req.session?.userId || !req.session?.role) {
-    return res.status(401).json({ error: 'Authentication required' });
+// Authentication middleware matching main routes.ts implementation
+const authenticateToken = (req: AuthenticatedRequest, res: Response, next: any) => {
+  console.log('[ECJ AUTH DEBUG] Session data:', {
+    userId: req.session.userId,
+    username: req.session.username,
+    role: req.session.role,
+    sessionID: req.sessionID
+  });
+  
+  // Check if user is logged in via session
+  if (!req.session.userId || !req.session.username || !req.session.role) {
+    console.log('[ECJ AUTH DEBUG] Authentication failed - missing session data');
+    return res.status(401).json({ error: "Authentication required" });
   }
+
+  // Set user object from session data
   req.user = {
     id: req.session.userId,
     username: req.session.username,
     role: req.session.role
   };
+  
+  console.log('[ECJ AUTH DEBUG] User authenticated:', req.user);
   next();
 };
 
@@ -34,7 +47,7 @@ const router = Router();
 /**
  * Extract and populate all 2024 ECJ polling stations
  */
-router.post('/extract-2024-stations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/extract-2024-stations', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -137,7 +150,7 @@ router.post('/extract-2024-stations', requireAuth, async (req: AuthenticatedRequ
 /**
  * Get all 2024 test data stations
  */
-router.get('/test-data-stations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/test-data-stations', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const testStations = await db.select().from(pollingStations)
       .where(eq(pollingStations.isTestData, true));
@@ -171,7 +184,7 @@ router.get('/test-data-stations', requireAuth, async (req: AuthenticatedRequest,
 /**
  * Remove all test data stations (Admin only)
  */
-router.delete('/remove-test-data', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/remove-test-data', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
@@ -209,7 +222,7 @@ router.delete('/remove-test-data', requireAuth, async (req: AuthenticatedRequest
 /**
  * Get extraction status and statistics
  */
-router.get('/extraction-status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/extraction-status', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const allStations = await db.select().from(pollingStations);
     const testStations = allStations.filter(s => s.isTestData);

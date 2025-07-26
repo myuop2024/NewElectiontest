@@ -3,7 +3,7 @@
  * Extract and manage authentic 2024 ECJ polling stations as test data
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +29,14 @@ export default function AdminECJ2024Stations() {
   // Fetch extraction status
   const fetchExtractionStatus = async () => {
     try {
+      console.log('[ECJ 2024] Fetching extraction status...');
       const response = await apiRequest('/api/ecj-2024-stations/extraction-status');
+      console.log('[ECJ 2024] Status response:', response);
       if (response.success) {
         setExtractionStats(response.statistics);
       }
     } catch (error) {
-      console.error('Error fetching extraction status:', error);
+      console.error('[ECJ 2024] Error fetching extraction status:', error);
     }
   };
 
@@ -42,9 +44,12 @@ export default function AdminECJ2024Stations() {
   const handleExtraction = async () => {
     setIsExtracting(true);
     try {
+      console.log('[ECJ 2024] Starting extraction...');
       const response = await apiRequest('/api/ecj-2024-stations/extract-2024-stations', {
         method: 'POST'
       });
+
+      console.log('[ECJ 2024] Extraction response:', response);
 
       if (response.success) {
         setExtractionResults(response.data);
@@ -54,9 +59,11 @@ export default function AdminECJ2024Stations() {
         });
         await fetchExtractionStatus();
       } else {
+        console.error('[ECJ 2024] Extraction failed:', response);
         throw new Error(response.error || 'Extraction failed');
       }
     } catch (error: any) {
+      console.error('[ECJ 2024] Extraction error:', error);
       toast({
         title: "Extraction Failed",
         description: error.message || "Failed to extract 2024 polling stations",
@@ -101,9 +108,9 @@ export default function AdminECJ2024Stations() {
   };
 
   // Initial load
-  useState(() => {
+  React.useEffect(() => {
     fetchExtractionStatus();
-  });
+  }, []);
 
   return (
     <div className="space-y-6">
